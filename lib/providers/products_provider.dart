@@ -48,21 +48,26 @@ class ProductsProvider with ChangeNotifier {
 
   // Fetch Products
   Future<void> fetchProducts() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
+      final response = await _apiService.get('/Products');
 
-      final response = await _apiService.get(ApiConstants.products);
       if (response is List) {
-        _products =
-            response.map((json) => ProductModel.fromJson(json)).toList();
+        _products = response.map((e) => ProductModel.fromJson(e)).toList();
+      } else if (response is Map && response['data'] is List) {
+        final data = response['data'] as List;
+        _products = data.map((e) => ProductModel.fromJson(e)).toList();
+      } else {
+        _products = [];
+        _error = 'Unexpected response format for products.';
       }
-
-      _isLoading = false;
-      notifyListeners();
     } catch (e) {
+      _products = [];
       _error = e.toString();
+    } finally {
       _isLoading = false;
       notifyListeners();
     }
@@ -117,5 +122,84 @@ class ProductsProvider with ChangeNotifier {
       fetchProducts(),
       fetchCategories(),
     ]);
+  }
+
+  // ========== ADMIN CRUD OPERATIONS ==========
+
+  // Create Product
+  Future<ProductModel> createProduct(Map<String, dynamic> productData) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final response = await _apiService.post('/Products', body: productData);
+      
+      final newProduct = ProductModel.fromJson(response);
+      _products.add(newProduct);
+      
+      notifyListeners();
+      return newProduct;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Update Product
+  Future<void> updateProduct(String productId, Map<String, dynamic> productData) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _apiService.put('/Products/$productId', body: productData);
+      
+      // Refresh products to get updated data
+      await fetchProducts();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Delete Product
+  Future<void> deleteProduct(String productId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _apiService.delete('/Products/$productId');
+      
+      // Remove from local list
+      _products.removeWhere((product) => product.id == productId);
+      
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Get Product Details by ID (from API)
+  Future<ProductModel> getProductDetails(String productId) async {
+    try {
+      final response = await _apiService.get('/Products/$productId');
+      return ProductModel.fromJson(response);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
   }
 }

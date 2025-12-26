@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/product_model.dart';
 import '../theme/app_colors.dart';
 import '../utils/formatters.dart';
+import 'package:provider/provider.dart';
+import '../../providers/cart_provider.dart';
 
 class ProductCard extends StatelessWidget {
   final ProductModel product;
@@ -114,88 +116,93 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
 
-                  // Price
-                  Text(
-                    Formatters.currency(product.price),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  // Price + quick add/qty controls
+                  Consumer<CartProvider>(
+                    builder: (context, cart, _) {
+                      final qtyInCart = cart.getProductQuantity(product.id);
+                      final canOrder = product.isAvailable && product.stock > 0;
 
-                  // Add to Cart Button
-                  if (quantity == 0)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 36,
-                      child: ElevatedButton(
-                        onPressed: product.isAvailable ? onAddToCart : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add, size: 18),
-                            SizedBox(width: 4),
-                            Text(
-                              'Add',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    // Quantity Controls
-                    Container(
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
+                      return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            onPressed: onDecrease,
-                            icon: Icon(Icons.remove, size: 18),
-                            color: AppColors.primary,
-                            padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(
-                              minWidth: 36,
-                              minHeight: 36,
-                            ),
-                          ),
                           Text(
-                            quantity.toString(),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                            Formatters.currency(product.price),
+                            style: theme.textTheme.titleLarge?.copyWith(
                               color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                          IconButton(
-                            onPressed: onIncrease,
-                            icon: Icon(Icons.add, size: 18),
-                            color: AppColors.primary,
-                            padding: EdgeInsets.zero,
-                            constraints: BoxConstraints(
-                              minWidth: 36,
-                              minHeight: 36,
+                          if (!canOrder)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'Out',
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            )
+                          else if (qtyInCart <= 0)
+                            SizedBox(
+                              height: 32,
+                              child: ElevatedButton(
+                                onPressed: () => cart.addItem(product, 1),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                ),
+                                child: const Text('ADD'),
+                              ),
+                            )
+                          else
+                            Container(
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    iconSize: 18,
+                                    onPressed: () =>
+                                        cart.decreaseQuantity(product.id),
+                                    icon: const Icon(Icons.remove),
+                                  ),
+                                  Text(
+                                    qtyInCart.toString(),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    iconSize: 18,
+                                    onPressed: qtyInCart < product.stock
+                                        ? () =>
+                                            cart.increaseQuantity(product.id)
+                                        : null,
+                                    icon: const Icon(Icons.add),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
                         ],
-                      ),
-                    ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

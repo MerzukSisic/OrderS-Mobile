@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../models/order_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
-import 'order_status_badge.dart';
+import '../../../models/order_model.dart';
 
 class OrderCard extends StatelessWidget {
   final OrderModel order;
@@ -14,82 +13,135 @@ class OrderCard extends StatelessWidget {
     required this.onTap,
   });
 
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return AppColors.success;
+      case 'cancelled':
+        return AppColors.error;
+      case 'preparing':
+        return AppColors.warning;
+      case 'ready':
+        return AppColors.info;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _safeCurrency(num value) {
+    try {
+      final s = Formatters.currency(value.toDouble());
+      if (s.trim().isNotEmpty) return s;
+    } catch (_) {}
+    return '${value.toStringAsFixed(2)} KM';
+  }
+
+  String _formatDateTime(DateTime dt) {
+    try {
+      return Formatters.date(dt);
+    } catch (_) {
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} - ${dt.day}/${dt.month}/${dt.year}';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Order #',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    Formatters.currency(order.totalAmount),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-
-              // Time and Table
-              Row(
-                children: [
-                  const Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    Formatters.time(order.createdAt),
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
-                    ),
-                  ),
-                  if (order.tableNumber != null) ...[
-                    const SizedBox(width: 16),
-                    const Icon(
-                      Icons.table_restaurant,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Table ',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // Status Badge
-              OrderStatusBadge(status: order.status),
-            ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.textSecondary.withValues(alpha: 0.1),
+            width: 1,
           ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row - ORDER ID + AMOUNT
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // ✅ ✅ ✅ ORDER ID DISPLAY
+                Text(
+                  'Order #${order.id.substring(0, 8).toUpperCase()}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  _safeCurrency(order.totalAmount),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Second Row - TIME + TABLE
+            Row(
+              children: [
+                Icon(
+                  Icons.access_time,
+                  size: 16,
+                  color: AppColors.textSecondary.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _formatDateTime(order.createdAt),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary.withValues(alpha: 0.9),
+                  ),
+                ),
+                if (order.tableNumber != null) ...[
+                  const SizedBox(width: 16),
+                  Icon(
+                    Icons.table_restaurant,
+                    size: 16,
+                    color: AppColors.textSecondary.withValues(alpha: 0.7),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Table ${order.tableNumber}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Status Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getStatusColor(order.status).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                order.status,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: _getStatusColor(order.status),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

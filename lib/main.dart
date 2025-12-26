@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:orders_mobile/providers/inventory_provider.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/api_service.dart';
@@ -64,6 +65,9 @@ class OrdersApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => TablesProvider(apiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => InventoryProvider(apiService),
         ),
       ],
       child: Builder(

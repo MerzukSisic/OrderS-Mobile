@@ -93,6 +93,84 @@ class OrdersProvider with ChangeNotifier {
     }
   }
 
+Future<OrderModel?> fetchOrderById(String id) async {
+  try {
+    final response = await _apiService.get('${ApiConstants.orders}/$id');
+    if (response == null) return null;
+
+    final order = OrderModel.fromJson(response);
+
+    final index = _orders.indexWhere((o) => o.id == order.id);
+    if (index >= 0) {
+      _orders[index] = order;
+    } else {
+      _orders.insert(0, order);
+    }
+
+    notifyListeners();
+    return order;
+  } catch (e) {
+    _error = e.toString();
+    notifyListeners();
+    return null;
+  }
+}
+
+Future<bool> updateOrderStatus({
+  required String orderId,
+  required String status,
+}) async {
+  try {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    await _apiService.put(
+      '${ApiConstants.orders}/$orderId/status',
+      body: {'status': status},
+    );
+
+    await fetchOrders();
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  } catch (e) {
+    _error = e.toString();
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+}
+
+Future<bool> updateOrderItems({
+  required String orderId,
+  required List<Map<String, dynamic>> items,
+  String? notes,
+}) async {
+  try {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    await _apiService.put(
+      '${ApiConstants.orders}/$orderId/items',
+      body: {'notes': notes, 'items': items},
+    );
+
+    await fetchOrders();
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  } catch (e) {
+    _error = e.toString();
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+}
+
+
+
   // Refresh
   Future<void> refresh() => fetchOrders();
 }

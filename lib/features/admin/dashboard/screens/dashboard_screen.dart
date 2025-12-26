@@ -1,213 +1,773 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../providers/auth_provider.dart';
+import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/services/api_service.dart';
 import '../../../../routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
-  Future<void> _handleLogout(BuildContext context) async {
-    final authProvider = context.read<AuthProvider>();
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
 
-    // Show confirmation dialog
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Odlogiraj se'),
-        content: const Text('Da li ste sigurni da želite da se odlogirate?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Otkaži'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Odlogiraj se',
-              style: TextStyle(color: AppColors.error),
-            ),
-          ),
-        ],
-      ),
-    );
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isLoading = true;
+  String? _error;
+  Map<String, dynamic>? _stats;
+  String? _selectedCategory;
+  List<dynamic> _topProducts = [];
 
-    if (confirm == true) {
-      await authProvider.logout();
-      if (context.mounted) {
-        AppRouter.navigateAndRemoveUntil(context, AppRouter.login);
-      }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDashboard();
+    });
+  }
+
+  Future<void> _loadDashboard() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final ApiService api = ApiService();
+      final stats = await api.get(ApiConstants.statistics);
+
+      if (!mounted) return;
+      setState(() {
+        _stats = (stats is Map<String, dynamic>) ? stats : null;
+        _topProducts = (_stats?['topProducts'] as List?) ?? [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
+  }
+
+  void _filterByCategory(String? categoryName) {
+    setState(() {
+      _selectedCategory = categoryName;
+    });
+  }
+
+  List<dynamic> _getFilteredProducts() {
+    if (_selectedCategory == null) {
+      return _topProducts;
+    }
+    
+    // Filter products by category name
+    return _topProducts.where((product) {
+      final catName = (product as Map)['categoryName']?.toString() ?? '';
+      return catName.toLowerCase() == _selectedCategory!.toLowerCase();
+    }).toList();
+  }
+
+  String _formatMoney(dynamic value) {
+    final n = (value is num)
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '') ?? 0.0;
+    return '${n.toStringAsFixed(2)} KM';
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.user;
+    return AdminScaffold(
+      title: 'ORDER',
+      currentRoute: AppRouter.adminDashboard,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : (_error != null)
+              ? _buildErrorView()
+              : RefreshIndicator(
+                  onRefresh: _loadDashboard,
+                  color: AppColors.primary,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Category filter chips (dynamically generated from TopProducts)
+                        _buildCategoryFilters(),
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
+                        const SizedBox(height: 20),
+
+                        // Stats cards row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _StatCard(
+                                title: 'Sedmična zarada',
+                                value: _formatMoney(_stats?['weekRevenue'] ?? 0),
+                                subtitle: null, // ✅ Uklonjen hardcoded percentage
+                                valueColor: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _StatCard(
+                                title: 'Narudžbe danas',
+                                value: '${_stats?['todayOrders'] ?? 0}',
+                                subtitle: null, // ✅ Uklonjen hardcoded percentage
+                                valueColor: const Color(0xFF4ECDC4),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Additional mini stats
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _MiniStatCard(
+                                icon: Icons.table_restaurant,
+                                label: 'Active Tables',
+                                value: '${_stats?['activeTables'] ?? 0}',
+                                color: const Color(0xFF95E1D3),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _MiniStatCard(
+                                icon: Icons.inventory_2_outlined,
+                                label: 'Low Stock',
+                                value: '${_stats?['lowStockItems'] ?? 0}',
+                                color: const Color(0xFFFF6B6B),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _MiniStatCard(
+                                icon: Icons.trending_up,
+                                label: 'Danas',
+                                value: _formatMoney(_stats?['todayRevenue'] ?? 0),
+                                color: const Color(0xFFFFD93D),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Top Products Section (filtered by category)
+                        if (_getFilteredProducts().isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.black.withValues(alpha: 0.04),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _selectedCategory == null
+                                          ? 'Top Proizvodi'
+                                          : 'Top $_selectedCategory',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    if (_selectedCategory != null)
+                                      TextButton(
+                                        onPressed: () => _filterByCategory(null),
+                                        child: const Text(
+                                          'Vidi sve',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                ..._buildTopProducts(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Revenue Chart
+                        Container(
+                          height: 250,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.black.withValues(alpha: 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Prihod',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Zadnjih 7 dana',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              Expanded(
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.show_chart,
+                                        size: 48,
+                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Grafikon prihoda',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        '(Dolazi uskoro)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Waiters section
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.black.withValues(alpha: 0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Konobari',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      // Navigate to full waiter performance
+                                    },
+                                    child: const Text(
+                                      'Vidi sve',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              ..._buildWaiters(),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildCategoryFilters() {
+    // Extract unique categories from topProducts
+    final categories = <String>{};
+    for (var product in _topProducts) {
+      final catName = (product as Map)['categoryName']?.toString();
+      if (catName != null && catName.isNotEmpty) {
+        categories.add(catName);
+      }
+    }
+
+    if (categories.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _FilterChip(
+            label: 'Sve',
+            selected: _selectedCategory == null,
+            onTap: () => _filterByCategory(null),
+          ),
+          const SizedBox(width: 12),
+          ...categories.map((category) => Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: _FilterChip(
+                  label: category,
+                  selected: _selectedCategory == category,
+                  onTap: () => _filterByCategory(category),
+                ),
+              )),
+        ],
       ),
-      drawer: Drawer(
-        backgroundColor: AppColors.surface,
-        child: SafeArea(
-          child: Column(
-            children: [
-              // User Info Header
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.primaryDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: AppColors.white,
-                      child: Text(
-                        user?.fullName.substring(0, 1).toUpperCase() ?? 'A',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      user?.fullName ?? 'Admin',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user?.email ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        user?.role ?? 'Admin',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    );
+  }
 
-              // Menu Items
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.dashboard_outlined),
-                      title: const Text('Dashboard'),
-                      selected: true,
-                      selectedTileColor:
-                          AppColors.primary.withValues(alpha: 0.1),
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.shopping_bag_outlined),
-                      title: const Text('Proizvodi'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        AppRouter.navigateTo(context, AppRouter.adminProducts);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.inventory_2_outlined),
-                      title: const Text('Skladište'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        AppRouter.navigateTo(context, AppRouter.inventory);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.shopping_cart_outlined),
-                      title: const Text('Nabavka'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        AppRouter.navigateTo(context, AppRouter.procurement);
-                      },
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.bar_chart_outlined),
-                      title: const Text('Statistika'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        AppRouter.navigateTo(context, AppRouter.statistics);
-                      },
-                    ),
-                    const Divider(),
-                    ListTile(
-                      leading: const Icon(Icons.person_outline),
-                      title: const Text('Profil'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        AppRouter.navigateTo(context, AppRouter.profile);
-                      },
-                    ),
-                  ],
-                ),
+  List<Widget> _buildTopProducts() {
+    final filteredProducts = _getFilteredProducts();
+    
+    if (filteredProducts.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: Text(
+              'Nema podataka',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary.withValues(alpha: 0.6),
               ),
+            ),
+          ),
+        ),
+      ];
+    }
 
-              // Logout Button
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.logout,
-                    color: AppColors.error,
+    return filteredProducts.take(5).map<Widget>((p) {
+      final product = (p is Map) ? p : <String, dynamic>{};
+      final name = product['productName']?.toString() ?? 'Proizvod';
+      final quantity = product['quantitySold']?.toString() ?? '0';
+      final revenue = product['revenue'] ?? 0;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.shopping_bag_outlined,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  title: const Text(
-                    'Odlogiraj se',
-                    style: TextStyle(color: AppColors.error),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$quantity prodato',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.error),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleLogout(context);
-                  },
+                ],
+              ),
+            ),
+            Text(
+              _formatMoney(revenue),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.error.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Neuspjelo učitavanje',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error ?? 'Nepoznata greška',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadDashboard,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Pokušaj ponovo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildWaiters() {
+    final list = _stats?['topWaiters'];
+    if (list is! List || list.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Center(
+            child: Text(
+              'Nema podataka o konobarima',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+        ),
+      ];
+    }
+
+    return list.take(5).map<Widget>((w) {
+      final waiter = (w is Map) ? w : <String, dynamic>{};
+      final name = waiter['waiterName']?.toString() ?? 'Konobar';
+      final totalOrders = waiter['totalOrders']?.toString() ?? '0';
+      final totalRevenue = waiter['totalRevenue'] ?? 0;
+      final avgOrder = waiter['averageOrderValue'] ?? 0;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : 'K',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
                 ),
               ),
-            ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$totalOrders narudžbi • ${_formatMoney(totalRevenue)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4ECDC4).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _formatMoney(avgOrder),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4ECDC4),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+}
+
+// Filter Chip Widget
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? AppColors.primary
+                : AppColors.textSecondary.withValues(alpha: 0.2),
+            width: 1.5,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selected ? AppColors.white : AppColors.textPrimary,
           ),
         ),
       ),
-      body: const Center(
-        child: Text('Admin Dashboard - Coming Soon'),
+    );
+  }
+}
+
+// Stat Card Widget
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final String? subtitle; // ✅ OPCIONO - može biti null
+  final Color valueColor;
+
+  const _StatCard({
+    required this.title,
+    required this.value,
+    this.subtitle,
+    required this.valueColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: valueColor,
+            ),
+          ),
+          // ✅ Prikazuje subtitle samo ako postoji
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: TextStyle(
+                fontSize: 11,
+                color: AppColors.success.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// Mini Stat Card Widget
+class _MiniStatCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _MiniStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                color: AppColors.textSecondary.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+            ),
+          ),
+        ],
       ),
     );
   }

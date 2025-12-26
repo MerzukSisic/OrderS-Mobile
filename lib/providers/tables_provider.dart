@@ -41,16 +41,20 @@ class TablesProvider with ChangeNotifier {
     try {
       final response = await _apiService.get('/Tables');
 
-      if (response['success'] == true) {
-        final List<dynamic> data = response['data'] ?? [];
+      if (response is List) {
+        _tables = response.map((json) => TableModel.fromJson(json)).toList();
+        _error = null;
+      } else if (response is Map && response['data'] is List) {
+        final data = response['data'] as List;
         _tables = data.map((json) => TableModel.fromJson(json)).toList();
         _error = null;
       } else {
-        _error = response['message'] ?? 'Failed to load tables';
+        _tables = [];
+        _error = 'Unexpected response format for tables.';
       }
     } catch (e) {
-      _error = 'Error loading tables: ';
       _tables = [];
+      _error = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -67,28 +71,18 @@ class TablesProvider with ChangeNotifier {
   }
 
   /// Update table status
+  /// ✅ FIX: Dodaj tableId i status u endpoint
   Future<void> updateTableStatus(String tableId, String status) async {
     try {
-      final response = await _apiService.put(
-        '/Tables//status?status=',
+      await _apiService.put(
+        '/Tables/$tableId/status?status=$status',
       );
 
-      if (response['success'] == true) {
-        // Update local state
-        final index = _tables.indexWhere((table) => table.id == tableId);
-        if (index != -1) {
-          _tables[index] = TableModel(
-            id: _tables[index].id,
-            tableNumber: _tables[index].tableNumber,
-            capacity: _tables[index].capacity,
-            status: status,
-            location: _tables[index].location,
-            currentOrderId: _tables[index].currentOrderId,
-          );
-          notifyListeners();
-        }
-      }
+      // ✅ Refresh tables after status update
+      await fetchTables();
     } catch (e) {
+      _error = 'Failed to update table status: $e';
+      notifyListeners();
       rethrow;
     }
   }
@@ -115,6 +109,7 @@ class TablesProvider with ChangeNotifier {
   }
 
   /// Update table (Admin only)
+  /// ✅ FIX: Dodaj tableId u endpoint
   Future<void> updateTable({
     required String tableId,
     String? tableNumber,
@@ -127,7 +122,7 @@ class TablesProvider with ChangeNotifier {
       if (capacity != null) body['capacity'] = capacity;
       if (location != null) body['location'] = location;
 
-      final response = await _apiService.put('/Tables/', body: body);
+      final response = await _apiService.put('/Tables/$tableId', body: body);
 
       if (response['success'] == true) {
         await fetchTables(); // Refresh list
@@ -138,9 +133,10 @@ class TablesProvider with ChangeNotifier {
   }
 
   /// Delete table (Admin only)
+  /// ✅ FIX: Dodaj tableId u endpoint
   Future<void> deleteTable(String tableId) async {
     try {
-      final response = await _apiService.delete('/Tables/');
+      final response = await _apiService.delete('/Tables/$tableId');
 
       if (response['success'] == true) {
         _tables.removeWhere((table) => table.id == tableId);

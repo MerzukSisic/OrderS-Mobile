@@ -10,6 +10,7 @@ import '../features/orders/screens/order_detail_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/admin/dashboard/screens/dashboard_screen.dart';
 import '../features/admin/products/screens/admin_products_screen.dart';
+import '../features/admin/products/screens/admin_add_product_screen.dart';
 import '../features/admin/products/screens/edit_product_screen.dart';
 import '../features/admin/inventory/screens/inventory_screen.dart';
 import '../features/admin/procurement/screens/procurement_screen.dart';
@@ -33,7 +34,8 @@ class AppRouter {
   // Admin routes
   static const String adminDashboard = '/admin/dashboard';
   static const String adminProducts = '/admin/products';
-  static const String editProduct = '/admin/products/edit';
+  static const String adminAddProduct = '/admin/products/add';
+  static const String adminEditProduct = '/admin/products/edit';
   static const String inventory = '/admin/inventory';
   static const String procurement = '/admin/procurement';
   static const String procurementCheckout = '/admin/procurement/checkout';
@@ -69,9 +71,18 @@ class AppRouter {
       '/profile': (context) => const ProfileScreen(),
       '/admin/dashboard': (context) => const DashboardScreen(),
       '/admin/products': (context) => const AdminProductsScreen(),
-      '/admin/products/edit': (context) => const EditProductScreen(),
+      '/admin/products/add': (context) => const AddProductScreen(),
+      '/admin/products/edit': (context) {
+        final args = ModalRoute.of(context)!.settings.arguments;
+        if (args != null && args is String) {
+          return AdminEditProductScreen(productId: args);
+        }
+        return const Scaffold(
+          body: Center(child: Text('Product ID not provided')),
+        );
+      },
       '/admin/inventory': (context) => const InventoryScreen(),
-      '/admin/procurement': (context) => const ProcurementScreen(),
+      '/admin/procurement': (context) => const AdminProcurementScreen(),
       '/admin/procurement/checkout': (context) =>
           const ProcurementCheckoutScreen(),
       '/admin/statistics': (context) => const StatisticsScreen(),

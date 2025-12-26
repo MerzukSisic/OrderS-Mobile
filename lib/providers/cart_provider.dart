@@ -19,23 +19,31 @@ class CartItem {
 class CartProvider with ChangeNotifier {
   final List<CartItem> _items = [];
   TableModel? _selectedTable;
+  String? _activeOrderId; // when not null, we are editing an existing order
   String _orderType = 'DineIn'; // DineIn or TakeAway
   bool _isPartnerOrder = false;
   String? _orderNotes;
 
   List<CartItem> get items => List.unmodifiable(_items);
   TableModel? get selectedTable => _selectedTable;
+  String? get activeOrderId => _activeOrderId;
+  bool get isEditingExistingOrder => _activeOrderId != null;
   String get orderType => _orderType;
   bool get isPartnerOrder => _isPartnerOrder;
   String? get orderNotes => _orderNotes;
   int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
-  double get totalAmount =>
-      _items.fold(0.0, (sum, item) => sum + item.subtotal);
+  double get totalAmount => _items.fold(0.0, (sum, item) => sum + item.subtotal);
   bool get isEmpty => _items.isEmpty;
 
   // Set Selected Table
   void setSelectedTable(TableModel? table) {
     _selectedTable = table;
+    notifyListeners();
+  }
+
+  // Set Active Order Id (editing existing order)
+  void setActiveOrderId(String? orderId) {
+    _activeOrderId = orderId;
     notifyListeners();
   }
 
@@ -59,16 +67,18 @@ class CartProvider with ChangeNotifier {
 
   // Add Item
   void addItem(ProductModel product, int quantity, {String? notes}) {
+    if (quantity <= 0) return;
+
     final existingIndex =
         _items.indexWhere((item) => item.product.id == product.id);
 
     if (existingIndex >= 0) {
-      _items[existingIndex].quantity++;
+      _items[existingIndex].quantity += quantity;
       if (notes != null) {
         _items[existingIndex].notes = notes;
       }
     } else {
-      _items.add(CartItem(product: product, notes: notes));
+      _items.add(CartItem(product: product, quantity: quantity, notes: notes));
     }
 
     notifyListeners();
@@ -82,53 +92,48 @@ class CartProvider with ChangeNotifier {
 
   // Update Quantity
   void updateQuantity(String productId, int quantity) {
-    if (quantity <= 0) {
-      removeItem(productId);
-      return;
-    }
+    final idx = _items.indexWhere((x) => x.product.id == productId);
+    if (idx < 0) return;
 
-    final index = _items.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      _items[index].quantity = quantity;
-      notifyListeners();
+    if (quantity <= 0) {
+      _items.removeAt(idx);
+    } else {
+      _items[idx].quantity = quantity;
     }
+    notifyListeners();
   }
 
   // Increase Quantity
   void increaseQuantity(String productId) {
-    final index = _items.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      _items[index].quantity++;
-      notifyListeners();
-    }
+    final idx = _items.indexWhere((x) => x.product.id == productId);
+    if (idx < 0) return;
+    _items[idx].quantity += 1;
+    notifyListeners();
   }
 
-  // Decrease Quantity
   void decreaseQuantity(String productId) {
-    final index = _items.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      if (_items[index].quantity > 1) {
-        _items[index].quantity--;
-        notifyListeners();
-      } else {
-        removeItem(productId);
-      }
+    final idx = _items.indexWhere((x) => x.product.id == productId);
+    if (idx < 0) return;
+
+    _items[idx].quantity -= 1;
+    if (_items[idx].quantity <= 0) {
+      _items.removeAt(idx);
     }
+    notifyListeners();
   }
 
-  // Update Item Notes
-  void updateItemNotes(String productId, String notes) {
-    final index = _items.indexWhere((item) => item.product.id == productId);
-    if (index >= 0) {
-      _items[index].notes = notes;
-      notifyListeners();
-    }
+  void updateItemNotes(String productId, String? notes) {
+    final idx = _items.indexWhere((x) => x.product.id == productId);
+    if (idx < 0) return;
+    _items[idx].notes = notes;
+    notifyListeners();
   }
 
   // Clear Cart
   void clear() {
     _items.clear();
     _selectedTable = null;
+    _activeOrderId = null;
     _orderType = 'DineIn';
     _isPartnerOrder = false;
     _orderNotes = null;
@@ -151,7 +156,8 @@ class CartProvider with ChangeNotifier {
 
   // Get product quantity in cart
   int getProductQuantity(String productId) {
-    final item = getItem(productId);
-    return item?.quantity ?? 0;
+    final idx = _items.indexWhere((x) => x.product.id == productId);
+    if (idx < 0) return 0;
+    return _items[idx].quantity;
   }
 }
