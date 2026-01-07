@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:orders_mobile/core/services/api_service.dart';
+import 'package:orders_mobile/models/accompaniment_group.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/product_model.dart';
@@ -7,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/services/navigation_service.dart';
 import '../widgets/ingredient_chip.dart';
+import '../../../core/widgets/accompaniment_selector.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
@@ -19,11 +22,37 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final TextEditingController _notesController = TextEditingController();
+  List<AccompanimentGroup> _accompanimentGroups = [];
+  List<String> _selectedAccompanimentIds = [];
+  double _totalAccompanimentCharge = 0.0;
+  bool _isLoadingAccompaniments = true;
+  int _selectorKey = 0; // ✅ Key za forsirani rebuild
 
+  @override
+  void initState() {
+    super.initState();
+    _loadAccompaniments();
+  }
+  
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadAccompaniments() async {
+    setState(() => _isLoadingAccompaniments = true);
+    try {
+      final groups = await ApiService().getProductAccompaniments(widget.product.id);
+      
+      setState(() {
+        _accompanimentGroups = groups;
+        _isLoadingAccompaniments = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingAccompaniments = false);
+      debugPrint('❌ ERROR loading accompaniments: $e');
+    }
   }
 
   void _showSnack(String message) {
@@ -37,9 +66,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-
   void _openCart() {
-    // Uses your global navigation if available
     if (NavigationService.context != null) {
       NavigationService.navigateTo('/checkout');
       return;
@@ -48,19 +75,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _addToCart() {
+    // Validate required accompaniments
+    if (_accompanimentGroups.isNotEmpty) {
+      for (var group in _accompanimentGroups) {
+        if (group.isRequired) {
+          final selectedForGroup = _selectedAccompanimentIds.where((id) {
+            return group.accompaniments.any((acc) => acc.id == id);
+          }).toList();
+
+          if (selectedForGroup.isEmpty) {
+            _showSnack('Morate izabrati ${group.name}');
+            return;
+          }
+        }
+      }
+    }
+
     const qty = 1;
     final notes = _notesController.text.trim();
 
+    // ✅ FIXED: Pass selectedAccompanimentIds
     context.read<CartProvider>().addItem(
-          widget.product,
-          qty,
-          notes: notes.isEmpty ? null : notes,
-        );
+      widget.product,
+      qty,
+      notes: notes.isEmpty ? null : notes,
+      selectedAccompanimentIds: _selectedAccompanimentIds,
+    );
 
     final rootCtx = NavigationService.context ?? context;
     ScaffoldMessenger.of(rootCtx).showSnackBar(
       SnackBar(
-        content: Text('${widget.product.name} x$qty added to cart'),
+        content: Text('${widget.product.name} added to cart'),
         backgroundColor: AppColors.success,
         duration: const Duration(seconds: 2),
         action: SnackBarAction(
@@ -70,17 +115,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
       ),
     );
-  }
 
-  int _qtyInCart(CartProvider cart, String productId) {
-    try {
-      for (final item in cart.items) {
-        if (item.product.id == productId) return item.quantity;
-      }
-      return 0;
-    } catch (_) {
-      return 0;
-    }
+    // Clear selections after adding
+    setState(() {
+      _selectedAccompanimentIds = [];
+      _totalAccompanimentCharge = 0.0;
+      _notesController.clear();
+      _selectorKey++; // ✅ Force rebuild AccompanimentSelector
+    });
   }
 
   @override
@@ -134,80 +176,42 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
         ],
       ),
+      // ✅ FIXED: Always show "Add to cart" button (no stepper)
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-          child: Consumer<CartProvider>(
-            builder: (context, cart, _) {
-              final inCartQty = _qtyInCart(cart, widget.product.id);
-              final canOrder = widget.product.isAvailable && widget.product.stock > 0;
-
-              if (!canOrder) {
-                return SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.8),
-                      foregroundColor: AppColors.textDisabled,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Out of stock',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              // Not in cart -> show Add to cart
-              if (inCartQty <= 0) {
-                return SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _addToCart,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Add to cart',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              // In cart -> show stepper
-              return _BottomCartStepper(
-                quantity: inCartQty,
-                canDecrease: inCartQty > 0,
-                canIncrease: inCartQty < widget.product.stock,
-                onDecrease: () => cart.decreaseQuantity(widget.product.id),
-                onIncrease: () => cart.increaseQuantity(widget.product.id),
-              );
-            },
+          child: SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: widget.product.isAvailable && widget.product.stock > 0
+                  ? _addToCart
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                elevation: 0,
+                disabledBackgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.8),
+                disabledForegroundColor: AppColors.textDisabled,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                widget.product.isAvailable && widget.product.stock > 0
+                    ? 'Add to cart'
+                    : 'Out of stock',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
         ),
       ),
       body: Column(
         children: [
-          // Image
           Expanded(
             child: Center(
               child: Container(
@@ -239,7 +243,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
 
-          // Info container
           Container(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
             decoration: BoxDecoration(
@@ -261,7 +264,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Name + price
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -275,16 +277,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      _PricePill(amount: widget.product.price),
+                      _PricePill(amount: widget.product.price + _totalAccompanimentCharge),
                     ],
                   ),
 
                   const SizedBox(height: 8),
 
-                  // Category
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
@@ -301,7 +301,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Description
                   if (widget.product.description != null &&
                       widget.product.description!.trim().isNotEmpty) ...[
                     Text(
@@ -314,7 +313,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Ingredients
                   if (widget.product.ingredients.isNotEmpty) ...[
                     Text('Ingredients', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 10),
@@ -322,17 +320,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: widget.product.ingredients
-                          .map(
-                            (ingredient) => IngredientChip(
-                              name: ingredient.storeProductName,
-                            ),
-                          )
+                          .map((ingredient) => IngredientChip(name: ingredient.storeProductName))
                           .toList(),
                     ),
                     const SizedBox(height: 16),
                   ],
 
-                  // Info chips
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -354,7 +347,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Notes
                   TextField(
                     controller: _notesController,
                     decoration: const InputDecoration(
@@ -364,9 +356,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     maxLines: 2,
                   ),
 
-                  const SizedBox(height: 16),
+                  // Accompaniments Section
+                  if (_isLoadingAccompaniments)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (_accompanimentGroups.isNotEmpty)
+                    AccompanimentSelector(
+                      key: ValueKey(_selectorKey), // ✅ Force rebuild on each add
+                      groups: _accompanimentGroups,
+                      onSelectionChanged: (selectedIds) {
+                        setState(() {
+                          _selectedAccompanimentIds = selectedIds;
+                        });
+                      },
+                      onTotalChargeChanged: (totalCharge) {
+                        setState(() {
+                          _totalAccompanimentCharge = totalCharge;
+                        });
+                      },
+                    ),
 
-                  // (Quantity and Add to cart/In-cart stepper moved to bottom bar)
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -434,106 +446,3 @@ class _PricePill extends StatelessWidget {
     );
   }
 }
-
-class _BottomCartStepper extends StatelessWidget {
-  final int quantity;
-  final bool canDecrease;
-  final bool canIncrease;
-  final VoidCallback onDecrease;
-  final VoidCallback onIncrease;
-
-  const _BottomCartStepper({
-    required this.quantity,
-    required this.canDecrease,
-    required this.canIncrease,
-    required this.onDecrease,
-    required this.onIncrease,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.textSecondary.withValues(alpha: 0.18),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _StepperCircleButton(
-            icon: Icons.remove_rounded,
-            enabled: canDecrease,
-            primary: false,
-            onTap: canDecrease ? onDecrease : null,
-          ),
-          const SizedBox(width: 14),
-          Text(
-            quantity.toString(),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(width: 14),
-          _StepperCircleButton(
-            icon: Icons.add_rounded,
-            enabled: canIncrease,
-            primary: true,
-            onTap: canIncrease ? onIncrease : null,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepperCircleButton extends StatelessWidget {
-  final IconData icon;
-  final bool enabled;
-  final bool primary;
-  final VoidCallback? onTap;
-
-  const _StepperCircleButton({
-    required this.icon,
-    required this.enabled,
-    required this.primary,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final border = AppColors.textSecondary.withValues(alpha: 0.22);
-
-    final bg = !enabled
-        ? AppColors.surface
-        : (primary ? AppColors.primary : AppColors.surface);
-
-    final fg = !enabled
-        ? AppColors.textDisabled
-        : (primary ? AppColors.white : AppColors.textPrimary);
-
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(999),
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: bg,
-          shape: BoxShape.circle,
-          border: primary ? null : Border.all(color: border),
-        ),
-        child: Center(
-          child: Icon(icon, size: 22, color: fg),
-        ),
-      ),
-    );
-  }
-}
-

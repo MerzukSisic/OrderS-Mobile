@@ -73,6 +73,32 @@ class CartItemCard extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
+                
+                // Accompaniments Display
+                if (item.selectedAccompanimentIds.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        size: 14,
+                        color: AppColors.primary.withOpacity(0.7),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${item.selectedAccompanimentIds.length} prilog(a)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.primary.withOpacity(0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                
                 if (item.notes != null && item.notes!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
@@ -82,6 +108,8 @@ class CartItemCard extends StatelessWidget {
                       color: AppColors.textSecondary,
                       fontStyle: FontStyle.italic,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -105,7 +133,7 @@ class CartItemCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '',
+                            '${item.quantity}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                             ),

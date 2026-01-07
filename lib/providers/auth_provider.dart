@@ -32,6 +32,13 @@ class AuthProvider with ChangeNotifier {
       if (userData != null) {
         final json = jsonDecode(userData);
         _user = UserModel.fromJson(json);
+        
+        // DODAJ: Load token u ApiService cache
+        final token = await _storageService.getAccessToken();
+        if (token != null) {
+          await _apiService.saveToken(token);
+        }
+        
         notifyListeners();
       }
     } catch (e) {
@@ -57,8 +64,11 @@ class AuthProvider with ChangeNotifier {
       if (response != null) {
         final authResponse = AuthResponse.fromJson(response);
 
-        // Save token
+        // Save token to StorageService
         await _storageService.saveAccessToken(authResponse.accessToken);
+        
+        // DODAJ: Save token to ApiService cache
+        await _apiService.saveToken(authResponse.accessToken);
 
         // Create user model
         _user = UserModel(
@@ -120,7 +130,11 @@ class AuthProvider with ChangeNotifier {
       if (response != null) {
         final authResponse = AuthResponse.fromJson(response);
 
+        // Save token to StorageService
         await _storageService.saveAccessToken(authResponse.accessToken);
+        
+        // DODAJ: Save token to ApiService cache
+        await _apiService.saveToken(authResponse.accessToken);
 
         _user = UserModel(
           id: authResponse.userId,

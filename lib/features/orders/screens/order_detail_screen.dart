@@ -595,7 +595,7 @@ class OrderDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${_safeCurrency(item.unitPrice)} × ${item.quantity}',
+                        '${_safeCurrency(item.unitPrice)} Ã— ${item.quantity}',
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 12,
@@ -661,6 +661,10 @@ class OrderDetailScreen extends StatelessWidget {
         return AppColors.info;
       case 'Ready':
         return AppColors.success;
+      case 'Completed':
+        return AppColors.success;
+      case 'Cancelled':
+        return AppColors.error;
       default:
         return AppColors.textSecondary;
     }

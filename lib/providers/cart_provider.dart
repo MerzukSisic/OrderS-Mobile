@@ -6,11 +6,13 @@ class CartItem {
   final ProductModel product;
   int quantity;
   String? notes;
+  List<String> selectedAccompanimentIds; // ✅ DODATO!
 
   CartItem({
     required this.product,
     this.quantity = 1,
     this.notes,
+    this.selectedAccompanimentIds = const [], // ✅ DODATO!
   });
 
   double get subtotal => product.price * quantity;
@@ -19,8 +21,8 @@ class CartItem {
 class CartProvider with ChangeNotifier {
   final List<CartItem> _items = [];
   TableModel? _selectedTable;
-  String? _activeOrderId; // when not null, we are editing an existing order
-  String _orderType = 'DineIn'; // DineIn or TakeAway
+  String? _activeOrderId;
+  String _orderType = 'DineIn';
   bool _isPartnerOrder = false;
   String? _orderNotes;
 
@@ -35,62 +37,78 @@ class CartProvider with ChangeNotifier {
   double get totalAmount => _items.fold(0.0, (sum, item) => sum + item.subtotal);
   bool get isEmpty => _items.isEmpty;
 
-  // Set Selected Table
   void setSelectedTable(TableModel? table) {
     _selectedTable = table;
     notifyListeners();
   }
 
-  // Set Active Order Id (editing existing order)
   void setActiveOrderId(String? orderId) {
     _activeOrderId = orderId;
     notifyListeners();
   }
 
-  // Set Order Type
   void setOrderType(String type) {
     _orderType = type;
     notifyListeners();
   }
 
-  // Set Partner Order
   void setPartnerOrder(bool isPartner) {
     _isPartnerOrder = isPartner;
     notifyListeners();
   }
 
-  // Set Order Notes
   void setOrderNotes(String? notes) {
     _orderNotes = notes;
     notifyListeners();
   }
 
-  // Add Item
-  void addItem(ProductModel product, int quantity, {String? notes}) {
+  // ✅ FIXED: Dodao selectedAccompanimentIds parameter
+  void addItem(
+    ProductModel product,
+    int quantity, {
+    String? notes,
+    List<String>? selectedAccompanimentIds,
+  }) {
     if (quantity <= 0) return;
 
-    final existingIndex =
-        _items.indexWhere((item) => item.product.id == product.id);
+    final accompaniments = selectedAccompanimentIds ?? [];
+
+    // ✅ FIXED: Provjera i product.id I accompaniments
+    final existingIndex = _items.indexWhere((item) {
+      if (item.product.id != product.id) return false;
+      
+      // Uporedi accompaniment IDs
+      final itemIds = item.selectedAccompanimentIds.toSet();
+      final newIds = accompaniments.toSet();
+      
+      return itemIds.length == newIds.length && 
+             itemIds.difference(newIds).isEmpty;
+    });
 
     if (existingIndex >= 0) {
+      // Isti proizvod sa istim prilozima → povećaj quantity
       _items[existingIndex].quantity += quantity;
       if (notes != null) {
         _items[existingIndex].notes = notes;
       }
     } else {
-      _items.add(CartItem(product: product, quantity: quantity, notes: notes));
+      // Različit proizvod ILI različiti prilozi → novi item
+      _items.add(CartItem(
+        product: product,
+        quantity: quantity,
+        notes: notes,
+        selectedAccompanimentIds: accompaniments,
+      ));
     }
 
     notifyListeners();
   }
 
-  // Remove Item
   void removeItem(String productId) {
     _items.removeWhere((item) => item.product.id == productId);
     notifyListeners();
   }
 
-  // Update Quantity
   void updateQuantity(String productId, int quantity) {
     final idx = _items.indexWhere((x) => x.product.id == productId);
     if (idx < 0) return;
@@ -103,7 +121,6 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Increase Quantity
   void increaseQuantity(String productId) {
     final idx = _items.indexWhere((x) => x.product.id == productId);
     if (idx < 0) return;
@@ -129,7 +146,6 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Clear Cart
   void clear() {
     _items.clear();
     _selectedTable = null;
@@ -140,7 +156,6 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Get Cart Item by Product ID
   CartItem? getItem(String productId) {
     try {
       return _items.firstWhere((item) => item.product.id == productId);
@@ -149,12 +164,10 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  // Check if product is in cart
   bool hasProduct(String productId) {
     return _items.any((item) => item.product.id == productId);
   }
 
-  // Get product quantity in cart
   int getProductQuantity(String productId) {
     final idx = _items.indexWhere((x) => x.product.id == productId);
     if (idx < 0) return 0;

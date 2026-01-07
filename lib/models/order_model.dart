@@ -76,6 +76,7 @@ class OrderItem {
   final double subtotal;
   final String? notes;
   final String status;
+  final List<String> selectedAccompanimentIds; // ✅ DODATO!
 
   OrderItem({
     required this.id,
@@ -87,6 +88,7 @@ class OrderItem {
     required this.subtotal,
     this.notes,
     required this.status,
+    this.selectedAccompanimentIds = const [], // ✅ DODATO!
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
@@ -100,6 +102,9 @@ class OrderItem {
       subtotal: (json['subtotal'] as num).toDouble(),
       notes: json['notes'],
       status: json['status'],
+      selectedAccompanimentIds: json['accompanimentIds'] != null
+          ? List<String>.from(json['accompanimentIds'])
+          : [], // ✅ DODATO!
     );
   }
 
@@ -114,6 +119,7 @@ class OrderItem {
       'subtotal': subtotal,
       'notes': notes,
       'status': status,
+      'accompanimentIds': selectedAccompanimentIds, // ✅ DODATO!
     };
   }
 }

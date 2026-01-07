@@ -562,24 +562,32 @@ class _ProductRow extends StatelessWidget {
                   ),
                 ),
 
-                // Qty stepper
-                _QtyStepper(
-                  quantity: qty,
-                  enabled: canOrder,
-                  canIncrease: canOrder && qty < stock,
-                  onDecrease: qty > 0
-                      ? () => cart.decreaseQuantity(product.id)
-                      : null,
-                  onIncrease: canOrder && qty < stock
-                      ? () {
-                          if (qty == 0) {
-                            cart.addItem(product, 1, notes: '');
-                          } else {
-                            cart.increaseQuantity(product.id);
-                          }
-                        }
-                      : null,
-                ),
+                // Open detail button
+                if (canOrder && qty == 0)
+                  _AddButton(
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        AppRouter.productDetail,
+                        arguments: product,
+                      );
+                    },
+                  )
+                else if (qty > 0)
+                  _QtyStepper(
+                    quantity: qty,
+                    enabled: canOrder,
+                    canIncrease: canOrder && qty < stock,
+                    onDecrease: () => cart.decreaseQuantity(product.id),
+                    onIncrease: () {
+                      // Open detail screen to add with accompaniments
+                      Navigator.pushNamed(
+                        context,
+                        AppRouter.productDetail,
+                        arguments: product,
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -694,6 +702,35 @@ class _StepIconButton extends StatelessWidget {
             icon,
             size: 20,
             color: fg,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: const BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.add_rounded,
+            size: 22,
+            color: AppColors.white,
           ),
         ),
       ),

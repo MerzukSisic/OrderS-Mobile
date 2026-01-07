@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/cart_provider.dart';
 import '../../../providers/orders_provider.dart';
-import '../../../providers/tables_provider.dart'; // ✅ DODATO
+import '../../../providers/tables_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/services/api_service.dart';
+import '../../../models/accompaniment.dart';
 import '../../../routes/app_router.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -16,6 +18,36 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final TextEditingController _notesController = TextEditingController();
+  final Map<String, List<Accompaniment>> _accompanimentCache = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccompanimentsForCartItems();
+  }
+
+  Future<void> _loadAccompanimentsForCartItems() async {
+    final cart = context.read<CartProvider>();
+    
+    for (var item in cart.items) {
+      if (item.selectedAccompanimentIds.isNotEmpty) {
+        try {
+          final groups = await ApiService().getProductAccompaniments(item.product.id);
+          final allAccompaniments = groups.expand((g) => g.accompaniments).toList();
+          
+          final selectedAccs = allAccompaniments
+              .where((acc) => item.selectedAccompanimentIds.contains(acc.id))
+              .toList();
+          
+          setState(() {
+            _accompanimentCache['${item.product.id}_${item.selectedAccompanimentIds.join(',')}'] = selectedAccs;
+          });
+        } catch (e) {
+          debugPrint('Error loading accompaniments: $e');
+        }
+      }
+    }
+  }
 
   String _safeCurrency(num value) {
     try {
@@ -54,6 +86,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               'productId': item.product.id,
               'quantity': item.quantity,
               'notes': item.notes,
+              'selectedAccompanimentIds': item.selectedAccompanimentIds,
             })
         .toList();
 
@@ -90,7 +123,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (mounted) Navigator.pop(context);
 
-      // ✅ ✅ ✅ REFRESH TABLES NAKON KREIRANJA/UPDATE-A NARUDŽBE
       if (mounted) {
         await context.read<TablesProvider>().fetchTables();
       }
@@ -190,8 +222,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final item = cart.items[index];
+                          final cacheKey = '${item.product.id}_${item.selectedAccompanimentIds.join(',')}';
+                          final accompaniments = _accompanimentCache[cacheKey] ?? [];
+                          
                           return _ProductCard(
                             item: item,
+                            accompaniments: accompaniments,
                             onDecrease: () => cart.decreaseQuantity(item.product.id),
                             onIncrease: () => cart.increaseQuantity(item.product.id),
                           );
@@ -347,14 +383,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 }
 
-// Product Card Widget
+// Product Card with FULL accompaniments display
 class _ProductCard extends StatelessWidget {
   final CartItem item;
+  final List<Accompaniment> accompaniments;
   final VoidCallback onDecrease;
   final VoidCallback onIncrease;
 
   const _ProductCard({
     required this.item,
+    required this.accompaniments,
     required this.onDecrease,
     required this.onIncrease,
   });
@@ -377,85 +415,167 @@ class _ProductCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Product Image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              width: 72,
-              height: 72,
-              color: AppColors.surfaceVariant,
-              child: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
-                  ? Image.network(
-                      p.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.restaurant,
-                        color: AppColors.textSecondary,
+          Row(
+            children: [
+              // Product Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  color: AppColors.surfaceVariant,
+                  child: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                      ? Image.network(
+                          p.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.restaurant,
+                            color: AppColors.textSecondary,
+                            size: 28,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.restaurant,
+                          color: AppColors.textSecondary,
+                          size: 28,
+                        ),
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              // Product Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
-                    )
-                  : const Icon(
-                      Icons.restaurant,
-                      color: AppColors.textSecondary,
                     ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          _safeCurrency(p.price),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '× ${item.quantity}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Quantity Stepper
+              _QuantityStepper(
+                quantity: item.quantity,
+                onDecrease: onDecrease,
+                onIncrease: onIncrease,
+              ),
+            ],
+          ),
+
+          // Accompaniments Display
+          if (accompaniments.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        size: 16,
+                        color: AppColors.primary.withValues(alpha: 0.7),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Prilozi:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...accompaniments.map((acc) => Padding(
+                    padding: const EdgeInsets.only(left: 22, top: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            acc.name,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (acc.extraCharge > 0)
+                          Text(
+                            '+${_safeCurrency(acc.extraCharge)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary.withValues(alpha: 0.7),
+                            ),
+                          ),
+                      ],
+                    ),
+                  )),
+                ],
+              ),
             ),
-          ),
-
-          const SizedBox(width: 16),
-
-          // Product Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Brand',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  p.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _safeCurrency(p.price),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          // Quantity Stepper
-          _QuantityStepper(
-            quantity: item.quantity,
-            onDecrease: onDecrease,
-            onIncrease: onIncrease,
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
-// Quantity Stepper
 class _QuantityStepper extends StatelessWidget {
   final int quantity;
   final VoidCallback onDecrease;
@@ -472,31 +592,25 @@ class _QuantityStepper extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _StepperButton(
-            icon: Icons.remove,
-            onTap: onDecrease,
-          ),
+          _StepperButton(icon: Icons.remove, onTap: onDecrease),
           Container(
-            width: 40,
+            width: 32,
             alignment: Alignment.center,
             child: Text(
               quantity.toString(),
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
           ),
-          _StepperButton(
-            icon: Icons.add,
-            onTap: onIncrease,
-          ),
+          _StepperButton(icon: Icons.add, onTap: onIncrease),
         ],
       ),
     );
@@ -507,31 +621,23 @@ class _StepperButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _StepperButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _StepperButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        width: 36,
-        height: 36,
+        width: 32,
+        height: 32,
         alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 20,
-          color: AppColors.textPrimary,
-        ),
+        child: Icon(icon, size: 18, color: AppColors.textPrimary),
       ),
     );
   }
 }
 
-// Radio Tile
 class _RadioTile extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -583,7 +689,6 @@ class _RadioTile extends StatelessWidget {
   }
 }
 
-// Summary Row
 class _SummaryRow extends StatelessWidget {
   final String label;
   final String value;
