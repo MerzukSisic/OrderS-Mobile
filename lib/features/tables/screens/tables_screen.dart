@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/tables_provider.dart';
-import '../../../providers/cart_provider.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../providers/products_provider.dart';
 import '../../../routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../features/shared/widgets/bottom_nav_bar.dart';
-import '../../../models/table_model.dart';
+import '../../../models/tables/table_model.dart';
 import '../../../core/widgets/error_display.dart';
 import '../../../core/widgets/loading_indicator.dart';
 
@@ -97,7 +96,7 @@ class _TablesScreenState extends State<TablesScreen> {
                   ),
                 ),
 
-                // New Order Button (bez stola)
+                // New Order Button (bez stola - TakeAway)
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: ElevatedButton(
@@ -115,7 +114,7 @@ class _TablesScreenState extends State<TablesScreen> {
                         Icon(Icons.add_rounded, size: 24),
                         SizedBox(width: 8),
                         Text(
-                          'New Order',
+                          'New Order (Take Away)',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -135,7 +134,8 @@ class _TablesScreenState extends State<TablesScreen> {
   }
 
   Future<void> _handleTableTap(TableModel table) async {
-    final cart = context.read<CartProvider>();
+    final ordersProvider = context.read<OrdersProvider>();
+    final productsProvider = context.read<ProductsProvider>();
 
     final status = table.status.toLowerCase();
     final hasActiveOrder = table.currentOrderId != null;
@@ -172,8 +172,7 @@ class _TablesScreenState extends State<TablesScreen> {
 
       // Finish existing order
       if (choice == 'finish') {
-        final orders = context.read<OrdersProvider>();
-        final ok = await orders.updateOrderStatus(
+        final ok = await ordersProvider.updateOrderStatus(
           orderId: table.currentOrderId!,
           status: 'Completed',
         );
@@ -191,7 +190,7 @@ class _TablesScreenState extends State<TablesScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(orders.error ?? 'Failed to finish order'),
+              content: Text(ordersProvider.error ?? 'Failed to finish order'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -199,24 +198,31 @@ class _TablesScreenState extends State<TablesScreen> {
         return;
       }
 
-      // Add items to existing order: prefill cart from order, then go to products
-      cart.clear();
-      cart.setSelectedTable(table);
-      cart.setActiveOrderId(table.currentOrderId);
+      // Add items to existing order
+      ordersProvider.clearCart();
+      ordersProvider.setTable(table.id);
+      ordersProvider.setOrderType('DineIn');
 
-      final orders = context.read<OrdersProvider>();
-      final products = context.read<ProductsProvider>();
-
-      if (products.products.isEmpty) {
-        await products.fetchProducts();
+      // Load products if needed
+      if (productsProvider.products.isEmpty) {
+        await productsProvider.fetchProducts();
       }
 
-      final order = await orders.fetchOrderById(table.currentOrderId!);
-      if (order != null) {
-        for (final item in order.items) {
-final p = products.getProductById(item.productId);
-          if (p != null) {
-            cart.addItem(p, item.quantity, notes: item.notes);
+      // Load existing order and add to cart
+      await ordersProvider.fetchOrderById(table.currentOrderId!);
+      
+      if (!mounted) return;
+      
+      if (ordersProvider.selectedOrder != null) {
+        for (final item in ordersProvider.selectedOrder!.items) {
+          final product = productsProvider.getProductById(item.productId);
+          if (product != null) {
+            ordersProvider.addToCart(
+              product: product,
+              quantity: item.quantity,
+              notes: item.notes,
+              selectedAccompanimentIds: item.accompanimentIds,
+            );
           }
         }
       }
@@ -227,19 +233,19 @@ final p = products.getProductById(item.productId);
     }
 
     // New order on free table
-    cart.clear();
-    cart.setSelectedTable(table);
-    cart.setActiveOrderId(null);
+    ordersProvider.clearCart();
+    ordersProvider.setTable(table.id);
+    ordersProvider.setOrderType('DineIn');
 
     if (!mounted) return;
     AppRouter.navigateTo(context, AppRouter.products);
   }
 
   void _handleNewOrder() {
-    final cart = context.read<CartProvider>();
-    cart.clear();
-    cart.setSelectedTable(null);
-    cart.setActiveOrderId(null);
+    final ordersProvider = context.read<OrdersProvider>();
+    ordersProvider.clearCart();
+    ordersProvider.setTable(null);
+    ordersProvider.setOrderType('TakeAway');
     AppRouter.navigateTo(context, AppRouter.products);
   }
 }
@@ -315,7 +321,7 @@ class _TableCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Table',
+                    'Table ${table.tableNumber}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),

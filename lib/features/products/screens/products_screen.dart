@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/products_provider.dart';
-import '../../../providers/cart_provider.dart';
+import '../../../providers/categories_provider.dart'; // ✅ DODAJ
+import '../../../providers/orders_provider.dart'; // ✅ PROMJENA: cart_provider -> orders_provider
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../routes/app_router.dart';
@@ -27,7 +28,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductsProvider>().fetchProducts();
-      context.read<ProductsProvider>().fetchCategories();
+      context.read<CategoriesProvider>().fetchCategories(); // ✅ PROMJENA
     });
   }
 
@@ -38,74 +39,75 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   void _openFiltersSheet(List categories) {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Filters',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 12),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.layers_clear_rounded),
-                  title: const Text('All categories'),
-                  trailing: _selectedCategory == null
-                      ? const Icon(Icons.check_rounded)
-                      : null,
-                  onTap: () {
-                    setState(() => _selectedCategory = null);
-                    context.read<ProductsProvider>().setSelectedCategory(null);
-                    Navigator.pop(ctx);
+  showModalBottomSheet(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+    ),
+    builder: (ctx) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Filters',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.layers_clear_rounded),
+                title: const Text('All categories'),
+                trailing: _selectedCategory == null
+                    ? const Icon(Icons.check_rounded)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedCategory = null);
+                  context.read<ProductsProvider>().fetchProducts(); // ✅ Fetch sve proizvode
+                  Navigator.pop(ctx);
+                },
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: categories.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final c = categories[i];
+                    final id = (c.id ?? '').toString();
+                    final name = (c.name ?? '').toString();
+                    final selected = _selectedCategory == id;
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(name),
+                      trailing:
+                          selected ? const Icon(Icons.check_rounded) : null,
+                      onTap: () {
+                        setState(() => _selectedCategory = id);
+                        context
+                            .read<ProductsProvider>()
+                            .fetchProducts(categoryId: id); // ✅ Fetch sa category filter
+                        Navigator.pop(ctx);
+                      },
+                    );
                   },
                 ),
-                const Divider(height: 1),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: categories.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (_, i) {
-                      final c = categories[i];
-                      final id = (c.id ?? '').toString();
-                      final name = (c.name ?? '').toString();
-                      final selected = _selectedCategory == id;
-
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(name),
-                        trailing:
-                            selected ? const Icon(Icons.check_rounded) : null,
-                        onTap: () {
-                          setState(() => _selectedCategory = id);
-                          context
-                              .read<ProductsProvider>()
-                              .setSelectedCategory(id);
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
+
 
   List<dynamic> _applySort(List<dynamic> input) {
     final list = [...input];
@@ -134,8 +136,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
         title: const Text('Products'),
         actions: [
           // Cart icon with badge
-          Consumer<CartProvider>(
-            builder: (context, cart, _) {
+          Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+            builder: (context, ordersProvider, _) {
               return Stack(
                 children: [
                   IconButton(
@@ -144,7 +146,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       Navigator.pushNamed(context, AppRouter.checkout);
                     },
                   ),
-                  if (cart.itemCount > 0)
+                  if (ordersProvider.cartCount > 0) // ✅ PROMJENA: itemCount -> cartCount
                     Positioned(
                       right: 8,
                       top: 8,
@@ -159,7 +161,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           minHeight: 18,
                         ),
                         child: Text(
-                          cart.itemCount.toString(),
+                          ordersProvider.cartCount.toString(), // ✅ PROMJENA
                           style: const TextStyle(
                             color: AppColors.white,
                             fontSize: 10,
@@ -194,7 +196,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                             setState(() => _searchQuery = '');
                             context
                                 .read<ProductsProvider>()
-                                .setSearchQuery('');
+                                .searchProducts(''); // ✅ PROMJENA: prazna pretraga
                           },
                         )
                       : null,
@@ -224,7 +226,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 ),
                 onChanged: (value) {
                   setState(() => _searchQuery = value);
-                  context.read<ProductsProvider>().setSearchQuery(value);
+                  if (value.isNotEmpty) {
+                    context.read<ProductsProvider>().searchProducts(value); // ✅ PROMJENA
+                  } else {
+                    context.read<ProductsProvider>().fetchProducts(); // Reset kad je prazno
+                  }
                 },
               ),
             ),
@@ -232,15 +238,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
             // Filters + Sort
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Consumer<ProductsProvider>(
-                builder: (context, provider, _) {
+              child: Consumer<CategoriesProvider>( // ✅ PROMJENA: koristimo CategoriesProvider
+                builder: (context, categoriesProvider, _) {
                   return Row(
                     children: [
                       Expanded(
                         child: _PillButton(
                           icon: Icons.tune_rounded,
                           label: 'Filters',
-                          onTap: () => _openFiltersSheet(provider.categories),
+                          onTap: () => _openFiltersSheet(categoriesProvider.categories), // ✅ PROMJENA
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -426,9 +432,10 @@ class _ProductRow extends StatelessWidget {
     required this.onTap,
   });
 
-  int _qtyFromCart(CartProvider cart, String productId) {
+  // ✅ PROMJENA: Koristi OrdersProvider umjesto CartProvider
+  int _qtyFromCart(OrdersProvider ordersProvider, String productId) {
     try {
-      for (final item in cart.items) {
+      for (final item in ordersProvider.cartItems) {
         if (item.product.id == productId) return item.quantity;
       }
       return 0;
@@ -444,15 +451,14 @@ class _ProductRow extends StatelessWidget {
     } catch (_) {
       // ignore
     }
-    // Fallback if formatter returns empty or throws
     return '${value.toStringAsFixed(2)} KM';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<CartProvider>(
-      builder: (context, cart, _) {
-        final qty = _qtyFromCart(cart, product.id);
+    return Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+      builder: (context, ordersProvider, _) {
+        final qty = _qtyFromCart(ordersProvider, product.id);
         final int stock = (product.stock is int)
             ? product.stock as int
             : int.tryParse(product.stock.toString()) ?? 0;
@@ -578,9 +584,14 @@ class _ProductRow extends StatelessWidget {
                     quantity: qty,
                     enabled: canOrder,
                     canIncrease: canOrder && qty < stock,
-                    onDecrease: () => cart.decreaseQuantity(product.id),
+                    onDecrease: () {
+                      // ✅ PROMJENA: Tražimo item sa cart key i brisemo
+                      final cartItem = ordersProvider.cartItems.firstWhere(
+                        (item) => item.product.id == product.id,
+                      );
+                      ordersProvider.removeFromCart(cartItem.uniqueKey);
+                    },
                     onIncrease: () {
-                      // Open detail screen to add with accompaniments
                       Navigator.pushNamed(
                         context,
                         AppRouter.productDetail,

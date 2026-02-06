@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/utils/formatters.dart';
-import 'package:orders_mobile/models/store_model.dart';
+import 'package:orders_mobile/models/inventory/store_product_model.dart';
 
 class InventoryCard extends StatelessWidget {
-  final StoreProductItem product;
+  final StoreProductModel product;
   final VoidCallback onTap;
 
   const InventoryCard({
@@ -43,9 +43,15 @@ class InventoryCard extends StatelessWidget {
     }
   }
 
+  // ✅ DODANO: Izračunaj stockPercentage
+  double _getStockPercentage() {
+    if (product.minimumStock == 0) return 1.0;
+    return (product.currentStock / product.minimumStock).clamp(0.0, 2.0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final stockPercentage = product.stockPercentage / 100;
+    final stockPercentage = _getStockPercentage(); // ✅ PROMJENA: Koristi metod
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -193,7 +199,6 @@ class InventoryCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      // ignore: deprecated_member_use
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),

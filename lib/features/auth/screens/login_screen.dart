@@ -4,7 +4,6 @@ import '../../../providers/auth_provider.dart';
 import '../../../routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
-import '../../../core/constants/app_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<Offset> _slideAnimation;
 
   bool _obscurePassword = true;
-  String? _selectedRole;
 
   @override
   void initState() {
@@ -67,9 +65,11 @@ class _LoginScreenState extends State<LoginScreen>
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = context.read<AuthProvider>();
+    
+    // ✅ PROMJENA: Koristi named parameters
     final success = await authProvider.login(
-      _emailController.text.trim(),
-      _passwordController.text,
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
     );
 
     if (!mounted) return;
@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen>
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Login failed'),
+          content: Text(authProvider.error ?? 'Login failed'), // ✅ PROMJENA: errorMessage -> error
           backgroundColor: AppColors.error,
         ),
       );
@@ -161,50 +161,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                         const SizedBox(height: 48),
 
-                        // Role Dropdown
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _selectedRole,
-                            decoration: const InputDecoration(
-                              labelText: 'Role',
-                              border: InputBorder.none,
-                              icon: Icon(Icons.badge_rounded,
-                                  color: AppColors.primary),
-                            ),
-                            dropdownColor: AppColors.surface,
-                            items: const [
-                              DropdownMenuItem(
-                                value: AppConstants.roleAdmin,
-                                child: Text('Admin'),
-                              ),
-                              DropdownMenuItem(
-                                value: AppConstants.roleWaiter,
-                                child: Text('Waiter'),
-                              ),
-                              DropdownMenuItem(
-                                value: AppConstants.roleBartender,
-                                child: Text('Bartender'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              setState(() => _selectedRole = value);
-                            },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please select a role';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
+                        // ✅ OBRISANO: Role Dropdown (role se određuje na backendu)
 
                         // Email Field
                         TextFormField(

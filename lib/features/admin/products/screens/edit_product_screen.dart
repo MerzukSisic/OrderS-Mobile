@@ -1,36 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:orders_mobile/core/constants/api_constants.dart';
+import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/widgets/accompaniment_group_manager.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
-import 'package:orders_mobile/models/product_model.dart';
+import 'package:orders_mobile/models/products/accompaniment_group.dart';
+import 'package:orders_mobile/models/products/product_model.dart';
+import 'package:orders_mobile/providers/business_providers.dart';
+import 'package:orders_mobile/providers/products_provider.dart';
+import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../../../providers/products_provider.dart';
-import '../../../../providers/inventory_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../routes/app_router.dart';
-import '../../../../core/services/api_service.dart';
-import '../../../../core/constants/api_constants.dart';
 
-class AdminEditProductScreen extends StatefulWidget {
+
+class EditProductScreen extends StatefulWidget {
   final String productId;
 
-  const AdminEditProductScreen({
-    super.key,
-    required this.productId,
-  });
+  const EditProductScreen({super.key, required this.productId});
 
   @override
-  State<AdminEditProductScreen> createState() => _AdminEditProductScreenState();
+  State<EditProductScreen> createState() => _EditProductScreenState();
 }
 
-class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
+class _EditProductScreenState extends State<EditProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _prepTimeController = TextEditingController();
+  late TextEditingController _nameController;
+  late TextEditingController _priceController;
+  late TextEditingController _quantityController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _prepTimeController;
   
   String? _selectedCategoryId;
   String? _selectedIngredientId;
@@ -38,18 +37,25 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
   
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _storeProducts = [];
+  List<AccompanimentGroup> _accompanimentGroups = [];
+  ProductModel? _product; // Store loaded product
+  bool _isLoadingData = true;
   
   File? _selectedImage;
-  String? _existingImageUrl;
-  bool _isLoadingData = true;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _loadFormData();
-    });
+    
+    // Initialize empty controllers - will be populated after loading
+    _nameController = TextEditingController();
+    _priceController = TextEditingController();
+    _quantityController = TextEditingController();
+    _descriptionController = TextEditingController();
+    _prepTimeController = TextEditingController();
+    
+    _loadFormData();
   }
 
   @override
@@ -68,58 +74,32 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
     try {
       final api = ApiService();
       
-      // ✅ Load categories from backend
+      // Load product details
+      final productResponse = await api.get('${ApiConstants.products}/${widget.productId}');
+      _product = ProductModel.fromJson(productResponse);
+      
+      // Populate controllers with loaded product data
+      _nameController.text = _product!.name;
+      _priceController.text = _product!.price.toStringAsFixed(2);
+      _quantityController.text = _product!.stock.toString();
+      _descriptionController.text = _product!.description ?? '';
+      _prepTimeController.text = _product!.preparationTimeMinutes?.toString() ?? '15';
+      _selectedCategoryId = _product!.categoryId;
+      _selectedLocation = _product!.preparationLocation ?? 'Kitchen';
+      
+      // Load categories
       final categoriesResponse = await api.get(ApiConstants.categories);
       
-      // ✅ Load store products (ingredients) from backend
+      // Load store products
       final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
       await inventoryProvider.fetchStoreProducts();
       
-      // ✅ Load product data
-      final productsProvider = context.read<ProductsProvider>();
-      final product = productsProvider.products.firstWhere(
-        (p) => p.id == widget.productId,
-        orElse: () => ProductModel(
-          id: '',
-          name: '',
-          price: 0,
-          categoryId: '',
-          categoryName: '',
-          isAvailable: true,
-          preparationLocation: '',
-          preparationTimeMinutes: 0,
-          stock: 0,
-          ingredients: [],
-        ),
-      );
-
+      // Load existing accompaniment groups
+      final existingGroups = await api.getProductAccompaniments(widget.productId);
+      
       if (!mounted) return;
       
-      if (product.id.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Proizvod nije pronađen'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        Navigator.pop(context);
-        return;
-      }
-      
       setState(() {
-        // Set form data
-        _nameController.text = product.name;
-        _priceController.text = product.price.toString();
-        _quantityController.text = product.stock.toString();
-        _descriptionController.text = product.description ?? '';
-        _prepTimeController.text = product.preparationTimeMinutes.toString();
-        _selectedCategoryId = product.categoryId;
-        _selectedLocation = product.preparationLocation.isNotEmpty 
-            ? product.preparationLocation 
-            : 'Kitchen';
-        _existingImageUrl = product.imageUrl;
-        
-        // Set categories
         _categories = (categoriesResponse as List)
             .map((c) => {
                   'id': c['id'],
@@ -127,7 +107,6 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
                 })
             .toList();
         
-        // Set store products
         _storeProducts = inventoryProvider.storeProducts
             .map((sp) => {
                   'id': sp.id,
@@ -135,15 +114,7 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
                 })
             .toList();
         
-        // Set first ingredient if available
-        if (product.ingredients.isNotEmpty) {
-          final firstIngredient = product.ingredients.first;
-          _selectedIngredientId = _storeProducts.firstWhere(
-            (sp) => sp['name'].toLowerCase() == firstIngredient.storeProductName.toLowerCase(),
-            orElse: () => _storeProducts.isNotEmpty ? _storeProducts.first : {'id': null},
-          )['id'];
-        }
-        
+        _accompanimentGroups = existingGroups;
         _isLoadingData = false;
       });
     } catch (e) {
@@ -151,7 +122,7 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
       setState(() => _isLoadingData = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Greška pri učitavanju: $e'),
+          content: Text('Greška pri učitavanju podataka: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -195,16 +166,13 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
                   }
                 },
               ),
-              if (_existingImageUrl != null || _selectedImage != null)
+              if (_selectedImage != null)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: AppColors.error),
                   title: const Text('Ukloni sliku'),
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() {
-                      _selectedImage = null;
-                      _existingImageUrl = null;
-                    });
+                    setState(() => _selectedImage = null);
                   },
                 ),
             ],
@@ -218,6 +186,7 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     if (_selectedCategoryId == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Molimo odaberite kategoriju'),
@@ -227,13 +196,23 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
       return;
     }
 
+    if (_product == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Proizvod nije učitan'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
-      final productsProvider = context.read<ProductsProvider>();
+      final api = ApiService();
       
-      // ✅ Create updated product data
-      final updatedData = {
+      // Step 1: Update product
+      final productData = {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
@@ -241,30 +220,78 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
         'categoryId': _selectedCategoryId,
         'preparationLocation': _selectedLocation,
         'preparationTimeMinutes': int.parse(_prepTimeController.text.trim()),
-        // TODO: Update image if changed
-        // TODO: Update ingredients if changed
+        'isAvailable': _product!.isAvailable,
       };
 
-      await productsProvider.updateProduct(widget.productId, updatedData);
+      await api.put('${ApiConstants.products}/${widget.productId}', body: productData);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Proizvod uspješno ažuriran'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        Navigator.pop(context);
+      if (!mounted) return;
+
+      // Step 2: Update accompaniment groups
+      // First, load existing groups to compare
+      final existingGroups = await api.getProductAccompaniments(widget.productId);
+      
+      // Delete removed groups
+      for (final existing in existingGroups) {
+        final stillExists = _accompanimentGroups.any((g) => g.id == existing.id);
+        if (!stillExists) {
+          await api.deleteAccompanimentGroup(existing.id);
+        }
       }
+
+      // Create/update groups
+      for (final group in _accompanimentGroups) {
+        if (group.name.trim().isEmpty) continue;
+
+        final groupData = {
+          'productId': widget.productId,
+          'name': group.name,
+          'selectionType': group.selectionType,
+          'isRequired': group.isRequired,
+          'minSelections': group.minSelections,
+          'maxSelections': group.maxSelections,
+          'displayOrder': group.displayOrder,
+          'accompaniments': group.accompaniments.map((acc) => {
+            'name': acc.name,
+            'extraCharge': acc.extraCharge,
+            'isAvailable': acc.isAvailable,
+            'displayOrder': acc.displayOrder,
+          }).toList(),
+        };
+
+        // Check if group is new (has temp ID) or existing
+        if (group.id.startsWith('temp-')) {
+          // Create new group
+          await api.createAccompanimentGroup(groupData);
+        } else {
+          // Update existing group
+          await api.updateAccompanimentGroup(group.id, groupData);
+        }
+      }
+
+      if (!mounted) return;
+      
+      // Refresh products list
+      await context.read<ProductsProvider>().fetchProducts();
+      
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Proizvod uspješno ažuriran'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Greška: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -399,15 +426,13 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
                                   fit: BoxFit.cover,
                                 ),
                               )
-                            : (_existingImageUrl != null && _existingImageUrl!.isNotEmpty)
+                            : _product?.imageUrl != null
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
                                     child: Image.network(
-                                      _existingImageUrl!,
+                                      _product!.imageUrl!,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return _buildImagePlaceholder();
-                                      },
+                                      errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
                                     ),
                                   )
                                 : _buildImagePlaceholder(),
@@ -420,14 +445,15 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
                     _buildLabel('Glavni sastojak'),
                     _buildIngredientsDropdown(),
 
-                    const SizedBox(height: 8),
-                    Text(
-                      'Napomena: Detaljni sastojci se uređuju u posebnoj sekciji',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary.withValues(alpha: 0.6),
-                        fontStyle: FontStyle.italic,
-                      ),
+                    const SizedBox(height: 32),
+
+                    // ✅ Accompaniment Groups Section
+                    const Divider(height: 32),
+                    AccompanimentGroupManager(
+                      initialGroups: _accompanimentGroups,
+                      onGroupsChanged: (groups) {
+                        setState(() => _accompanimentGroups = groups);
+                      },
                     ),
 
                     const SizedBox(height: 32),
@@ -507,7 +533,7 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
           fontSize: 14,
         ),
         suffixText: suffixText,
-        suffixStyle: TextStyle(
+        suffixStyle: const TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
@@ -592,7 +618,7 @@ class _AdminEditProductScreenState extends State<AdminEditProductScreen> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),

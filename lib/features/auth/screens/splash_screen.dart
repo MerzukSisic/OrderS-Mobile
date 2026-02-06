@@ -44,11 +44,14 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     final authProvider = context.read<AuthProvider>();
-    final isAuthenticated = await authProvider.checkAuth();
+    
+    // ✅ PROMJENA: Pozovi initialize() umjesto checkAuth()
+    await authProvider.initialize();
 
     if (!mounted) return;
 
-    if (isAuthenticated) {
+    // ✅ PROMJENA: Koristi authProvider.isAuthenticated direktno
+    if (authProvider.isAuthenticated) {
       if (authProvider.isAdmin) {
         AppRouter.navigateAndRemoveUntil(context, AppRouter.adminDashboard);
       } else {
@@ -104,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Caf� Management System',
+                    'Café Management System',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.white70,

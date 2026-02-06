@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/cart_provider.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../providers/tables_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/services/api_service.dart';
-import '../../../models/accompaniment.dart';
+import '../../../core/services/api/api_service.dart';
+import '../../../models/products/accompaniment.dart';
 import '../../../routes/app_router.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -27,9 +26,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _loadAccompanimentsForCartItems() async {
-    final cart = context.read<CartProvider>();
+    final ordersProvider = context.read<OrdersProvider>(); // ✅ PROMJENA
     
-    for (var item in cart.items) {
+    for (var item in ordersProvider.cartItems) { // ✅ PROMJENA: items -> cartItems
       if (item.selectedAccompanimentIds.isNotEmpty) {
         try {
           final groups = await ApiService().getProductAccompaniments(item.product.id);
@@ -64,11 +63,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder() async {
-    final cartProvider = context.read<CartProvider>();
-    final ordersProvider = context.read<OrdersProvider>();
-    final isEditing = cartProvider.activeOrderId != null;
+    final ordersProvider = context.read<OrdersProvider>(); // ✅ PROMJENA
 
-    if (cartProvider.items.isEmpty) {
+    if (ordersProvider.cartItems.isEmpty) { // ✅ PROMJENA
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your cart is empty'),
@@ -80,15 +77,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     if (ordersProvider.isLoading) return;
 
-    final notes = _notesController.text.trim();
-    final items = cartProvider.items
-        .map((item) => {
-              'productId': item.product.id,
-              'quantity': item.quantity,
-              'notes': item.notes,
-              'selectedAccompanimentIds': item.selectedAccompanimentIds,
-            })
-        .toList();
+    ordersProvider.setOrderNotes(_notesController.text.trim()); // ✅ Set notes
 
     showDialog(
       context: context,
@@ -99,23 +88,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     try {
-      bool ok;
-
-      if (isEditing) {
-        ok = await ordersProvider.updateOrderItems(
-          orderId: cartProvider.activeOrderId!,
-          notes: notes,
-          items: items,
-        );
-      } else {
-        ok = await ordersProvider.createOrder(
-          tableId: cartProvider.selectedTable?.id,
-          type: cartProvider.orderType,
-          isPartnerOrder: cartProvider.isPartnerOrder,
-          notes: notes,
-          items: items,
-        );
-      }
+      // ✅ Use createOrderFromCart which handles everything
+      final ok = await ordersProvider.createOrderFromCart();
 
       if (!ok) {
         throw Exception(ordersProvider.error ?? 'Request failed');
@@ -127,15 +101,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         await context.read<TablesProvider>().fetchTables();
       }
 
-      cartProvider.clear();
-
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isEditing ? 'Order updated successfully!' : 'Order placed successfully!',
-          ),
+        const SnackBar(
+          content: Text('Order placed successfully!'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -153,9 +123,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isEditing
-                ? 'Failed to update order: ${ordersProvider.error ?? e.toString()}'
-                : 'Failed to place order: ${ordersProvider.error ?? e.toString()}',
+            'Failed to place order: ${ordersProvider.error ?? e.toString()}',
           ),
           backgroundColor: AppColors.error,
         ),
@@ -174,9 +142,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Consumer<CartProvider>(
-        builder: (context, cart, _) {
-          if (cart.items.isEmpty) {
+      body: Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+        builder: (context, ordersProvider, _) {
+          if (ordersProvider.cartItems.isEmpty) { // ✅ PROMJENA
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -218,18 +186,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: cart.items.length,
+                        itemCount: ordersProvider.cartItems.length, // ✅ PROMJENA
                         separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
-                          final item = cart.items[index];
+                          final item = ordersProvider.cartItems[index]; // ✅ PROMJENA
                           final cacheKey = '${item.product.id}_${item.selectedAccompanimentIds.join(',')}';
                           final accompaniments = _accompanimentCache[cacheKey] ?? [];
                           
                           return _ProductCard(
                             item: item,
                             accompaniments: accompaniments,
-                            onDecrease: () => cart.decreaseQuantity(item.product.id),
-                            onIncrease: () => cart.increaseQuantity(item.product.id),
+                            onDecrease: () {
+                              // ✅ PROMJENA: Use updateCartItemQuantity or removeFromCart
+                              if (item.quantity > 1) {
+                                ordersProvider.updateCartItemQuantity(item.uniqueKey, item.quantity - 1);
+                              } else {
+                                ordersProvider.removeFromCart(item.uniqueKey);
+                              }
+                            },
+                            onIncrease: () {
+                              ordersProvider.updateCartItemQuantity(item.uniqueKey, item.quantity + 1);
+                            },
                           );
                         },
                       ),
@@ -251,19 +228,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           Expanded(
                             child: _RadioTile(
-                              label: 'Cafe',
+                              label: 'Dine In',
                               icon: Icons.restaurant,
-                              selected: cart.orderType == 'DineIn',
-                              onTap: () => cart.setOrderType('DineIn'),
+                              selected: ordersProvider.orderType == 'DineIn', // ✅ PROMJENA
+                              onTap: () => ordersProvider.setOrderType('DineIn'), // ✅ PROMJENA
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _RadioTile(
-                              label: 'Delivery',
+                              label: 'Take Away',
                               icon: Icons.delivery_dining,
-                              selected: cart.orderType == 'TakeAway',
-                              onTap: () => cart.setOrderType('TakeAway'),
+                              selected: ordersProvider.orderType == 'TakeAway', // ✅ PROMJENA
+                              onTap: () => ordersProvider.setOrderType('TakeAway'), // ✅ PROMJENA
                             ),
                           ),
                         ],
@@ -271,9 +248,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                       const SizedBox(height: 24),
 
-                      // DELIVERY METHOD Section
+                      // PARTNER ORDER Section
                       const Text(
-                        'DELIVERY METHOD',
+                        'PARTNER ORDER',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -286,22 +263,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           Expanded(
                             child: _RadioTile(
-                              label: 'In store',
-                              icon: Icons.store,
-                              selected: !cart.isPartnerOrder,
-                              onTap: () => cart.setPartnerOrder(false),
+                              label: 'Regular',
+                              icon: Icons.person,
+                              selected: !ordersProvider.isPartnerOrder, // ✅ PROMJENA
+                              onTap: () => ordersProvider.togglePartnerOrder(), // ✅ PROMJENA
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _RadioTile(
-                              label: 'Takeout',
-                              icon: Icons.shopping_bag,
-                              selected: cart.isPartnerOrder,
-                              onTap: () => cart.setPartnerOrder(true),
+                              label: 'Partner',
+                              icon: Icons.handshake,
+                              selected: ordersProvider.isPartnerOrder, // ✅ PROMJENA
+                              onTap: () => ordersProvider.togglePartnerOrder(), // ✅ PROMJENA
                             ),
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Notes
+                      TextField(
+                        controller: _notesController,
+                        decoration: const InputDecoration(
+                          labelText: 'Order Notes (optional)',
+                          hintText: 'Any special requests?',
+                        ),
+                        maxLines: 2,
                       ),
 
                       const SizedBox(height: 32),
@@ -316,8 +305,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: Column(
                           children: [
                             _SummaryRow(
-                              label: 'Subtotal (${cart.items.length})',
-                              value: _safeCurrency(cart.totalAmount),
+                              label: 'Subtotal (${ordersProvider.cartCount})', // ✅ PROMJENA: itemCount -> cartCount
+                              value: _safeCurrency(ordersProvider.cartTotal), // ✅ PROMJENA: totalAmount -> cartTotal
                             ),
                             const SizedBox(height: 12),
                             _SummaryRow(
@@ -327,7 +316,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             const Divider(height: 32),
                             _SummaryRow(
                               label: 'Total',
-                              value: _safeCurrency(cart.totalAmount),
+                              value: _safeCurrency(ordersProvider.cartTotal), // ✅ PROMJENA
                               isTotal: true,
                             ),
                           ],
@@ -363,9 +352,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: Text(
-                        cart.activeOrderId != null ? 'Update order' : 'Place order',
-                        style: const TextStyle(
+                      child: const Text(
+                        'Place Order',
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppColors.white,
@@ -567,6 +556,19 @@ class _ProductCard extends StatelessWidget {
                     ),
                   )),
                 ],
+              ),
+            ),
+          ],
+          
+          // Notes
+          if (item.notes != null && item.notes!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Note: ${item.notes}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic,
               ),
             ),
           ],

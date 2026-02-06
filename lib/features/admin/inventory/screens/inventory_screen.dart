@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/widgets/custom_text_field.dart';
 import 'package:orders_mobile/core/widgets/empty_state.dart';
 import 'package:orders_mobile/core/widgets/error_display.dart';
 import 'package:orders_mobile/core/widgets/loading_indicator.dart';
+import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/providers/auth_provider.dart';
-import 'package:orders_mobile/providers/inventory_provider.dart';
+import 'package:orders_mobile/providers/business_providers.dart';
+import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/inventory_card.dart';
-
+import 'inventory_detail_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -22,6 +25,9 @@ class _InventoryScreenState extends State<InventoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  
+  String _filterType = 'all';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -29,7 +35,6 @@ class _InventoryScreenState extends State<InventoryScreen>
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
 
-    // Fetch products AFTER build is complete using SchedulerBinding
     SchedulerBinding.instance.addPostFrameCallback((_) {
       Provider.of<InventoryProvider>(context, listen: false).fetchStoreProducts();
     });
@@ -45,39 +50,44 @@ class _InventoryScreenState extends State<InventoryScreen>
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      final provider = context.read<InventoryProvider>();
-      switch (_tabController.index) {
-        case 0:
-          provider.setFilterType('all');
-          break;
-        case 1:
-          provider.setFilterType('low-stock');
-          break;
-        case 2:
-          provider.setFilterType('out-of-stock');
-          break;
-      }
+      setState(() {
+        switch (_tabController.index) {
+          case 0:
+            _filterType = 'all';
+            break;
+          case 1:
+            _filterType = 'low-stock';
+            break;
+          case 2:
+            _filterType = 'out-of-stock';
+            break;
+        }
+      });
     }
   }
 
   void _onSearchChanged(String query) {
-    context.read<InventoryProvider>().setSearchQuery(query);
+    setState(() {
+      _searchQuery = query;
+    });
   }
 
   Future<void> _onRefresh() async {
     await context.read<InventoryProvider>().fetchStoreProducts();
   }
 
-  void _navigateToDetail(String productId) {
-    Navigator.pushNamed(
+  void _navigateToDetail(dynamic product) {
+    if (!mounted) return;
+
+    Navigator.push(
       context,
-      '/inventory-detail',
-      arguments: productId,
+      MaterialPageRoute(
+        builder: (_) => InventoryDetailScreen(product: product),
+      ),
     );
   }
 
   void _showAddProductDialog() {
-    // TODO: Implement add product dialog
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Dodavanje proizvoda - u izradi'),
@@ -86,138 +96,105 @@ class _InventoryScreenState extends State<InventoryScreen>
     );
   }
 
+  int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  String _getProductName(dynamic product) {
+    try {
+      final v = (product as dynamic).productName;
+      if (v != null) return v.toString();
+    } catch (_) {}
+
+    try {
+      final v = (product as dynamic).name;
+      if (v != null) return v.toString();
+    } catch (_) {}
+
+    return '';
+  }
+
+  int _getCurrentStock(dynamic product) {
+    try {
+      return _toInt((product as dynamic).currentStock);
+    } catch (_) {}
+
+    try {
+      return _toInt((product as dynamic).stock);
+    } catch (_) {}
+
+    try {
+      return _toInt((product as dynamic).quantity);
+    } catch (_) {}
+
+    return 0;
+  }
+
+  int _getMinStockLevel(dynamic product) {
+    try {
+      return _toInt((product as dynamic).minStockLevel);
+    } catch (_) {}
+
+    try {
+      return _toInt((product as dynamic).minimumStockLevel);
+    } catch (_) {}
+
+    try {
+      return _toInt((product as dynamic).minStock);
+    } catch (_) {}
+
+    try {
+      return _toInt((product as dynamic).minimumStock);
+    } catch (_) {}
+
+    return 0;
+  }
+
+  List<dynamic> _getFilteredProducts(List<dynamic> allProducts) {
+    var filtered = allProducts;
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered.where((product) {
+        final name = _getProductName(product).toLowerCase();
+        return name.contains(query);
+      }).toList();
+    }
+
+    // Apply stock filter
+    switch (_filterType) {
+      case 'low-stock':
+        filtered = filtered.where((product) {
+          final currentStock = _getCurrentStock(product);
+          final minStockLevel = _getMinStockLevel(product);
+          return currentStock > 0 && currentStock <= minStockLevel;
+        }).toList();
+        break;
+      case 'out-of-stock':
+        filtered = filtered.where((product) {
+          final currentStock = _getCurrentStock(product);
+          return currentStock == 0;
+        }).toList();
+        break;
+    }
+
+    return filtered;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final isAdmin = authProvider.user?.role == 'Admin';
+    final isAdmin = authProvider.currentUser?.role == 'Admin';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inventar'),
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(110),
-          child: Column(
-            children: [
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: 'Pretraži proizvode...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              _onSearchChanged('');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Filter Tabs
-              TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.primary,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: Colors.grey[600],
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-                tabs: const [
-                  Tab(text: 'Svi'),
-                  Tab(text: 'Nisko stanje'),
-                  Tab(text: 'Nema na stanju'),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      body: Consumer<InventoryProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading && provider.storeProducts.isEmpty) {
-            return const LoadingIndicator();
-          }
-
-          if (provider.error != null) {
-            return ErrorDisplay(
-              message: provider.error!,
-              onRetry: () => provider.fetchStoreProducts(),
-            );
-          }
-
-          final products = provider.storeProducts;
-
-          if (products.isEmpty) {
-            String emptyTitle;
-            String emptyMessage;
-            
-            switch (provider.filterType) {
-              case 'low-stock':
-                emptyTitle = 'Sve OK!';
-                emptyMessage = 'Nema proizvoda sa niskim stanjem';
-                break;
-              case 'out-of-stock':
-                emptyTitle = 'Sve na stanju!';
-                emptyMessage = 'Nema proizvoda bez stanja';
-                break;
-              default:
-                if (provider.searchQuery.isNotEmpty) {
-                  emptyTitle = 'Nema rezultata';
-                  emptyMessage = 'Nema rezultata za "${provider.searchQuery}"';
-                } else {
-                  emptyTitle = 'Prazan inventar';
-                  emptyMessage = 'Još nema proizvoda u inventaru';
-                }
-            }
-
-            return EmptyState(
-              icon: Icons.inventory_2_outlined,
-              title: emptyTitle,
-              message: emptyMessage,
-              actionLabel: isAdmin && provider.filterType == 'all' && provider.searchQuery.isEmpty
-                  ? 'Dodaj prvi proizvod'
-                  : null,
-              onAction: isAdmin && provider.filterType == 'all' && provider.searchQuery.isEmpty
-                  ? _showAddProductDialog
-                  : null,
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.only(top: 8, bottom: 80),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return InventoryCard(
-                  product: product,
-                  onTap: () => _navigateToDetail(product.id),
-                );
-              },
-            ),
-          );
-        },
-      ),
+    return AdminScaffold(
+      title: 'Inventar',
+      currentRoute: AppRouter.inventory,
+      backgroundColor: AppColors.background,
       floatingActionButton: isAdmin
           ? FloatingActionButton.extended(
               onPressed: _showAddProductDialog,
@@ -226,6 +203,125 @@ class _InventoryScreenState extends State<InventoryScreen>
               label: const Text('Dodaj proizvod'),
             )
           : null,
+      body: Column(
+        children: [
+          // Search Bar + Tabs Header
+          Container(
+            color: AppColors.surface,
+            child: Column(
+              children: [
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: CustomTextField(
+                    controller: _searchController,
+                    hint: 'Pretraži proizvode...',
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, color: Colors.grey[400]),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          )
+                        : null,
+                    onChanged: _onSearchChanged,
+                  ),
+                ),
+
+                // Filter Tabs
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: AppColors.primary,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: Colors.grey[600],
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Svi'),
+                    Tab(text: 'Nisko stanje'),
+                    Tab(text: 'Nema na stanju'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: Consumer<InventoryProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading && provider.storeProducts.isEmpty) {
+                  return const LoadingIndicator();
+                }
+
+                if (provider.error != null) {
+                  return ErrorDisplay(
+                    message: provider.error!,
+                    onRetry: () => provider.fetchStoreProducts(),
+                  );
+                }
+
+                final products = _getFilteredProducts(provider.storeProducts);
+
+                if (products.isEmpty) {
+                  String emptyTitle;
+                  String emptyMessage;
+                  
+                  switch (_filterType) {
+                    case 'low-stock':
+                      emptyTitle = 'Sve OK!';
+                      emptyMessage = 'Nema proizvoda sa niskim stanjem';
+                      break;
+                    case 'out-of-stock':
+                      emptyTitle = 'Sve na stanju!';
+                      emptyMessage = 'Nema proizvoda bez stanja';
+                      break;
+                    default:
+                      if (_searchQuery.isNotEmpty) {
+                        emptyTitle = 'Nema rezultata';
+                        emptyMessage = 'Nema rezultata za "$_searchQuery"';
+                      } else {
+                        emptyTitle = 'Prazan inventar';
+                        emptyMessage = 'Još nema proizvoda u inventaru';
+                      }
+                  }
+
+                  return EmptyState(
+                    icon: Icons.inventory_2_outlined,
+                    title: emptyTitle,
+                    message: emptyMessage,
+                    actionLabel: isAdmin && _filterType == 'all' && _searchQuery.isEmpty
+                        ? 'Dodaj prvi proizvod'
+                        : null,
+                    onAction: isAdmin && _filterType == 'all' && _searchQuery.isEmpty
+                        ? _showAddProductDialog
+                        : null,
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(top: 8, bottom: 80),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return InventoryCard(
+                        product: product,
+                        onTap: () => _navigateToDetail(product),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

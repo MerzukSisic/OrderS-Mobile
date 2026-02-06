@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:orders_mobile/core/constants/api_constants.dart';
+import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/widgets/accompaniment_group_manager.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import 'package:orders_mobile/models/products/accompaniment_group.dart';
+import 'package:orders_mobile/providers/business_providers.dart';
+import 'package:orders_mobile/providers/products_provider.dart';
+import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../../../providers/products_provider.dart';
-import '../../../../providers/inventory_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../routes/app_router.dart';
-import '../../../../core/services/api_service.dart';
-import '../../../../core/constants/api_constants.dart';
+
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -28,10 +31,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
   
   String? _selectedCategoryId;
   String? _selectedIngredientId;
-  String _selectedLocation = 'Kitchen'; // ✅ Default Kitchen
+  String _selectedLocation = 'Kitchen';
   
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _storeProducts = [];
+  List<AccompanimentGroup> _accompanimentGroups = [];
   bool _isLoadingData = true;
   
   File? _selectedImage;
@@ -61,10 +65,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     try {
       final api = ApiService();
       
-      // ✅ Load categories from backend
+      // Load categories from backend
       final categoriesResponse = await api.get(ApiConstants.categories);
       
-      // ✅ Load store products (ingredients) from backend
+      if (!mounted) return;
+      
+      // Load store products (ingredients) from backend
       final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
       await inventoryProvider.fetchStoreProducts();
       
@@ -156,6 +162,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (!_formKey.currentState!.validate()) return;
     
     if (_selectedCategoryId == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Molimo odaberite kategoriju'),
@@ -168,9 +175,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final productsProvider = context.read<ProductsProvider>();
+      final api = ApiService();
       
-      // ✅ Create product data
+      // Step 1: Create product
       final productData = {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
@@ -180,30 +187,59 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'preparationLocation': _selectedLocation,
         'preparationTimeMinutes': int.parse(_prepTimeController.text.trim()),
         'isAvailable': true,
-        // TODO: Add ingredients list if needed
-        // 'ingredients': [{'storeProductId': _selectedIngredientId, 'quantity': 1.0}],
       };
 
-      await productsProvider.createProduct(productData);
+      final createdProduct = await api.post(ApiConstants.products, body: productData);
+      final productId = createdProduct['id'] as String;
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Proizvod uspješno dodat'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        Navigator.pop(context);
+      if (!mounted) return;
+
+      // Step 2: Create accompaniment groups if any
+      for (final group in _accompanimentGroups) {
+        if (group.name.trim().isEmpty) continue;
+
+        final groupData = {
+          'productId': productId,
+          'name': group.name,
+          'selectionType': group.selectionType,
+          'isRequired': group.isRequired,
+          'minSelections': group.minSelections,
+          'maxSelections': group.maxSelections,
+          'displayOrder': group.displayOrder,
+          'accompaniments': group.accompaniments.map((acc) => {
+            'name': acc.name,
+            'extraCharge': acc.extraCharge,
+            'isAvailable': acc.isAvailable,
+            'displayOrder': acc.displayOrder,
+          }).toList(),
+        };
+
+        await api.createAccompanimentGroup(groupData);
       }
+
+      if (!mounted) return;
+      
+      // Refresh products list
+      await context.read<ProductsProvider>().fetchProducts();
+      
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Proizvod uspješno dodat'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Greška: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Greška: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -360,6 +396,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                     const SizedBox(height: 32),
 
+                    // ✅ NOVA SEKCIJA: Accompaniment Groups
+                    const Divider(height: 32),
+                    AccompanimentGroupManager(
+                      initialGroups: _accompanimentGroups,
+                      onGroupsChanged: (groups) {
+                        setState(() => _accompanimentGroups = groups);
+                      },
+                    ),
+
+                    const SizedBox(height: 32),
+
                     // Save Button
                     SizedBox(
                       width: double.infinity,
@@ -435,7 +482,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           fontSize: 14,
         ),
         suffixText: suffixText,
-        suffixStyle: TextStyle(
+        suffixStyle: const TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
@@ -520,7 +567,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),

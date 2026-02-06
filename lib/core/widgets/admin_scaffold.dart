@@ -33,7 +33,7 @@ class AdminScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.user;
+    final user = authProvider.currentUser;
 
     return Scaffold(
       backgroundColor: backgroundColor ?? AppColors.background,

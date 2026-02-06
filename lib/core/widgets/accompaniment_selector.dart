@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:orders_mobile/models/accompaniment_group.dart';
+import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 
 class AccompanimentSelector extends StatefulWidget {
@@ -78,7 +78,9 @@ class _AccompanimentSelectorState extends State<AccompanimentSelector> {
 
   void _notifyChanges() {
     List<String> allSelected = [];
-    _selectedAccompaniments.values.forEach((list) => allSelected.addAll(list));
+    for (var list in _selectedAccompaniments.values) {
+      allSelected.addAll(list);
+    }
     widget.onSelectionChanged(allSelected);
 
     double totalCharge = 0.0;

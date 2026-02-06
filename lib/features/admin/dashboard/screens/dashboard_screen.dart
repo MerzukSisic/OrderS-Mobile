@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import '../../../../core/constants/api_constants.dart';
-import '../../../../core/services/api_service.dart';
+import '../../../../core/services/api/api_service.dart';
 import '../../../../routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 

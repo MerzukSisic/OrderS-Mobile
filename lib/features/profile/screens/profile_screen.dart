@@ -99,7 +99,7 @@ class ProfileScreen extends StatelessWidget {
       ),
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
-          final user = authProvider.user;
+          final user = authProvider.currentUser; // PROMJENA: user -> currentUser
 
           if (user == null) {
             return const Center(
@@ -252,7 +252,7 @@ class ProfileScreen extends StatelessWidget {
                       // ========================================
                       // ADMIN ONLY SECTION
                       // ========================================
-                      if (user.isAdmin) ...[
+                      if (authProvider.isAdmin) ...[  // PROMJENA: user.isAdmin -> authProvider.isAdmin
                         // Dashboard
                         _ProfileMenuItem(
                           icon: Icons.dashboard_outlined,
@@ -291,14 +291,8 @@ class ProfileScreen extends StatelessWidget {
                           icon: Icons.shopping_cart_outlined,
                           title: 'Procurement',
                           subtitle: 'Order supplies from stores',
-                          onTap: () {
-                            // Navigator.pushNamed(context, AppRouter.procurement);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Procurement - Coming soon'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
+                           onTap: () {
+                               Navigator.pushNamed(context, AppRouter.procurementList);
                           },
                         ),
                         const SizedBox(height: 12),
@@ -309,13 +303,7 @@ class ProfileScreen extends StatelessWidget {
                           title: 'Users',
                           subtitle: 'Manage staff accounts',
                           onTap: () {
-                            // Navigator.pushNamed(context, AppRouter.users);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Users - Coming soon'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
+                               Navigator.pushNamed(context, AppRouter.usersList);
                           },
                         ),
                         const SizedBox(height: 12),
@@ -326,13 +314,7 @@ class ProfileScreen extends StatelessWidget {
                           title: 'Categories',
                           subtitle: 'Organize menu categories',
                           onTap: () {
-                            // Navigator.pushNamed(context, AppRouter.categories);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Categories - Coming soon'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
+                               Navigator.pushNamed(context, AppRouter.categoriesList);
                           },
                         ),
                         const SizedBox(height: 12),
@@ -346,7 +328,7 @@ class ProfileScreen extends StatelessWidget {
                       _ProfileMenuItem(
                         icon: Icons.receipt_long_outlined,
                         title: 'Orders',
-                        subtitle: user.isAdmin 
+                        subtitle: authProvider.isAdmin  // PROMJENA: user.isAdmin -> authProvider.isAdmin
                             ? 'View all orders'
                             : 'View your order history',
                         onTap: () {

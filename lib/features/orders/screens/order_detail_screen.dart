@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../models/order_model.dart';
+import '../../../models/orders/order_model.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../widgets/order_status_badge.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final OrderModel order;
 
   const OrderDetailScreen({
@@ -14,6 +14,11 @@ class OrderDetailScreen extends StatelessWidget {
     required this.order,
   });
 
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Future<void> _updateOrderStatus(
     BuildContext context,
     String newStatus,
@@ -29,7 +34,7 @@ class OrderDetailScreen extends StatelessWidget {
     );
 
     final success = await ordersProvider.updateOrderStatus(
-      orderId: order.id,
+      orderId: widget.order.id,
       status: newStatus,
     );
 
@@ -85,31 +90,27 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   double _calculateSubtotal() {
-    return order.items.fold(0, (sum, item) => sum + item.subtotal);
+    return widget.order.items.fold(0, (sum, item) => sum + item.subtotal);
   }
 
   double _calculateTax() {
-    // Calculate 17% PDV (VAT)
     final subtotal = _calculateSubtotal();
     return subtotal * 0.17;
   }
 
-  // Safe currency formatter with fallback
   String _safeCurrency(double value) {
     try {
       final s = Formatters.currency(value);
       if (s.trim().isNotEmpty) return s;
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
     return '${value.toStringAsFixed(2)} KM';
   }
 
   @override
   Widget build(BuildContext context) {
-    final canModify = order.status != 'Completed' && order.status != 'Cancelled';
-    final canComplete = order.status == 'Ready' || order.status == 'Preparing';
-    final canMarkReady = order.status == 'Pending' || order.status == 'Preparing';
+    final canModify = widget.order.status != 'Completed' && widget.order.status != 'Cancelled';
+    final canComplete = widget.order.status == 'Ready' || widget.order.status == 'Preparing';
+    final canMarkReady = widget.order.status == 'Pending' || widget.order.status == 'Preparing';
     
     final subtotal = _calculateSubtotal();
     final tax = _calculateTax();
@@ -122,7 +123,6 @@ class OrderDetailScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.print),
             onPressed: () {
-              // TODO: Print receipt
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Print functionality coming soon')),
               );
@@ -152,23 +152,23 @@ class OrderDetailScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Order #${order.id.substring(0, 8).toUpperCase()}',
+                                    'Order #${widget.order.id.substring(0, 8).toUpperCase()}',
                                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    Formatters.dateTime(order.createdAt),
+                                    Formatters.dateTime(widget.order.createdAt),
                                     style: const TextStyle(
                                       color: AppColors.textSecondary,
                                       fontSize: 14,
                                     ),
                                   ),
-                                  if (order.completedAt != null) ...[
+                                  if (widget.order.completedAt != null) ...[
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Completed: ${Formatters.dateTime(order.completedAt!)}',
+                                      'Completed: ${Formatters.dateTime(widget.order.completedAt!)}',
                                       style: const TextStyle(
                                         color: AppColors.success,
                                         fontSize: 12,
@@ -179,7 +179,7 @@ class OrderDetailScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            OrderStatusBadge(status: order.status),
+                            OrderStatusBadge(status: widget.order.status),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -200,7 +200,7 @@ class OrderDetailScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Waiter: ${order.waiterName}',
+                                'Waiter: ${widget.order.waiterName}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
@@ -216,22 +216,22 @@ class OrderDetailScreen extends StatelessWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            if (order.tableNumber != null)
+                            if (widget.order.tableNumber != null)
                               _buildInfoChip(
                                 icon: Icons.table_restaurant,
-                                label: 'Table ${order.tableNumber}',
+                                label: 'Table ${widget.order.tableNumber}',
                                 color: AppColors.primary,
                               ),
                             _buildInfoChip(
-                              icon: order.type == 'DineIn'
+                              icon: widget.order.type == 'DineIn'
                                   ? Icons.restaurant
                                   : Icons.takeout_dining,
-                              label: order.type == 'DineIn' ? 'Dine In' : 'Takeaway',
-                              color: order.type == 'DineIn' 
+                              label: widget.order.type == 'DineIn' ? 'Dine In' : 'Takeaway',
+                              color: widget.order.type == 'DineIn' 
                                   ? AppColors.success 
                                   : AppColors.warning,
                             ),
-                            if (order.isPartnerOrder)
+                            if (widget.order.isPartnerOrder)
                               _buildInfoChip(
                                 icon: Icons.business,
                                 label: 'Partner Order',
@@ -267,7 +267,7 @@ class OrderDetailScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            '${order.items.length} ${order.items.length == 1 ? 'item' : 'items'}',
+                            '${widget.order.items.length} ${widget.order.items.length == 1 ? 'item' : 'items'}',
                             style: const TextStyle(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
@@ -286,10 +286,10 @@ class OrderDetailScreen extends StatelessWidget {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: order.items.length,
+                    itemCount: widget.order.items.length,
                     separatorBuilder: (context, index) => const Divider(height: 24),
                     itemBuilder: (context, index) {
-                      final item = order.items[index];
+                      final item = widget.order.items[index];
                       return _buildOrderItem(item);
                     },
                   ),
@@ -340,7 +340,7 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
 
                   // Order Notes
-                  if (order.notes != null && order.notes!.isNotEmpty)
+                  if (widget.order.notes != null && widget.order.notes!.isNotEmpty)
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 16),
                       padding: const EdgeInsets.all(16),
@@ -373,7 +373,7 @@ class OrderDetailScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            order.notes!,
+                            widget.order.notes!,
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               height: 1.5,
@@ -383,7 +383,7 @@ class OrderDetailScreen extends StatelessWidget {
                       ),
                     ),
 
-                  const SizedBox(height: 100), // Space for bottom buttons
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -406,7 +406,6 @@ class OrderDetailScreen extends StatelessWidget {
               child: SafeArea(
                 child: Row(
                   children: [
-                    // Cancel Button
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showCancelDialog(context),
@@ -425,7 +424,6 @@ class OrderDetailScreen extends StatelessWidget {
 
                     const SizedBox(width: 12),
 
-                    // Complete/Ready Button
                     Expanded(
                       flex: 2,
                       child: ElevatedButton.icon(
@@ -468,6 +466,9 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   Widget _buildOrderItem(OrderItem item) {
+    // ✅ PROMJENA: Koristi item.selectedAccompaniments direktno
+    final accompaniments = item.selectedAccompaniments;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -506,7 +507,6 @@ class OrderDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  // Status Badge for item
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
@@ -550,6 +550,82 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                 ],
               ),
+
+              // ✅ ACCOMPANIMENTS DISPLAY - koristi SelectedAccompaniment objekte
+              if (accompaniments.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.restaurant_menu,
+                            size: 14,
+                            color: AppColors.primary.withValues(alpha: 0.8),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Prilozi:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary.withValues(alpha: 0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ...accompaniments.map((acc) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 4),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.6),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                acc.name, // ✅ PROMJENA: acc.name -> acc.accompanimentName
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            if (acc.extraCharge > 0)
+                              Text(
+                                '+${_safeCurrency(acc.extraCharge)}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary.withValues(alpha: 0.9),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+              ],
               
               const SizedBox(height: 8),
               
@@ -557,7 +633,6 @@ class OrderDetailScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Quantity
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -590,12 +665,11 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                   ),
                   
-                  // Price Breakdown
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${_safeCurrency(item.unitPrice)} Ã— ${item.quantity}',
+                        '${_safeCurrency(item.unitPrice)} × ${item.quantity}',
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontSize: 12,
@@ -661,10 +735,6 @@ class OrderDetailScreen extends StatelessWidget {
         return AppColors.info;
       case 'Ready':
         return AppColors.success;
-      case 'Completed':
-        return AppColors.success;
-      case 'Cancelled':
-        return AppColors.error;
       default:
         return AppColors.textSecondary;
     }

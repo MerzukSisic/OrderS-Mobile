@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:orders_mobile/core/services/api_service.dart';
-import 'package:orders_mobile/models/accompaniment_group.dart';
+import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import 'package:provider/provider.dart';
 
-import '../../../models/product_model.dart';
-import '../../../providers/cart_provider.dart';
+import '../../../models/products/product_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/services/navigation_service.dart';
+import '../../../providers/orders_provider.dart'; // ✅ DODAJ IMPORT
 import '../widgets/ingredient_chip.dart';
 import '../../../core/widgets/accompaniment_selector.dart';
 
@@ -26,7 +26,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<String> _selectedAccompanimentIds = [];
   double _totalAccompanimentCharge = 0.0;
   bool _isLoadingAccompaniments = true;
-  int _selectorKey = 0; // ✅ Key za forsirani rebuild
+  int _selectorKey = 0;
 
   @override
   void initState() {
@@ -91,15 +91,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     }
 
-    const qty = 1;
     final notes = _notesController.text.trim();
 
-    // ✅ FIXED: Pass selectedAccompanimentIds
-    context.read<CartProvider>().addItem(
-      widget.product,
-      qty,
-      notes: notes.isEmpty ? null : notes,
+    // ✅ FIXED: Use OrdersProvider.addToCart
+    context.read<OrdersProvider>().addToCart(
+      product: widget.product,
+      quantity: 1,
       selectedAccompanimentIds: _selectedAccompanimentIds,
+      notes: notes.isEmpty ? null : notes,
     );
 
     final rootCtx = NavigationService.context ?? context;
@@ -121,7 +120,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       _selectedAccompanimentIds = [];
       _totalAccompanimentCharge = 0.0;
       _notesController.clear();
-      _selectorKey++; // ✅ Force rebuild AccompanimentSelector
+      _selectorKey++;
     });
   }
 
@@ -140,14 +139,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         title: Text(widget.product.name),
         actions: [
-          Consumer<CartProvider>(
-            builder: (context, cart, _) {
+          Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+            builder: (context, ordersProvider, _) {
               return IconButton(
                 onPressed: _openCart,
                 icon: Stack(
                   children: [
                     const Icon(Icons.shopping_cart_outlined),
-                    if (cart.itemCount > 0)
+                    if (ordersProvider.cartCount > 0) // ✅ PROMJENA: itemCount -> cartCount
                       Positioned(
                         right: 0,
                         top: 0,
@@ -160,7 +159,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: Text(
-                            '${cart.itemCount}',
+                            '${ordersProvider.cartCount}', // ✅ PROMJENA: itemCount -> cartCount
                             style: const TextStyle(
                               color: AppColors.white,
                               fontSize: 9,
@@ -176,7 +175,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
         ],
       ),
-      // ✅ FIXED: Always show "Add to cart" button (no stepper)
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
@@ -364,7 +362,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     )
                   else if (_accompanimentGroups.isNotEmpty)
                     AccompanimentSelector(
-                      key: ValueKey(_selectorKey), // ✅ Force rebuild on each add
+                      key: ValueKey(_selectorKey),
                       groups: _accompanimentGroups,
                       onSelectionChanged: (selectedIds) {
                         setState(() {

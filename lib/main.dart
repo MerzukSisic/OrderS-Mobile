@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:orders_mobile/providers/inventory_provider.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:orders_mobile/providers/business_providers.dart';
+import 'package:orders_mobile/providers/procurement_payments_providers.dart';
+import 'package:orders_mobile/providers/users_accompaniments_providers.dart';
 import 'package:provider/provider.dart';
+
 import 'core/theme/app_theme.dart';
-import 'core/services/api_service.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/navigation_service.dart';
 import 'providers/auth_provider.dart';
-import 'providers/cart_provider.dart';
-import 'providers/products_provider.dart';
 import 'providers/orders_provider.dart';
+import 'providers/products_provider.dart';
 import 'providers/tables_provider.dart';
+import 'providers/categories_provider.dart';
 import 'routes/app_router.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set system UI overlay style
+  // ✅ Stripe init
+  Stripe.publishableKey =
+      'pk_test_51QdZsNId2FRgVkuiAMWlpLmNHw4e4igDSx3DihjKQr4m2sz5DxNGJLFJPb48SIdPvHXeKl9IxvOV4IUvsrDjCywk00jLLh7syZ';
+
+  // ✅ MUST: scheme used for 3DS / redirect flows
+  Stripe.urlScheme = 'orders';
+  await Stripe.instance.applySettings();
+
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -24,8 +34,7 @@ void main() {
     ),
   );
 
-  // Set preferred orientations
-  SystemChrome.setPreferredOrientations([
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
@@ -38,77 +47,58 @@ class OrdersApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final apiService = ApiService();
-    final storageService = StorageService();
-
     return MultiProvider(
       providers: [
         // Services
-        Provider<ApiService>.value(value: apiService),
-        Provider<StorageService>.value(value: storageService),
-        Provider<NavigationService>(
-          create: (_) => NavigationService(),
-        ),
+        Provider(create: (_) => StorageService()),
+        Provider(create: (_) => NavigationService()),
 
-        // Providers
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(apiService, storageService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => CartProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ProductsProvider(apiService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => OrdersProvider(apiService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => TablesProvider(apiService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => InventoryProvider(apiService),
-        ),
+        // Auth & Core Providers
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => OrdersProvider()),
+        ChangeNotifierProvider(create: (_) => ProductsProvider()),
+        ChangeNotifierProvider(create: (_) => TablesProvider()),
+        ChangeNotifierProvider(create: (_) => CategoriesProvider()),
+
+        // Business Providers
+        ChangeNotifierProvider(create: (_) => InventoryProvider()),
+        ChangeNotifierProvider(create: (_) => StoresProvider()),
+        ChangeNotifierProvider(create: (_) => StatisticsProvider()),
+
+        // Users & Accompaniments Providers
+        ChangeNotifierProvider(create: (_) => UsersProvider()), // ✅ DODANO
+        ChangeNotifierProvider(create: (_) => AccompanimentsProvider()), // ✅ DODANO
+
+        // Procurement & Payments Providers
+        ChangeNotifierProvider(create: (_) => ProcurementProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentsProvider()),
       ],
-      child: Builder(
-        builder: (context) {
-          return MaterialApp(
-            title: 'OrderS',
-            theme: AppTheme.darkTheme,
-            navigatorKey: NavigationService.navigatorKey,
-            onGenerateRoute: (settings) {
-              final routeName = settings.name;
-              final builder =
-                  routeName != null ? AppRouter.routes[routeName] : null;
+      child: MaterialApp(
+        title: 'OrderS',
+        theme: AppTheme.darkTheme,
+        navigatorKey: NavigationService.navigatorKey,
+        onGenerateRoute: (settings) {
+          final routeName = settings.name;
+          final builder = routeName != null ? AppRouter.routes[routeName] : null;
 
-              if (builder != null) {
-                return MaterialPageRoute(
-                  builder: builder,
-                  settings: settings,
-                );
-              }
+          if (builder != null) {
+            return MaterialPageRoute(builder: builder, settings: settings);
+          }
 
-              // Fallback to splash screen if route not found
-              final fallbackBuilder = AppRouter.routes[AppRouter.initial];
-              if (fallbackBuilder != null) {
-                return MaterialPageRoute(
-                  builder: fallbackBuilder,
-                  settings: settings,
-                );
-              }
+          final fallbackBuilder = AppRouter.routes[AppRouter.initial];
+          if (fallbackBuilder != null) {
+            return MaterialPageRoute(builder: fallbackBuilder, settings: settings);
+          }
 
-              // Ultimate fallback - should never reach here
-              return MaterialPageRoute(
-                builder: (context) => const Scaffold(
-                  body: Center(child: Text('Route not found')),
-                ),
-                settings: settings,
-              );
-            },
-            initialRoute: AppRouter.initial,
-            debugShowCheckedModeBanner: false,
+          return MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: Center(child: Text('Route not found')),
+            ),
+            settings: settings,
           );
         },
+        initialRoute: AppRouter.initial,
+        debugShowCheckedModeBanner: false,
       ),
     );
   }
