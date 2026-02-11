@@ -28,18 +28,18 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
   IconData _selectedIcon = Icons.category;
 
   final List<Map<String, dynamic>> _iconOptions = [
-    {'icon': Icons.category, 'label': 'Kategorija'},
-    {'icon': Icons.restaurant, 'label': 'Restoran'},
-    {'icon': Icons.local_bar, 'label': 'Piće'},
-    {'icon': Icons.coffee, 'label': 'Kafa'},
-    {'icon': Icons.cake, 'label': 'Desert'},
-    {'icon': Icons.free_breakfast, 'label': 'Doručak'},
-    {'icon': Icons.lunch_dining, 'label': 'Ručak'},
-    {'icon': Icons.dinner_dining, 'label': 'Večera'},
-    {'icon': Icons.fastfood, 'label': 'Brza hrana'},
+    {'icon': Icons.category, 'label': 'Category'},
+    {'icon': Icons.restaurant, 'label': 'Restaurant'},
+    {'icon': Icons.local_bar, 'label': 'Drinks'},
+    {'icon': Icons.coffee, 'label': 'Coffee'},
+    {'icon': Icons.cake, 'label': 'Dessert'},
+    {'icon': Icons.free_breakfast, 'label': 'Breakfast'},
+    {'icon': Icons.lunch_dining, 'label': 'Lunch'},
+    {'icon': Icons.dinner_dining, 'label': 'Dinner'},
+    {'icon': Icons.fastfood, 'label': 'Fast Food'},
     {'icon': Icons.local_pizza, 'label': 'Pizza'},
-    {'icon': Icons.icecream, 'label': 'Sladoled'},
-    {'icon': Icons.emoji_food_beverage, 'label': 'Napitci'},
+    {'icon': Icons.icecream, 'label': 'Ice Cream'},
+    {'icon': Icons.emoji_food_beverage, 'label': 'Beverages'},
   ];
 
   @override
@@ -80,7 +80,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Greška pri učitavanju: $e'),
+            content: Text('Error loading: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -124,7 +124,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kategorija uspješno ažurirana'),
+          content: Text('Category successfully updated'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -133,7 +133,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Greška: $e'),
+            content: Text('Error: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -158,7 +158,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: const Text(
-            'Uredi kategoriju',
+            'Edit Category',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -180,7 +180,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
             onPressed: () => Navigator.pop(context),
           ),
           title: const Text(
-            'Uredi kategoriju',
+            'Edit Category',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -198,7 +198,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Kategorija nije pronađena',
+                'Category not found',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
@@ -208,7 +208,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
               ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('Nazad'),
+                label: const Text('Back'),
               ),
             ],
           ),
@@ -226,7 +226,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Uredi: ${_category!.name}',
+          'Edit: ${_category!.name}',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -252,7 +252,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Ikona kategorije',
+                    'Category Icon',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -323,7 +323,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Naziv kategorije *',
+                    'Category Name *',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -333,7 +333,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                   TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(
-                      hintText: 'Unesite naziv kategorije',
+                      hintText: 'Enter category name',
                       prefixIcon: const Icon(Icons.label_outline),
                       filled: true,
                       fillColor: AppColors.background,
@@ -352,7 +352,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Molimo unesite naziv kategorije';
+                        return 'Please enter category name';
                       }
                       return null;
                     },
@@ -377,7 +377,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Opis',
+                    'Description',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -388,7 +388,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                     controller: _descriptionController,
                     maxLines: 4,
                     decoration: InputDecoration(
-                      hintText: 'Unesite opis kategorije (opciono)',
+                      hintText: 'Enter category description (optional)',
                       prefixIcon: const Padding(
                         padding: EdgeInsets.only(bottom: 60),
                         child: Icon(Icons.description_outlined),
@@ -429,7 +429,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                             ),
                           )
                         : const Icon(Icons.save),
-                    label: Text(_isSaving ? 'Ažuriranje...' : 'Ažuriraj kategoriju'),
+                    label: Text(_isSaving ? 'Updating...' : 'Update Category'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(
@@ -449,7 +449,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('Otkaži'),
+                    child: const Text('Cancel'),
                   ),
                 ),
               ],

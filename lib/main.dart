@@ -4,8 +4,8 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
 import 'package:orders_mobile/providers/procurement_payments_providers.dart';
 import 'package:orders_mobile/providers/users_accompaniments_providers.dart';
+import 'package:orders_mobile/providers/notification_recommendation_providers.dart'; // ✅ ADD THIS
 import 'package:provider/provider.dart';
-
 import 'core/theme/app_theme.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/navigation_service.dart';
@@ -22,7 +22,6 @@ Future<void> main() async {
   // ✅ Stripe init
   Stripe.publishableKey =
       'pk_test_51QdZsNId2FRgVkuiAMWlpLmNHw4e4igDSx3DihjKQr4m2sz5DxNGJLFJPb48SIdPvHXeKl9IxvOV4IUvsrDjCywk00jLLh7syZ';
-
   // ✅ MUST: scheme used for 3DS / redirect flows
   Stripe.urlScheme = 'orders';
   await Stripe.instance.applySettings();
@@ -66,12 +65,17 @@ class OrdersApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StatisticsProvider()),
 
         // Users & Accompaniments Providers
-        ChangeNotifierProvider(create: (_) => UsersProvider()), // ✅ DODANO
-        ChangeNotifierProvider(create: (_) => AccompanimentsProvider()), // ✅ DODANO
+        ChangeNotifierProvider(create: (_) => UsersProvider()),
+        ChangeNotifierProvider(create: (_) => AccompanimentsProvider()),
 
         // Procurement & Payments Providers
         ChangeNotifierProvider(create: (_) => ProcurementProvider()),
         ChangeNotifierProvider(create: (_) => PaymentsProvider()),
+
+        // ✅ Notifications & Recommendations Providers
+        ChangeNotifierProvider(create: (_) => NotificationsProvider()),
+        ChangeNotifierProvider(create: (_) => RecommendationsProvider()),
+        ChangeNotifierProvider(create: (_) => ReceiptsProvider()),
       ],
       child: MaterialApp(
         title: 'OrderS',
@@ -80,16 +84,13 @@ class OrdersApp extends StatelessWidget {
         onGenerateRoute: (settings) {
           final routeName = settings.name;
           final builder = routeName != null ? AppRouter.routes[routeName] : null;
-
           if (builder != null) {
             return MaterialPageRoute(builder: builder, settings: settings);
           }
-
           final fallbackBuilder = AppRouter.routes[AppRouter.initial];
           if (fallbackBuilder != null) {
             return MaterialPageRoute(builder: fallbackBuilder, settings: settings);
           }
-
           return MaterialPageRoute(
             builder: (_) => const Scaffold(
               body: Center(child: Text('Route not found')),

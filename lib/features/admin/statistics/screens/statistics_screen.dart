@@ -10,8 +10,6 @@ import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-
-
 class StatisticsScreen extends StatefulWidget {
   const StatisticsScreen({super.key});
 
@@ -58,7 +56,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Statistika',
+      title: 'Statistics',
       currentRoute: AppRouter.adminStatistics,
       backgroundColor: AppColors.background,
       actions: [
@@ -69,10 +67,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             children: [
               Text(
                 _selectedPeriod == '7'
-                    ? '7 dana'
+                    ? '7 days'
                     : _selectedPeriod == '30'
-                        ? '30 dana'
-                        : '90 dana',
+                        ? '30 days'
+                        : '90 days',
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -88,22 +86,22 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           itemBuilder: (context) => [
             PopupMenuItem(
               value: '7',
-              child: Text('Zadnjih 7 dana', style: TextStyle(color: AppColors.textPrimary)),
+              child: Text('Last 7 days', style: TextStyle(color: AppColors.textPrimary)),
             ),
             PopupMenuItem(
               value: '30',
-              child: Text('Zadnjih 30 dana', style: TextStyle(color: AppColors.textPrimary)),
+              child: Text('Last 30 days', style: TextStyle(color: AppColors.textPrimary)),
             ),
             PopupMenuItem(
               value: '90',
-              child: Text('Zadnjih 90 dana', style: TextStyle(color: AppColors.textPrimary)),
+              child: Text('Last 90 days', style: TextStyle(color: AppColors.textPrimary)),
             ),
           ],
         ),
         IconButton(
           onPressed: _loadData,
           icon: const Icon(Icons.refresh, color: AppColors.primary),
-          tooltip: 'Osvježi',
+          tooltip: 'Refresh',
         ),
       ],
       body: Consumer<StatisticsProvider>(
@@ -133,7 +131,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.white,
                     ),
-                    child: const Text('Pokušaj ponovo'),
+                    child: const Text('Try Again'),
                   ),
                 ],
               ),
@@ -162,10 +160,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       ),
       child: Row(
         children: [
-          _buildTabButton('Pregled', Icons.dashboard, 0),
-          _buildTabButton('Proizvodi', Icons.inventory_2, 1),
-          _buildTabButton('Osoblje', Icons.people, 2),
-          _buildTabButton('Sati', Icons.schedule, 3),
+          _buildTabButton('Overview', Icons.dashboard, 0),
+          _buildTabButton('Products', Icons.inventory_2, 1),
+          _buildTabButton('Staff', Icons.people, 2),
+          _buildTabButton('Hours', Icons.schedule, 3),
         ],
       ),
     );
@@ -226,7 +224,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final stats = provider.dashboardStats;
     if (stats == null) {
       return const Center(
-        child: Text('Nema dostupnih podataka', style: TextStyle(color: AppColors.textSecondary)),
+        child: Text('No data available', style: TextStyle(color: AppColors.textSecondary)),
       );
     }
 
@@ -234,12 +232,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Row 1: Danas + Sedmica
+          // Row 1: Today + Week
           Row(
             children: [
               Expanded(
                 child: _buildStatCard(
-                  'Danas',
+                  'Today',
                   '${stats.todayRevenue.toStringAsFixed(0)} KM',
                   Icons.attach_money,
                   AppColors.success,
@@ -251,7 +249,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  'Sedmica',
+                  'Week',
                   '${stats.weekRevenue.toStringAsFixed(0)} KM',
                   Icons.calendar_today,
                   AppColors.primary,
@@ -261,12 +259,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
           const SizedBox(height: 12),
           
-          // Row 2: Mjesec + Narudžbe
+          // Row 2: Month + Orders
           Row(
             children: [
               Expanded(
                 child: _buildStatCard(
-                  'Mjesec',
+                  'Month',
                   '${stats.monthRevenue.toStringAsFixed(0)} KM',
                   Icons.calendar_month,
                   AppColors.warning,
@@ -275,7 +273,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  'Narudžbe',
+                  'Orders',
                   '${stats.todayOrders}',
                   Icons.shopping_cart,
                   AppColors.primary,
@@ -285,12 +283,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
           const SizedBox(height: 12),
           
-          // Row 3: Stolovi + Zalihe
+          // Row 3: Tables + Stock
           Row(
             children: [
               Expanded(
                 child: _buildStatCard(
-                  'Stolovi',
+                  'Tables',
                   '${stats.activeTables}',
                   Icons.table_restaurant,
                   AppColors.success,
@@ -299,11 +297,11 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  'Zalihe',
+                  'Stock',
                   '${stats.lowStockItems}',
                   Icons.warning,
                   AppColors.error,
-                  subtitle: 'malo zaliha',
+                  subtitle: 'low stock',
                 ),
               ),
             ],
@@ -329,7 +327,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             Icon(Icons.inventory_2, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
-              'Nema dostupnih podataka',
+              'No data available',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ],
@@ -359,7 +357,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             Icon(Icons.people, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
-              'Nema dostupnih podataka',
+              'No data available',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ],
@@ -388,7 +386,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             Icon(Icons.schedule, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
-              'Nema dostupnih podataka',
+              'No data available',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ],
@@ -410,7 +408,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     String? subtitle,
   }) {
     return Container(
-      height: 110, // ✅ Fiksna visina za sve
+      height: 110, // ✅ Fixed height for all
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -461,7 +459,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           ),
           const SizedBox(height: 2),
           SizedBox(
-            height: 14, // ✅ Rezervisani prostor za subtitle
+            height: 14, // ✅ Reserved space for subtitle
             child: subtitle != null
                 ? Text(
                     subtitle,
@@ -495,7 +493,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Top proizvodi',
+                'Top products',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -511,7 +509,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Nema prodanih proizvoda',
+                  'No products sold',
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
               ),
@@ -535,7 +533,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${product.quantitySold} prodato',
+                              '${product.quantitySold} sold',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
@@ -575,7 +573,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Top osoblje',
+                'Top staff',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -591,7 +589,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Nema podataka',
+                  'No data',
                   style: TextStyle(color: AppColors.textSecondary),
                 ),
               ),
@@ -615,7 +613,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '${waiter.totalOrders} narudžbi',
+                              '${waiter.totalOrders} orders',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
@@ -655,7 +653,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Distribucija prodaje',
+            'Sales Distribution',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -762,7 +760,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 const Expanded(
                   flex: 3,
                   child: Text(
-                    'Proizvod',
+                    'Product',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
@@ -772,7 +770,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 ),
                 const Expanded(
                   child: Text(
-                    'Kom',
+                    'Qty',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
@@ -784,7 +782,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    'Prihod',
+                    'Revenue',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
@@ -907,7 +905,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     Icon(Icons.receipt, size: 12, color: AppColors.textSecondary),
                     const SizedBox(width: 4),
                     Text(
-                      '${waiter.totalOrders} narudžbi',
+                      '${waiter.totalOrders} orders',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -917,7 +915,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     Icon(Icons.attach_money, size: 12, color: AppColors.textSecondary),
                     const SizedBox(width: 4),
                     Text(
-                      'Pros: ${waiter.averageOrderValue.toStringAsFixed(0)} KM',
+                      'Avg: ${waiter.averageOrderValue.toStringAsFixed(0)} KM',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -957,7 +955,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Analiza prometa po satima',
+            'Traffic Analysis by Hour',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,

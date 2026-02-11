@@ -10,9 +10,7 @@ import 'package:orders_mobile/models/inventory/inventory_log_model.dart';
 import 'package:orders_mobile/models/inventory/store_product_model.dart';
 import 'package:orders_mobile/models/inventory/consumption_forecast_model.dart';
 
-
 // ==================== STATISTICS API SERVICE ====================
-
 class StatisticsApiService {
   final ApiClient _client = ApiClient();
 
@@ -60,12 +58,13 @@ class StatisticsApiService {
   }
 
   /// Get top selling products
+  /// ✅ FIXED: Endpoint changed to match backend
   Future<ApiResponse<List<ProductSales>>> getTopSellingProducts({
     int count = 10,
     int days = 30,
   }) async {
     return await _client.get(
-      '/statistics/top-selling',
+      '/statistics/top-selling-products', // ✅ CHANGED from '/statistics/top-selling'
       queryParameters: {
         'count': count,
         'days': days,
@@ -106,7 +105,6 @@ class StatisticsApiService {
 }
 
 // ==================== INVENTORY API SERVICE ====================
-
 class InventoryApiService {
   final ApiClient _client = ApiClient();
 
@@ -172,7 +170,6 @@ class InventoryApiService {
     if (response.success && response.data != null) {
       return ApiResponse.success(response.data!);
     }
-
     return ApiResponse.failure(response.error ?? 'Failed to get stock value');
   }
 
@@ -261,7 +258,6 @@ class InventoryApiService {
 }
 
 // ==================== STORES API SERVICE ====================
-
 class StoresApiService {
   final ApiClient _client = ApiClient();
 

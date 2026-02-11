@@ -74,10 +74,10 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
           _currentStep = 1;
         });
       } else {
-        _showError(procurementProvider.error ?? 'Greška pri kreiranju narudžbe');
+        _showError(procurementProvider.error ?? 'Error creating order');
       }
     } catch (e) {
-      _showError('Greška: $e');
+      _showError('Error: $e');
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -184,11 +184,11 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
       color: AppColors.surface,
       child: Row(
         children: [
-          _buildStepCircle(0, 'Detalji', Icons.edit_note),
+          _buildStepCircle(0, 'Details', Icons.edit_note),
           _buildStepLine(0),
-          _buildStepCircle(1, 'Plaćanje', Icons.payment),
+          _buildStepCircle(1, 'Payment', Icons.payment),
           _buildStepLine(1),
-          _buildStepCircle(2, 'Završeno', Icons.check_circle),
+          _buildStepCircle(2, 'Complete', Icons.check_circle),
         ],
       ),
     );
@@ -271,12 +271,12 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Dobavljač', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Text('Supplier', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _supplierController,
               decoration: InputDecoration(
-                hintText: 'Unesite naziv dobavljača',
+                hintText: 'Enter supplier name',
                 filled: true,
                 fillColor: AppColors.surface,
                 border: OutlineInputBorder(
@@ -285,17 +285,17 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Obavezno polje' : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required field' : null,
             ),
             const SizedBox(height: 20),
 
-            const Text('Napomene (opciono)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Text('Notes (optional)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _notesController,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: 'Dodatne napomene...',
+                hintText: 'Additional notes...',
                 filled: true,
                 fillColor: AppColors.surface,
                 border: OutlineInputBorder(
@@ -330,7 +330,7 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                         ),
                       )
                     : const Text(
-                        'Nastavi na plaćanje',
+                        'Continue to payment',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.white),
                       ),
               ),
@@ -362,9 +362,9 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                   child: const Icon(Icons.payment, size: 40, color: AppColors.primary),
                 ),
                 const SizedBox(height: 24),
-                const Text('Spremno za plaćanje', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text('Ready for payment', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                Text('Ukupan iznos: ${total.toStringAsFixed(2)} KM',
+                Text('Total amount: ${total.toStringAsFixed(2)} KM',
                     style: const TextStyle(fontSize: 18, color: AppColors.textSecondary)),
                 const SizedBox(height: 24),
                 _buildOrderSummary(),
@@ -390,7 +390,7 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                         valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                       ),
                     )
-                  : const Text('Plati sada', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.white)),
+                  : const Text('Pay now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.white)),
             ),
           ),
         ],
@@ -414,9 +414,9 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
             child: const Icon(Icons.check_circle, size: 60, color: AppColors.success),
           ),
           const SizedBox(height: 24),
-          const Text('Plaćanje uspješno!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          const Text('Payment successful!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          Text('Vaša nabavka je kreirana i plaćena.',
+          Text('Your procurement has been created and paid.',
               textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.9))),
           const SizedBox(height: 32),
           const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
@@ -441,8 +441,8 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Pregled narudžbe', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              Text('${_items.length} proizvod(a)', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+              const Text('Order summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('${_items.length} product(s)', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
             ],
           ),
           const Divider(height: 24),
@@ -469,7 +469,7 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('UKUPNO', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('TOTAL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               Text('${total.toStringAsFixed(2)} KM',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
             ],

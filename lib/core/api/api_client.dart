@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../services/error_handling_interceptor.dart';
+import '../services/error_handling_service.dart'; // ✅ ADD THIS
 
 /// API Response wrapper
 class ApiResponse<T> {
@@ -69,6 +71,10 @@ class ApiClient {
   }
 
   void _setupInterceptors() {
+    // ✅ ADD ERROR HANDLING INTERCEPTOR FIRST
+    _dio.interceptors.add(ErrorHandlingInterceptor());
+
+    // Then add auth/logging interceptor
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
@@ -230,53 +236,15 @@ class ApiClient {
 
   /// Handle Dio errors
   ApiResponse<T> _handleDioError<T>(DioException error) {
-    String errorMessage;
-    int? statusCode = error.response?.statusCode;
+    // ✅ Use ErrorHandlingService to extract proper message
+    final errorHandlingService = ErrorHandlingService();
+    final appException = errorHandlingService.handleDioError(error);
+    final userMessage = errorHandlingService.getUserMessage(appException);
 
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        errorMessage = 'Connection timeout. Please check your internet connection.';
-        break;
-
-      case DioExceptionType.badResponse:
-        errorMessage = _extractErrorMessage(error.response?.data) ??
-            'Request failed with status ${error.response?.statusCode}';
-        break;
-
-      case DioExceptionType.cancel:
-        errorMessage = 'Request cancelled';
-        break;
-
-      case DioExceptionType.connectionError:
-        errorMessage = 'No internet connection. Please check your network.';
-        break;
-
-      default:
-        errorMessage = 'An unexpected error occurred: ${error.message}';
-    }
-
-    return ApiResponse.failure(errorMessage, statusCode: statusCode);
-  }
-
-  /// Extract error message from response
-  String? _extractErrorMessage(dynamic data) {
-    if (data == null) return null;
-
-    if (data is Map) {
-      // Common error formats
-      return data['message'] ?? 
-             data['error'] ?? 
-             data['title'] ??
-             data['detail'];
-    }
-
-    if (data is String) {
-      return data;
-    }
-
-    return null;
+    return ApiResponse.failure(
+      userMessage,
+      statusCode: error.response?.statusCode,
+    );
   }
 
   /// Get Dio instance (for custom usage)

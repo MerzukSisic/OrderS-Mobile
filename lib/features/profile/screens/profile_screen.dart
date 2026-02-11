@@ -15,6 +15,8 @@ class ProfileScreen extends StatelessWidget {
         return '🍽️';
       case 'bartender':
         return '🍺';
+      case 'kitchen':
+        return '👨‍🍳';
       default:
         return '👤';
     }
@@ -28,6 +30,8 @@ class ProfileScreen extends StatelessWidget {
         return AppColors.primary; // Primary color for Waiter
       case 'bartender':
         return const Color(0xFF4ECDC4); // Teal for Bartender
+      case 'kitchen':
+        return AppColors.warning; // Orange for Kitchen
       default:
         return AppColors.textSecondary;
     }
@@ -79,10 +83,7 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Profile'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -99,7 +100,7 @@ class ProfileScreen extends StatelessWidget {
       ),
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
-          final user = authProvider.currentUser; // PROMJENA: user -> currentUser
+          final user = authProvider.currentUser;
 
           if (user == null) {
             return const Center(
@@ -249,11 +250,10 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
 
-                      // ========================================
-                      // ADMIN ONLY SECTION
-                      // ========================================
-                      if (authProvider.isAdmin) ...[  // PROMJENA: user.isAdmin -> authProvider.isAdmin
-                        // Dashboard
+                      // ============================================
+                      // 👑 ADMIN SECTION
+                      // ============================================
+                      if (authProvider.isAdmin) ...[
                         _ProfileMenuItem(
                           icon: Icons.dashboard_outlined,
                           title: 'Dashboard',
@@ -264,7 +264,6 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Products Management
                         _ProfileMenuItem(
                           icon: Icons.inventory_2_outlined,
                           title: 'Products',
@@ -275,7 +274,6 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Inventory
                         _ProfileMenuItem(
                           icon: Icons.warehouse_outlined,
                           title: 'Inventory',
@@ -286,7 +284,6 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Procurement
                         _ProfileMenuItem(
                           icon: Icons.shopping_cart_outlined,
                           title: 'Procurement',
@@ -297,7 +294,6 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Users Management
                         _ProfileMenuItem(
                           icon: Icons.people_outline,
                           title: 'Users',
@@ -308,7 +304,6 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Categories
                         _ProfileMenuItem(
                           icon: Icons.category_outlined,
                           title: 'Categories',
@@ -318,27 +313,88 @@ class ProfileScreen extends StatelessWidget {
                           },
                         ),
                         const SizedBox(height: 12),
+
+                        _ProfileMenuItem(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'Orders',
+                          subtitle: 'View all orders',
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.adminOrders);
+                          },
+                        ),
+                        const SizedBox(height: 12),
                       ],
 
-                      // ========================================
-                      // COMMON SECTION (All Roles)
-                      // ========================================
+                      // ============================================
+                      // 🍽️ WAITER SECTION
+                      // ============================================
+                      if (authProvider.isWaiter) ...[
+                        _ProfileMenuItem(
+                          icon: Icons.table_restaurant,
+                          title: 'Tables',
+                          subtitle: 'View and manage tables',
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.tables);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        _ProfileMenuItem(
+                          icon: Icons.restaurant_menu,
+                          title: 'Menu',
+                          subtitle: 'Browse products and create orders',
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.products);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        _ProfileMenuItem(
+                          icon: Icons.receipt_long_outlined,
+                          title: 'My Orders',
+                          subtitle: 'View your order history',
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.orders);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // ============================================
+                      // 🍺 BARTENDER SECTION
+                      // ============================================
+                      if (authProvider.isBartender) ...[
+                        _ProfileMenuItem(
+                          icon: Icons.local_bar,
+                          title: 'Bar Orders',
+                          subtitle: 'View and manage drink orders',
+                          iconColor: AppColors.info,
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.barOrders);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+
+                      // ============================================
+                      // 👨‍🍳 KITCHEN SECTION
+                      // ============================================
+                      if (authProvider.isKitchen) ...[
+                        _ProfileMenuItem(
+                          icon: Icons.restaurant,
+                          title: 'Kitchen Orders',
+                          subtitle: 'View and manage food orders',
+                          iconColor: AppColors.warning,
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.kitchenOrders);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       
-                      // Orders
-                      _ProfileMenuItem(
-                        icon: Icons.receipt_long_outlined,
-                        title: 'Orders',
-                        subtitle: authProvider.isAdmin  // PROMJENA: user.isAdmin -> authProvider.isAdmin
-                            ? 'View all orders'
-                            : 'View your order history',
-                        onTap: () {
-                          Navigator.pushNamed(context, AppRouter.orders);
-                        },
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // About
+                      // ============================================
+                      // 📖 ABOUT (ALL ROLES)
+                      // ============================================
                       _ProfileMenuItem(
                         icon: Icons.info_outline,
                         title: 'About',
@@ -419,16 +475,20 @@ class _ProfileMenuItem extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final Color? iconColor;
 
   const _ProfileMenuItem({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveIconColor = iconColor ?? AppColors.primary;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -455,12 +515,12 @@ class _ProfileMenuItem extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: effectiveIconColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: AppColors.primary,
+                color: effectiveIconColor,
                 size: 24,
               ),
             ),

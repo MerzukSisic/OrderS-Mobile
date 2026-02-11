@@ -4,6 +4,8 @@ import '../../../providers/auth_provider.dart';
 import '../../../routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/validators.dart';
+import '../../../core/widgets/error_handler_mixin.dart'; // ✅ ADD THIS
+import '../../../core/services/error_handling_service.dart'; // ✅ ADD THIS
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,7 +15,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, ErrorHandlerMixin {
+  // ✅ ADD ErrorHandlerMixin
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -65,8 +68,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (!_formKey.currentState!.validate()) return;
 
     final authProvider = context.read<AuthProvider>();
-    
-    // ✅ PROMJENA: Koristi named parameters
+
     final success = await authProvider.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
@@ -75,18 +77,27 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
 
     if (success) {
-      if (authProvider.isAdmin) {
+      final user = authProvider.currentUser;
+
+      // ✅ ROLE-BASED ROUTING
+      if (user?.isAdmin == true) {
         AppRouter.navigateAndRemoveUntil(context, AppRouter.adminDashboard);
+      } else if (user?.isBartender == true) {
+        AppRouter.navigateAndRemoveUntil(context, AppRouter.barOrders);
+      } else if (user?.isKitchen == true) {
+        AppRouter.navigateAndRemoveUntil(context, AppRouter.kitchenOrders);
       } else {
+        // Waiter default
         AppRouter.navigateAndRemoveUntil(context, AppRouter.tables);
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.error ?? 'Login failed'), // ✅ PROMJENA: errorMessage -> error
-          backgroundColor: AppColors.error,
-        ),
-      );
+      if (authProvider.error != null) {
+        final appError = AuthException(
+          authProvider.error!,
+          code: 'LOGIN_FAILED',
+        );
+        handleError(appError, onRetry: _handleLogin);
+      }
     }
   }
 
@@ -160,8 +171,6 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
 
                         const SizedBox(height: 48),
-
-                        // ✅ OBRISANO: Role Dropdown (role se određuje na backendu)
 
                         // Email Field
                         TextFormField(

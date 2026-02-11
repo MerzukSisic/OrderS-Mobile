@@ -98,7 +98,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       setState(() => _isLoadingData = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Greška pri učitavanju podataka: $e'),
+          content: Text('Error loading data: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -122,7 +122,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_camera, color: AppColors.primary),
-                title: const Text('Fotografiši'),
+                title: const Text('Take a photo'),
                 onTap: () async {
                   Navigator.pop(context);
                   final XFile? image = await picker.pickImage(source: ImageSource.camera);
@@ -133,7 +133,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: AppColors.primary),
-                title: const Text('Izaberi iz galerije'),
+                title: const Text('Choose from gallery'),
                 onTap: () async {
                   Navigator.pop(context);
                   final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -145,7 +145,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               if (_selectedImage != null)
                 ListTile(
                   leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                  title: const Text('Ukloni sliku'),
+                  title: const Text('Remove image'),
                   onTap: () {
                     Navigator.pop(context);
                     setState(() => _selectedImage = null);
@@ -165,7 +165,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Molimo odaberite kategoriju'),
+          content: Text('Please select a category'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -226,7 +226,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Proizvod uspješno dodat'),
+          content: Text('Product successfully added'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -236,7 +236,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Greška: $e'),
+          content: Text('Error: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -250,7 +250,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Dodaj proizvod',
+      title: 'Add product',
       currentRoute: AppRouter.adminAddProduct,
       backgroundColor: AppColors.background,
       body: _isLoadingData
@@ -265,13 +265,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name Field
-                    _buildLabel('Naziv proizvoda *'),
+                    _buildLabel('Product name *'),
                     _buildTextField(
                       controller: _nameController,
-                      hint: 'Npr. Pizza Margherita',
+                      hint: 'e.g. Pizza Margherita',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Unesite naziv proizvoda';
+                          return 'Enter product name';
                         }
                         return null;
                       },
@@ -280,24 +280,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     const SizedBox(height: 20),
 
                     // Category Dropdown
-                    _buildLabel('Kategorija *'),
+                    _buildLabel('Category *'),
                     _buildCategoryDropdown(),
 
                     const SizedBox(height: 20),
 
                     // Price Field
-                    _buildLabel('Cijena *'),
+                    _buildLabel('Price *'),
                     _buildTextField(
                       controller: _priceController,
-                      hint: 'Npr. 15.50',
+                      hint: 'e.g. 15.50',
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       suffixText: 'KM',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Unesite cijenu';
+                          return 'Enter price';
                         }
                         if (double.tryParse(value) == null) {
-                          return 'Unesite validnu cijenu';
+                          return 'Enter a valid price';
                         }
                         return null;
                       },
@@ -306,18 +306,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     const SizedBox(height: 20),
 
                     // Quantity Field
-                    _buildLabel('Količina *'),
+                    _buildLabel('Quantity *'),
                     _buildTextField(
                       controller: _quantityController,
-                      hint: 'Npr. 50',
+                      hint: 'e.g. 50',
                       keyboardType: TextInputType.number,
-                      suffixText: 'kom',
+                      suffixText: 'pcs',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Unesite količinu';
+                          return 'Enter quantity';
                         }
                         if (int.tryParse(value) == null) {
-                          return 'Unesite validan broj';
+                          return 'Enter a valid number';
                         }
                         return null;
                       },
@@ -326,16 +326,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     const SizedBox(height: 20),
 
                     // Preparation Location Dropdown
-                    _buildLabel('Lokacija pripreme *'),
+                    _buildLabel('Preparation location *'),
                     _buildLocationDropdown(),
 
                     const SizedBox(height: 20),
 
                     // Preparation Time
-                    _buildLabel('Vrijeme pripreme (minute)'),
+                    _buildLabel('Preparation time (minutes)'),
                     _buildTextField(
                       controller: _prepTimeController,
-                      hint: 'Npr. 15',
+                      hint: 'e,g, 15',
                       keyboardType: TextInputType.number,
                       suffixText: 'min',
                     ),
@@ -343,17 +343,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     const SizedBox(height: 20),
 
                     // Description Field
-                    _buildLabel('Opis'),
+                    _buildLabel('Description'),
                     _buildTextField(
                       controller: _descriptionController,
-                      hint: 'Unesite opis proizvoda',
+                      hint: 'Enter product description',
                       maxLines: 3,
                     ),
 
                     const SizedBox(height: 20),
 
                     // Image Field
-                    _buildLabel('Slika'),
+                    _buildLabel('Image'),
                     GestureDetector(
                       onTap: _pickImage,
                       child: Container(
@@ -381,12 +381,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     const SizedBox(height: 20),
 
                     // Ingredients Dropdown
-                    _buildLabel('Glavni sastojak'),
+                    _buildLabel('Main ingredient'),
                     _buildIngredientsDropdown(),
 
                     const SizedBox(height: 8),
                     Text(
-                      'Napomena: Detaljni sastojci se dodaju nakon kreiranja proizvoda',
+                      'Note: Detailed ingredients are added after the product is created',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -432,7 +432,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ),
                               )
                             : const Text(
-                                'Sačuvaj proizvod',
+                                'Save product',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -553,7 +553,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
       ),
       hint: Text(
-        _categories.isEmpty ? 'Učitavanje...' : 'Odaberite kategoriju',
+        _categories.isEmpty ? 'Loading...' : 'Please select a category',
         style: TextStyle(
           color: AppColors.textSecondary.withValues(alpha: 0.5),
           fontSize: 14,
@@ -619,7 +619,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             children: [
               Icon(Icons.restaurant, size: 18, color: AppColors.primary),
               SizedBox(width: 12),
-              Text('Kuhinja'),
+              Text('Kitchen'),
             ],
           ),
         ),
@@ -669,7 +669,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
       ),
       hint: Text(
-        _storeProducts.isEmpty ? 'Učitavanje...' : 'Odaberite sastojak (opciono)',
+        _storeProducts.isEmpty ? 'Loading...' : 'Select an ingredient (optional)',
         style: TextStyle(
           color: AppColors.textSecondary.withValues(alpha: 0.5),
           fontSize: 14,
@@ -706,7 +706,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Kliknite da dodate sliku',
+          'Click to add an image',
           style: TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary.withValues(alpha: 0.5),

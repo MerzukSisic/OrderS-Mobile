@@ -65,12 +65,12 @@ class _UsersListScreenState extends State<UsersListScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Obriši korisnika'),
-        content: Text('Da li ste sigurni da želite obrisati ${user.fullName}?'),
+        title: const Text('Delete User'),
+        content: Text('Are you sure you want to delete ${user.fullName}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -79,7 +79,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(success ? 'Korisnik obrisan' : 'Greška pri brisanju'),
+                    content: Text(success ? 'User deleted' : 'Error deleting user'),
                     backgroundColor: success ? AppColors.success : AppColors.error,
                   ),
                 );
@@ -87,7 +87,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Obriši', style: TextStyle(color: AppColors.white)),
+            child: const Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),
@@ -103,7 +103,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'Status ažuriran' : 'Greška pri ažuriranju'),
+          content: Text(success ? 'Status updated' : 'Error updating status'),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -114,7 +114,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Korisnici',
+      title: 'Users',
       currentRoute: AppRouter.usersList,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -122,7 +122,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
         },
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
-        label: const Text('Dodaj korisnika'),
+        label: const Text('Add User'),
       ),
       body: Column(
         children: [
@@ -173,7 +173,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Pretraži po imenu, email-u...',
+              hintText: 'Search by name, email...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -209,14 +209,15 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   ),
                   child: DropdownButton<String?>(
                     value: _roleFilter,
-                    hint: const Text('Sve role'),
+                    hint: const Text('All roles'),
                     isExpanded: true,
                     underline: const SizedBox(),
                     items: const [
-                      DropdownMenuItem(value: null, child: Text('Sve role')),
+                      DropdownMenuItem(value: null, child: Text('All roles')),
                       DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-                      DropdownMenuItem(value: 'Waiter', child: Text('Konobar')),
-                      DropdownMenuItem(value: 'Bartender', child: Text('Šanker')),
+                      DropdownMenuItem(value: 'Waiter', child: Text('Waiter')),
+                      DropdownMenuItem(value: 'Bartender', child: Text('Bartender')),
+                      DropdownMenuItem(value: 'Kitchen', child: Text('Kitchen')),
                     ],
                     onChanged: (value) {
                       setState(() => _roleFilter = value);
@@ -334,7 +335,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     color: user.isActive ? AppColors.success : AppColors.textSecondary,
                   ),
                   label: Text(
-                    user.isActive ? 'Aktivan' : 'Neaktivan',
+                    user.isActive ? 'Active' : 'Inactive',
                     style: TextStyle(
                       color: user.isActive ? AppColors.success : AppColors.textSecondary,
                     ),
@@ -349,12 +350,12 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     ).then((_) => _loadData());
                   },
                   icon: const Icon(Icons.edit),
-                  label: const Text('Uredi'),
+                  label: const Text('Edit'),
                 ),
                 TextButton.icon(
                   onPressed: () => _showDeleteDialog(user),
                   icon: Icon(Icons.delete, color: AppColors.error),
-                  label: Text('Obriši', style: TextStyle(color: AppColors.error)),
+                  label: Text('Delete', style: TextStyle(color: AppColors.error)),
                 ),
               ],
             ),
@@ -365,7 +366,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
   }
 
   Widget _buildRoleBadge(String role) {
-    final roleText = role == 'Waiter' ? 'Konobar' : (role == 'Bartender' ? 'Šanker' : role);
+    final roleText = role == 'Waiter' ? 'Waiter' : 
+                     (role == 'Bartender' ? 'Bartender' : 
+                     (role == 'Kitchen' ? 'Kitchen' : role));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -399,7 +402,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        isActive ? 'Aktivan' : 'Neaktivan',
+        isActive ? 'Active' : 'Inactive',
         style: TextStyle(
           color: isActive ? AppColors.success : AppColors.error,
           fontSize: 10,
@@ -417,7 +420,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
           Icon(Icons.people_outline, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
-            'Nema korisnika',
+            'No users',
             style: TextStyle(
               fontSize: 18,
               color: AppColors.textSecondary,
@@ -427,8 +430,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
           const SizedBox(height: 8),
           Text(
             _searchQuery.isNotEmpty
-                ? 'Pokušajte sa drugom pretragom'
-                : 'Dodajte prvog korisnika',
+                ? 'Try a different search'
+                : 'Add your first user',
             style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7)),
           ),
         ],
@@ -447,7 +450,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadData,
-            child: const Text('Pokušaj ponovo'),
+            child: const Text('Try Again'),
           ),
         ],
       ),
@@ -461,6 +464,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
       case 'waiter':
         return AppColors.primary;
       case 'bartender':
+        return AppColors.info;
+      case 'kitchen':
         return AppColors.warning;
       default:
         return AppColors.textSecondary;
@@ -475,6 +480,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
         return Icons.restaurant_menu;
       case 'bartender':
         return Icons.local_bar;
+      case 'kitchen':
+        return Icons.restaurant;
       default:
         return Icons.person;
     }

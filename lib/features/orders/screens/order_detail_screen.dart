@@ -4,6 +4,7 @@ import '../../../models/orders/order_model.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/top_notification.dart';  // ✅ ADDED
 import '../widgets/order_status_badge.dart';
 
 class OrderDetailScreen extends StatefulWidget {
@@ -19,6 +20,16 @@ class OrderDetailScreen extends StatefulWidget {
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  // ✅ NEW METHOD
+  void _showNotification(String message, {bool isError = false}) {
+    TopNotification.show(
+      context,
+      message: message,
+      isError: isError,
+    );
+  }
+
+  // ✅ UPDATED METHOD
   Future<void> _updateOrderStatus(
     BuildContext context,
     String newStatus,
@@ -43,19 +54,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     Navigator.pop(context); // Close loading dialog
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order ${newStatus.toLowerCase()} successfully'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      _showNotification('Order ${newStatus.toLowerCase()} successfully');
       Navigator.pop(context); // Go back to orders list
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update order: ${ordersProvider.error}'),
-          backgroundColor: AppColors.error,
-        ),
+      _showNotification(
+        'Failed to update order: ${ordersProvider.error}',
+        isError: true,
       );
     }
   }
@@ -123,9 +127,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           IconButton(
             icon: const Icon(Icons.print),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Print functionality coming soon')),
-              );
+              _showNotification('Print functionality coming soon');
             },
           ),
         ],
@@ -466,7 +468,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildOrderItem(OrderItem item) {
-    // ✅ PROMJENA: Koristi item.selectedAccompaniments direktno
     final accompaniments = item.selectedAccompaniments;
 
     return Row(
@@ -551,7 +552,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ],
               ),
 
-              // ✅ ACCOMPANIMENTS DISPLAY - koristi SelectedAccompaniment objekte
+              // Accompaniments Display
               if (accompaniments.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Container(
@@ -602,7 +603,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                acc.name, // ✅ PROMJENA: acc.name -> acc.accompanimentName
+                                acc.name,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textPrimary,

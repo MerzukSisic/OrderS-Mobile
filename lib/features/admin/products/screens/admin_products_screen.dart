@@ -64,17 +64,17 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Obriši proizvod'),
-        content: Text('Da li ste sigurni da želite obrisati "$productName"?'),
+        title: const Text('Delete product'),
+        content: Text('Are you sure you want to delete "$productName"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('Obriši'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -86,7 +86,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('$productName uspješno obrisan'),
+              content: Text('$productName successfully deleted'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -95,7 +95,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Greška pri brisanju: $e'),
+              content: Text('Error while deleting: $e'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -138,7 +138,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Proizvodi',
+      title: 'Products',
       currentRoute: AppRouter.adminProducts,
       backgroundColor: AppColors.background,
       body: Consumer<ProductsProvider>(
@@ -175,7 +175,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     controller: _searchController,
                     onChanged: _onSearch,
                     decoration: InputDecoration(
-                      hintText: 'Pretraži proizvode...',
+                      hintText: 'Search products...',
                       hintStyle: TextStyle(
                         color: AppColors.textSecondary.withValues(alpha: 0.5),
                         fontSize: 14,
@@ -211,7 +211,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                             children: [
                               // "Sve" (All) chip
                               _FilterChip(
-                                label: 'Sve',
+                                label: 'All',
                                 selected: _selectedCategory == null,
                                 onTap: () => _onFilterChanged(null),
                               ),
@@ -251,7 +251,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                             Icon(Icons.add, size: 18),
                             SizedBox(width: 4),
                             Text(
-                              'Dodaj',
+                              'Add',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -271,7 +271,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                     child: Row(
                       children: [
                         Text(
-                          'Prikazano: ${filteredProducts.length} od ${allProducts.length}',
+                          'Shown: ${filteredProducts.length} of ${allProducts.length}',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary.withValues(alpha: 0.7),
@@ -294,7 +294,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             child: const Text(
-                              'Očisti filtere',
+                              'Clear filters',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.primary,
@@ -320,8 +320,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                               const SizedBox(height: 16),
                               Text(
                                 _searchController.text.isNotEmpty || _selectedCategory != null
-                                    ? 'Nema rezultata'
-                                    : 'Nema proizvoda',
+                                    ? 'No results' : 'No products',
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -337,7 +336,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
                                       _searchController.clear();
                                     });
                                   },
-                                  child: const Text('Očisti filtere'),
+                                  child: const Text('Clear filters'),
                                 ),
                               ],
                             ],
@@ -394,7 +393,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Greška pri učitavanju',
+              'Error while loading',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -413,7 +412,7 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
             ElevatedButton.icon(
               onPressed: _refresh,
               icon: const Icon(Icons.refresh),
-              label: const Text('Pokušaj ponovo'),
+              label: const Text('Try again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
               ),

@@ -84,7 +84,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Korisnik uspješno ažuriran'),
+            content: Text('User successfully updated'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -93,7 +93,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
         final error = context.read<UsersProvider>().error;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error ?? 'Greška pri ažuriranju'),
+            content: Text(error ?? 'Error updating user'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -107,12 +107,12 @@ class _UserEditScreenState extends State<UserEditScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Obriši korisnika'),
-        content: Text('Da li ste sigurni da želite obrisati ${_user?.fullName}? Ova akcija se ne može poništiti.'),
+        title: const Text('Delete User'),
+        content: Text('Are you sure you want to delete ${_user?.fullName}? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -124,7 +124,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
                 if (success) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Korisnik obrisan'),
+                      content: Text('User deleted'),
                       backgroundColor: AppColors.success,
                     ),
                   );
@@ -132,7 +132,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Greška pri brisanju'),
+                      content: Text('Error deleting user'),
                       backgroundColor: AppColors.error,
                     ),
                   );
@@ -140,7 +140,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Obriši', style: TextStyle(color: AppColors.white)),
+            child: const Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),
@@ -159,7 +159,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('Uredi korisnika'),
+          title: const Text('Edit User'),
         ),
         body: const LoadingIndicator(),
       );
@@ -175,7 +175,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text('Uredi korisnika'),
+          title: const Text('Edit User'),
         ),
         body: Center(
           child: Column(
@@ -183,11 +183,11 @@ class _UserEditScreenState extends State<UserEditScreen> {
             children: [
               Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),
-              const Text('Korisnik nije pronađen'),
+              const Text('User not found'),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Nazad'),
+                child: const Text('Back'),
               ),
             ],
           ),
@@ -205,14 +205,14 @@ class _UserEditScreenState extends State<UserEditScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Uredi: ${_user!.fullName}',
+          'Edit: ${_user!.fullName}',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
             onPressed: _showDeleteDialog,
             icon: Icon(Icons.delete, color: AppColors.error),
-            tooltip: 'Obriši korisnika',
+            tooltip: 'Delete user',
           ),
         ],
       ),
@@ -247,7 +247,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Informacije',
+                'Information',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               Row(
@@ -264,7 +264,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
                     activeColor: AppColors.success,
                   ),
                   Text(
-                    _isActive ? 'Aktivan' : 'Neaktivan',
+                    _isActive ? 'Active' : 'Inactive',
                     style: TextStyle(
                       color: _isActive ? AppColors.success : AppColors.error,
                       fontWeight: FontWeight.w600,
@@ -281,8 +281,8 @@ class _UserEditScreenState extends State<UserEditScreen> {
           TextFormField(
             controller: _fullNameController,
             decoration: InputDecoration(
-              labelText: 'Puno ime *',
-              hintText: 'Unesite puno ime',
+              labelText: 'Full name *',
+              hintText: 'Enter full name',
               prefixIcon: const Icon(Icons.person),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -290,10 +290,10 @@ class _UserEditScreenState extends State<UserEditScreen> {
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Ime je obavezno';
+                return 'Name is required';
               }
               if (value.trim().length < 3) {
-                return 'Ime mora imati najmanje 3 karaktera';
+                return 'Name must be at least 3 characters';
               }
               return null;
             },
@@ -305,7 +305,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
             controller: _emailController,
             decoration: InputDecoration(
               labelText: 'Email *',
-              hintText: 'Unesite email adresu',
+              hintText: 'Enter email address',
               prefixIcon: const Icon(Icons.email),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -314,10 +314,10 @@ class _UserEditScreenState extends State<UserEditScreen> {
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Email je obavezan';
+                return 'Email is required';
               }
               if (!value.contains('@') || !value.contains('.')) {
-                return 'Unesite validan email';
+                return 'Enter a valid email';
               }
               return null;
             },
@@ -328,8 +328,8 @@ class _UserEditScreenState extends State<UserEditScreen> {
           TextFormField(
             controller: _phoneController,
             decoration: InputDecoration(
-              labelText: 'Telefon',
-              hintText: 'Unesite broj telefona (opciono)',
+              labelText: 'Phone',
+              hintText: 'Enter phone number (optional)',
               prefixIcon: const Icon(Icons.phone),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -343,7 +343,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
           DropdownButtonFormField<String>(
             value: _selectedRole,
             decoration: InputDecoration(
-              labelText: 'Rola *',
+              labelText: 'Role *',
               prefixIcon: const Icon(Icons.badge),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -351,8 +351,9 @@ class _UserEditScreenState extends State<UserEditScreen> {
             ),
             items: const [
               DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-              DropdownMenuItem(value: 'Waiter', child: Text('Konobar')),
-              DropdownMenuItem(value: 'Bartender', child: Text('Šanker')),
+              DropdownMenuItem(value: 'Waiter', child: Text('Waiter')),
+              DropdownMenuItem(value: 'Bartender', child: Text('Bartender')),
+              DropdownMenuItem(value: 'Kitchen', child: Text('Kitchen')),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -390,7 +391,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Kreiran: ${_formatDate(_user!.createdAt)}',
+                  'Created: ${_formatDate(_user!.createdAt)}',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary.withValues(alpha: 0.7),
@@ -399,7 +400,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
                 if (_user!.updatedAt != null) ...[
                   const SizedBox(height: 2),
                   Text(
-                    'Ažuriran: ${_formatDate(_user!.updatedAt!)}',
+                    'Updated: ${_formatDate(_user!.updatedAt!)}',
                     style: TextStyle(
                       fontSize: 11,
                       color: AppColors.textSecondary.withValues(alpha: 0.7),
@@ -438,7 +439,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
                     ),
                   )
                 : const Text(
-                    'Sačuvaj promjene',
+                    'Save changes',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -458,7 +459,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
               ),
             ),
             child: const Text(
-              'Otkaži',
+              'Cancel',
               style: TextStyle(fontSize: 16),
             ),
           ),

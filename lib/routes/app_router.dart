@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:orders_mobile/features/admin/categories/category_create_screen.dart';
 import 'package:orders_mobile/features/admin/categories/category_edit_screen.dart';
 import 'package:orders_mobile/features/admin/categories/category_list_screen.dart';
+import 'package:orders_mobile/features/bar/screens/bar_order_screen.dart';
+import 'package:orders_mobile/features/kitchen/screens/kitchen_orders_screen.dart';
 
 // AUTH
 import '../features/auth/screens/login_screen.dart';
@@ -19,6 +21,8 @@ import '../features/orders/screens/checkout_screen.dart';
 import '../features/orders/screens/orders_screen.dart';
 import '../features/orders/screens/order_detail_screen.dart';
 
+// BAR/KITCHEN
+
 // PROFILE
 import '../features/profile/screens/profile_screen.dart';
 
@@ -29,6 +33,8 @@ import '../features/admin/products/screens/admin_add_product_screen.dart';
 import '../features/admin/products/screens/edit_product_screen.dart';
 import '../features/admin/inventory/screens/inventory_screen.dart';
 import '../features/admin/statistics/screens/statistics_screen.dart';
+import '../features/admin/orders/screens/admin_orders_list_screen.dart';
+import '../features/admin/orders/screens/admin_order_detail_screen.dart';
 
 // USERS
 import '../features/admin/users/screens/users_list_screen.dart';
@@ -77,9 +83,18 @@ class AppRouter {
   static const String procurementCreate = '/admin/procurement/create';
   static const String procurementCheckout = '/admin/procurement/checkout';
 
+  // Categories routes
   static const String categoriesList = '/admin/categories';
   static const String categoryCreate = '/admin/categories/create';
   static const String categoryEdit = '/admin/categories/edit';
+
+  // Admin Orders routes
+  static const String adminOrders = '/admin/orders';
+  static const String adminOrderDetail = '/admin/orders/detail';
+
+  // Bar/Kitchen routes
+  static const String barOrders = '/bar/orders';
+  static const String kitchenOrders = '/kitchen/orders';
 
   // Routes map
   static Map<String, WidgetBuilder> get routes {
@@ -109,6 +124,10 @@ class AppRouter {
 
       profile: (_) => const ProfileScreen(),
 
+      // BAR/KITCHEN
+      barOrders: (_) => const BarOrdersScreen(),
+      kitchenOrders: (_) => const KitchenOrdersScreen(),
+
       // ADMIN
       adminDashboard: (_) => const DashboardScreen(),
       adminProducts: (_) => const AdminProductsScreen(),
@@ -124,6 +143,14 @@ class AppRouter {
 
       inventory: (_) => const InventoryScreen(),
       adminStatistics: (_) => const StatisticsScreen(),
+
+      adminOrders: (_) => const AdminOrdersScreen(),
+      
+      adminOrderDetail: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is OrderModel) return AdminOrderDetailScreen(order: args);
+        return const _RouteError('Order not found');
+      },
 
       // USERS
       usersList: (_) => const UsersListScreen(),
@@ -148,12 +175,15 @@ class AppRouter {
         }
         return const _RouteError('Checkout arguments missing');
       },
-        categoriesList: (_) => const CategoriesListScreen(),
-        categoryCreate: (_) => const CategoryCreateScreen(),
-        categoryEdit: (context) {
-          final categoryId = ModalRoute.of(context)!.settings.arguments as String;
-          return CategoryEditScreen(categoryId: categoryId);
-        },
+      
+      // CATEGORIES
+      categoriesList: (_) => const CategoriesListScreen(),
+      categoryCreate: (_) => const CategoryCreateScreen(),
+      
+      categoryEdit: (context) {
+        final categoryId = ModalRoute.of(context)!.settings.arguments as String;
+        return CategoryEditScreen(categoryId: categoryId);
+      },
     };
   }
 

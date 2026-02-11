@@ -52,7 +52,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Korisnik uspješno kreiran'),
+            content: Text('User successfully created'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -61,7 +61,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
         final error = context.read<UsersProvider>().error;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error ?? 'Greška pri kreiranju korisnika'),
+            content: Text(error ?? 'Error creating user'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -81,7 +81,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Kreiraj korisnika',
+          'Create User',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -116,7 +116,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Osnovne informacije',
+            'Basic Information',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 20),
@@ -125,8 +125,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
           TextFormField(
             controller: _fullNameController,
             decoration: InputDecoration(
-              labelText: 'Puno ime *',
-              hintText: 'Unesite puno ime',
+              labelText: 'Full name *',
+              hintText: 'Enter full name',
               prefixIcon: const Icon(Icons.person),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -134,10 +134,10 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Ime je obavezno';
+                return 'Name is required';
               }
               if (value.trim().length < 3) {
-                return 'Ime mora imati najmanje 3 karaktera';
+                return 'Name must be at least 3 characters';
               }
               return null;
             },
@@ -149,7 +149,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             controller: _emailController,
             decoration: InputDecoration(
               labelText: 'Email *',
-              hintText: 'Unesite email adresu',
+              hintText: 'Enter email address',
               prefixIcon: const Icon(Icons.email),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -158,10 +158,10 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Email je obavezan';
+                return 'Email is required';
               }
               if (!value.contains('@') || !value.contains('.')) {
-                return 'Unesite validan email';
+                return 'Enter a valid email';
               }
               return null;
             },
@@ -172,8 +172,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
           TextFormField(
             controller: _phoneController,
             decoration: InputDecoration(
-              labelText: 'Telefon',
-              hintText: 'Unesite broj telefona (opciono)',
+              labelText: 'Phone',
+              hintText: 'Enter phone number (optional)',
               prefixIcon: const Icon(Icons.phone),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -187,7 +187,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
           DropdownButtonFormField<String>(
             value: _selectedRole,
             decoration: InputDecoration(
-              labelText: 'Rola *',
+              labelText: 'Role *',
               prefixIcon: const Icon(Icons.badge),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -195,8 +195,9 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             ),
             items: const [
               DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-              DropdownMenuItem(value: 'Waiter', child: Text('Konobar')),
-              DropdownMenuItem(value: 'Bartender', child: Text('Šanker')),
+              DropdownMenuItem(value: 'Waiter', child: Text('Waiter')),
+              DropdownMenuItem(value: 'Bartender', child: Text('Bartender')),
+              DropdownMenuItem(value: 'Kitchen', child: Text('Kitchen')),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -221,7 +222,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Sigurnost',
+            'Security',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 20),
@@ -231,8 +232,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             controller: _passwordController,
             obscureText: _obscurePassword,
             decoration: InputDecoration(
-              labelText: 'Lozinka *',
-              hintText: 'Unesite lozinku',
+              labelText: 'Password *',
+              hintText: 'Enter password',
               prefixIcon: const Icon(Icons.lock),
               suffixIcon: IconButton(
                 icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
@@ -246,10 +247,10 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Lozinka je obavezna';
+                return 'Password is required';
               }
               if (value.length < 6) {
-                return 'Lozinka mora imati najmanje 6 karaktera';
+                return 'Password must be at least 6 characters';
               }
               return null;
             },
@@ -261,8 +262,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             controller: _confirmPasswordController,
             obscureText: _obscureConfirmPassword,
             decoration: InputDecoration(
-              labelText: 'Potvrdi lozinku *',
-              hintText: 'Ponovite lozinku',
+              labelText: 'Confirm password *',
+              hintText: 'Re-enter password',
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
                 icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
@@ -276,10 +277,10 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Molimo potvrdite lozinku';
+                return 'Please confirm password';
               }
               if (value != _passwordController.text) {
-                return 'Lozinke se ne poklapaju';
+                return 'Passwords do not match';
               }
               return null;
             },
@@ -313,7 +314,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
                     ),
                   )
                 : const Text(
-                    'Kreiraj korisnika',
+                    'Create User',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -333,7 +334,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
               ),
             ),
             child: const Text(
-              'Otkaži',
+              'Cancel',
               style: TextStyle(fontSize: 16),
             ),
           ),

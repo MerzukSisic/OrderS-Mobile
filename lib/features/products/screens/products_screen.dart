@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/products_provider.dart';
-import '../../../providers/categories_provider.dart'; // ✅ DODAJ
-import '../../../providers/orders_provider.dart'; // ✅ PROMJENA: cart_provider -> orders_provider
+import '../../../providers/categories_provider.dart';
+import '../../../providers/orders_provider.dart';
+import '../../../providers/notification_recommendation_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../routes/app_router.dart';
@@ -19,95 +21,120 @@ class ProductsScreen extends StatefulWidget {
 class _ProductsScreenState extends State<ProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
   String? _selectedCategory;
-  String _sortMode = 'name'; // name | price_low | price_high
+  String _sortMode = 'name';
+
+  final PageController _carouselController = PageController(viewportFraction: 0.88);
+  Timer? _autoScrollTimer;
+  int _currentCarouselPage = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductsProvider>().fetchProducts();
-      context.read<CategoriesProvider>().fetchCategories(); // ✅ PROMJENA
+      context.read<CategoriesProvider>().fetchCategories();
+      context.read<RecommendationsProvider>().fetchPopularProducts(count: 5);
+      
+      Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) _startAutoScroll();
+      });
     });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _carouselController.dispose();
+    _autoScrollTimer?.cancel();
     super.dispose();
   }
 
-  void _openFiltersSheet(List categories) {
-  showModalBottomSheet(
-    context: context,
-    showDragHandle: true,
-    backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-    ),
-    builder: (ctx) {
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Filters',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.layers_clear_rounded),
-                title: const Text('All categories'),
-                trailing: _selectedCategory == null
-                    ? const Icon(Icons.check_rounded)
-                    : null,
-                onTap: () {
-                  setState(() => _selectedCategory = null);
-                  context.read<ProductsProvider>().fetchProducts(); // ✅ Fetch sve proizvode
-                  Navigator.pop(ctx);
-                },
-              ),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: categories.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, i) {
-                    final c = categories[i];
-                    final id = (c.id ?? '').toString();
-                    final name = (c.name ?? '').toString();
-                    final selected = _selectedCategory == id;
+  void _startAutoScroll() {
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!mounted) return;
+      
+      final provider = context.read<RecommendationsProvider>();
+      if (provider.popularProducts.isEmpty) return;
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(name),
-                      trailing:
-                          selected ? const Icon(Icons.check_rounded) : null,
-                      onTap: () {
-                        setState(() => _selectedCategory = id);
-                        context
-                            .read<ProductsProvider>()
-                            .fetchProducts(categoryId: id); // ✅ Fetch sa category filter
-                        Navigator.pop(ctx);
-                      },
-                    );
+      final nextPage = (_currentCarouselPage + 1) % provider.popularProducts.length;
+      
+      _carouselController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOut,
+      );
+      
+      _currentCarouselPage = nextPage;
+    });
+  }
+
+  void _openFiltersSheet(List categories) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Filters',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.layers_clear_rounded),
+                  title: const Text('All categories'),
+                  trailing: _selectedCategory == null
+                      ? const Icon(Icons.check_rounded)
+                      : null,
+                  onTap: () {
+                    setState(() => _selectedCategory = null);
+                    context.read<ProductsProvider>().fetchProducts();
+                    Navigator.pop(ctx);
                   },
                 ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final c = categories[i];
+                      final id = (c.id ?? '').toString();
+                      final name = (c.name ?? '').toString();
+                      final selected = _selectedCategory == id;
 
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(name),
+                        trailing: selected ? const Icon(Icons.check_rounded) : null,
+                        onTap: () {
+                          setState(() => _selectedCategory = id);
+                          context.read<ProductsProvider>().fetchProducts(categoryId: id);
+                          Navigator.pop(ctx);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   List<dynamic> _applySort(List<dynamic> input) {
     final list = [...input];
@@ -135,8 +162,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       appBar: AppBar(
         title: const Text('Products'),
         actions: [
-          // Cart icon with badge
-          Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+          Consumer<OrdersProvider>(
             builder: (context, ordersProvider, _) {
               return Stack(
                 children: [
@@ -146,7 +172,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       Navigator.pushNamed(context, AppRouter.checkout);
                     },
                   ),
-                  if (ordersProvider.cartCount > 0) // ✅ PROMJENA: itemCount -> cartCount
+                  if (ordersProvider.cartCount > 0)
                     Positioned(
                       right: 8,
                       top: 8,
@@ -161,7 +187,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           minHeight: 18,
                         ),
                         child: Text(
-                          ordersProvider.cartCount.toString(), // ✅ PROMJENA
+                          ordersProvider.cartCount.toString(),
                           style: const TextStyle(
                             color: AppColors.white,
                             fontSize: 10,
@@ -180,9 +206,47 @@ class _ProductsScreenState extends State<ProductsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Search
+            // ✅ FILTERS & SORT - Fixed at top
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Consumer<CategoriesProvider>(
+                builder: (context, categoriesProvider, _) {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _PillButton(
+                          icon: Icons.tune_rounded,
+                          label: 'Filters',
+                          onTap: () => _openFiltersSheet(categoriesProvider.categories),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: PopupMenuButton<String>(
+                          onSelected: (value) {
+                            setState(() => _sortMode = value);
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem(value: 'name', child: Text('Name')),
+                            PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
+                            PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
+                          ],
+                          child: const _PillButton(
+                            icon: Icons.sort_rounded,
+                            label: 'Sort',
+                            trailing: Icons.keyboard_arrow_down_rounded,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+
+            // ✅ SEARCH - Fixed at top
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
@@ -194,16 +258,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           onPressed: () {
                             _searchController.clear();
                             setState(() => _searchQuery = '');
-                            context
-                                .read<ProductsProvider>()
-                                .searchProducts(''); // ✅ PROMJENA: prazna pretraga
+                            context.read<ProductsProvider>().searchProducts('');
                           },
                         )
                       : null,
                   filled: true,
                   fillColor: AppColors.surface,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(
@@ -227,67 +288,23 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 onChanged: (value) {
                   setState(() => _searchQuery = value);
                   if (value.isNotEmpty) {
-                    context.read<ProductsProvider>().searchProducts(value); // ✅ PROMJENA
+                    context.read<ProductsProvider>().searchProducts(value);
                   } else {
-                    context.read<ProductsProvider>().fetchProducts(); // Reset kad je prazno
+                    context.read<ProductsProvider>().fetchProducts();
                   }
                 },
               ),
             ),
 
-            // Filters + Sort
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Consumer<CategoriesProvider>( // ✅ PROMJENA: koristimo CategoriesProvider
-                builder: (context, categoriesProvider, _) {
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: _PillButton(
-                          icon: Icons.tune_rounded,
-                          label: 'Filters',
-                          onTap: () => _openFiltersSheet(categoriesProvider.categories), // ✅ PROMJENA
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: PopupMenuButton<String>(
-                          onSelected: (value) {
-                            setState(() => _sortMode = value);
-                          },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem(value: 'name', child: Text('Name')),
-                            PopupMenuItem(
-                                value: 'price_low',
-                                child: Text('Price: Low to High')),
-                            PopupMenuItem(
-                                value: 'price_high',
-                                child: Text('Price: High to Low')),
-                          ],
-                          child: const _PillButton(
-                            icon: Icons.sort_rounded,
-                            label: 'Sort',
-                            trailing: Icons.keyboard_arrow_down_rounded,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // List
+            // ✅ SCROLLABLE CONTENT - Carousel + Products together!
             Expanded(
-              child: Consumer<ProductsProvider>(
-                builder: (context, provider, _) {
-                  if (provider.isLoading) {
+              child: Consumer2<ProductsProvider, RecommendationsProvider>(
+                builder: (context, productsProvider, recProvider, _) {
+                  if (productsProvider.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  if (provider.error != null) {
+                  if (productsProvider.error != null) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -299,14 +316,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            provider.error!,
-                            style:
-                                const TextStyle(color: AppColors.textSecondary),
+                            productsProvider.error!,
+                            style: const TextStyle(color: AppColors.textSecondary),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: () => provider.fetchProducts(),
+                            onPressed: () => productsProvider.fetchProducts(),
                             child: const Text('Retry'),
                           ),
                         ],
@@ -314,7 +330,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     );
                   }
 
-                  final products = _applySort(provider.products);
+                  final products = _applySort(productsProvider.products);
 
                   if (products.isEmpty) {
                     return Center(
@@ -339,26 +355,105 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     );
                   }
 
+                  // ✅ EVERYTHING IN ONE SCROLLABLE LIST!
                   return RefreshIndicator(
-                    onRefresh: () => provider.fetchProducts(),
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                      itemCount: products.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final product = products[index];
-                        return _ProductRow(
-                          product: product,
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRouter.productDetail,
-                              arguments: product,
-                            );
-                          },
-                        );
-                      },
+                    onRefresh: () => productsProvider.fetchProducts(),
+                    child: CustomScrollView(
+                      slivers: [
+                        // ✅ CAROUSEL as part of scroll (not fixed!)
+                        if (recProvider.popularProducts.isNotEmpty) ...[
+                          SliverToBoxAdapter(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.local_fire_department_rounded,
+                                        color: AppColors.primary,
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Popular Right Now',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 140,
+                                  child: PageView.builder(
+                                    controller: _carouselController,
+                                    itemCount: recProvider.popularProducts.length,
+                                    onPageChanged: (index) {
+                                      setState(() => _currentCarouselPage = index);
+                                    },
+                                    itemBuilder: (context, index) {
+                                      final product = recProvider.popularProducts[index];
+                                      return _FeaturedProductCard(
+                                        product: product,
+                                        isActive: index == _currentCarouselPage,
+                                      );
+                                    },
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: List.generate(
+                                    recProvider.popularProducts.length,
+                                    (index) => Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+                                      width: _currentCarouselPage == index ? 20 : 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: _currentCarouselPage == index
+                                            ? AppColors.primary
+                                            : AppColors.textSecondary.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // ✅ NO DIVIDER! Just spacing
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        // ✅ PRODUCT LIST
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final product = products[index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _ProductRow(
+                                    product: product,
+                                    onTap: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        AppRouter.productDetail,
+                                        arguments: product,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                              childCount: products.length,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -368,6 +463,148 @@ class _ProductsScreenState extends State<ProductsScreen> {
         ),
       ),
       bottomNavigationBar: const CustomBottomNavBar(currentIndex: 1),
+    );
+  }
+}
+
+// ✅ Featured Card - Same as before
+class _FeaturedProductCard extends StatelessWidget {
+  final dynamic product;
+  final bool isActive;
+
+  const _FeaturedProductCard({
+    required this.product,
+    required this.isActive,
+  });
+
+  String _safeCurrency(double value) {
+    try {
+      final s = Formatters.currency(value);
+      if (s.trim().isNotEmpty) return s;
+    } catch (_) {}
+    return '${value.toStringAsFixed(2)} KM';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double price = (product.price is num)
+        ? (product.price as num).toDouble()
+        : double.tryParse(product.price.toString()) ?? 0.0;
+
+    return AnimatedScale(
+      scale: isActive ? 1.0 : 0.94,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            AppRouter.productDetail,
+            arguments: product,
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary.withOpacity(0.8),
+                AppColors.primary.withOpacity(0.5),
+              ],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(isActive ? 0.3 : 0.15),
+                blurRadius: isActive ? 16 : 8,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.local_fire_department, color: Colors.white, size: 12),
+                          SizedBox(width: 4),
+                          Text(
+                            'Popular',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _safeCurrency(price),
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -432,7 +669,6 @@ class _ProductRow extends StatelessWidget {
     required this.onTap,
   });
 
-  // ✅ PROMJENA: Koristi OrdersProvider umjesto CartProvider
   int _qtyFromCart(OrdersProvider ordersProvider, String productId) {
     try {
       for (final item in ordersProvider.cartItems) {
@@ -448,15 +684,13 @@ class _ProductRow extends StatelessWidget {
     try {
       final s = Formatters.currency(value);
       if (s.trim().isNotEmpty) return s;
-    } catch (_) {
-      // ignore
-    }
+    } catch (_) {}
     return '${value.toStringAsFixed(2)} KM';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+    return Consumer<OrdersProvider>(
       builder: (context, ordersProvider, _) {
         final qty = _qtyFromCart(ordersProvider, product.id);
         final int stock = (product.stock is int)
@@ -488,7 +722,6 @@ class _ProductRow extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: Container(
@@ -512,10 +745,7 @@ class _ProductRow extends StatelessWidget {
                           ),
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
-                // Name + price
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,8 +787,7 @@ class _ProductRow extends StatelessWidget {
                         Text(
                           'Out of stock',
                           style: TextStyle(
-                            color: AppColors.textSecondary
-                                .withValues(alpha: 0.85),
+                            color: AppColors.textSecondary.withValues(alpha: 0.85),
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),
@@ -567,8 +796,6 @@ class _ProductRow extends StatelessWidget {
                     ],
                   ),
                 ),
-
-                // Open detail button
                 if (canOrder && qty == 0)
                   _AddButton(
                     onTap: () {
@@ -585,7 +812,6 @@ class _ProductRow extends StatelessWidget {
                     enabled: canOrder,
                     canIncrease: canOrder && qty < stock,
                     onDecrease: () {
-                      // ✅ PROMJENA: Tražimo item sa cart key i brisemo
                       final cartItem = ordersProvider.cartItems.firstWhere(
                         (item) => item.product.id == product.id,
                       );
@@ -688,11 +914,9 @@ class _StepIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final border = AppColors.textSecondary.withValues(alpha: 0.22);
-
     final bg = !enabled
         ? AppColors.surfaceVariant
         : (primary ? AppColors.primary : AppColors.surface);
-
     final fg = !enabled
         ? AppColors.textDisabled
         : (primary ? AppColors.white : AppColors.textPrimary);
@@ -709,11 +933,7 @@ class _StepIconButton extends StatelessWidget {
           border: primary ? null : Border.all(color: border),
         ),
         child: Center(
-          child: Icon(
-            icon,
-            size: 20,
-            color: fg,
-          ),
+          child: Icon(icon, size: 20, color: fg),
         ),
       ),
     );

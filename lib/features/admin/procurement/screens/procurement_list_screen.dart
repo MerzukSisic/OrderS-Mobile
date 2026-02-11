@@ -12,10 +12,12 @@ class AdminProcurementListScreen extends StatefulWidget {
   const AdminProcurementListScreen({super.key});
 
   @override
-  State<AdminProcurementListScreen> createState() => _AdminProcurementListScreenState();
+  State<AdminProcurementListScreen> createState() =>
+      _AdminProcurementListScreenState();
 }
 
-class _AdminProcurementListScreenState extends State<AdminProcurementListScreen> {
+class _AdminProcurementListScreenState
+    extends State<AdminProcurementListScreen> {
   String _selectedFilter = 'all'; // all, pending, paid, received
 
   @override
@@ -31,19 +33,21 @@ class _AdminProcurementListScreenState extends State<AdminProcurementListScreen>
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Nabavke',
+      title: 'Procurement',
       currentRoute: AppRouter.procurementList,
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pushNamed(context, AppRouter.procurementCreate),
+        onPressed: () =>
+            Navigator.pushNamed(context, AppRouter.procurementCreate),
         icon: const Icon(Icons.add),
-        label: const Text('Nova nabavka'),
+        label: const Text('New Procurement'),
         backgroundColor: AppColors.primary,
       ),
       body: Consumer<ProcurementProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading && provider.procurementOrders.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+            return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary));
           }
 
           if (provider.error != null && provider.procurementOrders.isEmpty) {
@@ -69,10 +73,10 @@ class _AdminProcurementListScreenState extends State<AdminProcurementListScreen>
                   onChanged: (v) => setState(() => _selectedFilter = v),
                 ),
                 const SizedBox(height: 12),
-
                 if (orders.isEmpty)
                   _EmptyState(
-                    onCreate: () => Navigator.pushNamed(context, AppRouter.procurementCreate),
+                    onCreate: () => Navigator.pushNamed(
+                        context, AppRouter.procurementCreate),
                   )
                 else
                   ...orders.map((o) => Padding(
@@ -114,15 +118,16 @@ class _AdminProcurementListScreenState extends State<AdminProcurementListScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Status: ${_translateStatus(order.status)}'),
-            Text('Prodavnica: ${order.storeName ?? 'N/A'}'),
-            Text('Iznos: ${(order.totalAmount as double).toStringAsFixed(2)} KM'),
-            Text('Artikli: ${order.items.length}'),
+            Text('Store: ${order.storeName ?? 'N/A'}'),
+            Text(
+                'Amount: ${(order.totalAmount as double).toStringAsFixed(2)} KM'),
+            Text('Items: ${order.items.length}'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Zatvori'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -132,13 +137,13 @@ class _AdminProcurementListScreenState extends State<AdminProcurementListScreen>
   String _translateStatus(String status) {
     switch (status) {
       case 'Pending':
-        return 'Na čekanju';
+        return 'Pending';
       case 'Paid':
-        return 'Plaćeno';
+        return 'Paid';
       case 'Received':
-        return 'Primljeno';
+        return 'Received';
       case 'Cancelled':
-        return 'Otkazano';
+        return 'Cancelled';
       default:
         return status;
     }
@@ -156,7 +161,7 @@ class _HeaderBlock extends StatelessWidget {
     final paidCount = provider.paidOrders.length;
     final totalAmount = provider.procurementOrders.fold<double>(
       0,
-      (sum, o) => sum + (o.totalAmount as double),
+      (sum, o) => sum + (o.totalAmount),
     );
 
     return Container(
@@ -164,29 +169,52 @@ class _HeaderBlock extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.12)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Procurement Orders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const Text('Procurement Orders',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          Text('Zadnje nabavke, plaćanje i statusi',
-              style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.8))),
+          Text('Recent procurements, payments and statuses',
+              style: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.8))),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _StatCard(title: 'Ukupno', value: '$totalOrders', icon: Icons.shopping_bag, color: AppColors.primary)),
+              Expanded(
+                  child: _StatCard(
+                      title: 'Total',
+                      value: '$totalOrders',
+                      icon: Icons.shopping_bag,
+                      color: AppColors.primary)),
               const SizedBox(width: 12),
-              Expanded(child: _StatCard(title: 'Na čekanju', value: '$pendingCount', icon: Icons.pending, color: AppColors.warning)),
+              Expanded(
+                  child: _StatCard(
+                      title: 'Pending',
+                      value: '$pendingCount',
+                      icon: Icons.pending,
+                      color: AppColors.warning)),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _StatCard(title: 'Plaćeno', value: '$paidCount', icon: Icons.check_circle, color: AppColors.success)),
+              Expanded(
+                  child: _StatCard(
+                      title: 'Paid',
+                      value: '$paidCount',
+                      icon: Icons.check_circle,
+                      color: AppColors.success)),
               const SizedBox(width: 12),
-              Expanded(child: _StatCard(title: 'Vrijednost', value: '${totalAmount.toStringAsFixed(0)} KM', icon: Icons.attach_money, color: Colors.green)),
+              Expanded(
+                  child: _StatCard(
+                      title: 'Value',
+                      value: '${totalAmount.toStringAsFixed(0)} KM',
+                      icon: Icons.attach_money,
+                      color: Colors.green)),
             ],
           ),
         ],
@@ -201,7 +229,11 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _StatCard({required this.title, required this.value, required this.icon, required this.color});
+  const _StatCard(
+      {required this.title,
+      required this.value,
+      required this.icon,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +242,8 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.10)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.10)),
       ),
       child: Row(
         children: [
@@ -227,9 +260,15 @@ class _StatCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 11, color: AppColors.textSecondary.withValues(alpha: 0.85))),
+                Text(title,
+                    style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            AppColors.textSecondary.withValues(alpha: 0.85))),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800)),
               ],
             ),
           ),
@@ -267,7 +306,10 @@ class _FilterRow extends StatelessWidget {
         backgroundColor: AppColors.surface,
         selectedColor: AppColors.primary.withValues(alpha: 0.18),
         checkmarkColor: AppColors.primary,
-        side: BorderSide(color: isSelected ? AppColors.primary : AppColors.textSecondary.withValues(alpha: 0.20)),
+        side: BorderSide(
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.textSecondary.withValues(alpha: 0.20)),
         labelStyle: TextStyle(
           color: isSelected ? AppColors.primary : AppColors.textPrimary,
           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -280,13 +322,13 @@ class _FilterRow extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          chip('Sve', 'all', total),
+          chip('All', 'all', total),
           const SizedBox(width: 8),
-          chip('Na čekanju', 'pending', pending),
+          chip('Pending', 'pending', pending),
           const SizedBox(width: 8),
-          chip('Plaćeno', 'paid', paid),
+          chip('Paid', 'paid', paid),
           const SizedBox(width: 8),
-          chip('Primljeno', 'received', received),
+          chip('Received', 'received', received),
         ],
       ),
     );
@@ -332,13 +374,13 @@ class _ProcurementOrderCard extends StatelessWidget {
   String _statusText(String status) {
     switch (status) {
       case 'Pending':
-        return 'Na čekanju';
+        return 'Pending';
       case 'Paid':
-        return 'Plaćeno';
+        return 'Paid';
       case 'Received':
-        return 'Primljeno';
+        return 'Received';
       case 'Cancelled':
-        return 'Otkazano';
+        return 'Cancelled';
       default:
         return status;
     }
@@ -357,7 +399,8 @@ class _ProcurementOrderCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.12)),
+          border: Border.all(
+              color: AppColors.textSecondary.withValues(alpha: 0.12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -367,12 +410,14 @@ class _ProcurementOrderCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     order.supplier ?? 'N/A',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: sc.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -383,30 +428,42 @@ class _ProcurementOrderCard extends StatelessWidget {
                       Icon(si, color: sc, size: 14),
                       const SizedBox(width: 6),
                       Text(_statusText(order.status),
-                          style: TextStyle(color: sc, fontWeight: FontWeight.w700, fontSize: 12)),
+                          style: TextStyle(
+                              color: sc,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12)),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(order.storeName ?? 'N/A', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85))),
+            Text(order.storeName ?? 'N/A',
+                style: TextStyle(
+                    color: AppColors.textSecondary.withValues(alpha: 0.85))),
             const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
                   child: Text(
                     '${(order.totalAmount as double).toStringAsFixed(2)} KM',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primary),
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary),
                   ),
                 ),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today, size: 14, color: AppColors.textSecondary.withValues(alpha: 0.7)),
+                    Icon(Icons.calendar_today,
+                        size: 14,
+                        color: AppColors.textSecondary.withValues(alpha: 0.7)),
                     const SizedBox(width: 6),
                     Text(
                       DateFormat('dd.MM.yyyy').format(order.orderDate),
-                      style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.8), fontSize: 12),
+                      style: TextStyle(
+                          color: AppColors.textSecondary.withValues(alpha: 0.8),
+                          fontSize: 12),
                     ),
                   ],
                 ),
@@ -415,12 +472,17 @@ class _ProcurementOrderCard extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.textSecondary.withValues(alpha: 0.7)),
+                Icon(Icons.inventory_2_outlined,
+                    size: 14,
+                    color: AppColors.textSecondary.withValues(alpha: 0.7)),
                 const SizedBox(width: 6),
-                Text('${order.items.length} artikal(a)',
-                    style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.8), fontSize: 12)),
+                Text('${order.items.length} item(s)',
+                    style: TextStyle(
+                        color: AppColors.textSecondary.withValues(alpha: 0.8),
+                        fontSize: 12)),
                 const Spacer(),
-                Icon(Icons.chevron_right, color: AppColors.textSecondary.withValues(alpha: 0.7)),
+                Icon(Icons.chevron_right,
+                    color: AppColors.textSecondary.withValues(alpha: 0.7)),
               ],
             ),
           ],
@@ -441,28 +503,33 @@ class _EmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.12)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.12)),
       ),
       child: Column(
         children: [
-          Icon(Icons.shopping_bag_outlined, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.35)),
+          Icon(Icons.shopping_bag_outlined,
+              size: 64, color: AppColors.textSecondary.withValues(alpha: 0.35)),
           const SizedBox(height: 16),
-          const Text('Nema nabavki', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const Text('No Procurements',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          Text('Kreiraj prvu nabavku klikom na dugme ispod',
+          Text('Create your first procurement by clicking the button below',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85))),
+              style: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.85))),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: onCreate,
               icon: const Icon(Icons.add),
-              label: const Text('Nova nabavka'),
+              label: const Text('New Procurement'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -485,15 +552,19 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.error.withValues(alpha: 0.6)),
+            Icon(Icons.error_outline,
+                size: 64, color: AppColors.error.withValues(alpha: 0.6)),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Pokušaj ponovo'),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              label: const Text('Try Again'),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             ),
           ],
         ),

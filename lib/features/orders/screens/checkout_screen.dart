@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:orders_mobile/core/utils/top_notification.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../providers/tables_provider.dart';
@@ -25,21 +26,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _loadAccompanimentsForCartItems();
   }
 
+  void _showNotification(String message, {bool isError = false}) {
+    TopNotification.show(
+      context,
+      message: message,
+      isError: isError,
+    );
+  }
+
   Future<void> _loadAccompanimentsForCartItems() async {
     final ordersProvider = context.read<OrdersProvider>(); // ✅ PROMJENA
-    
-    for (var item in ordersProvider.cartItems) { // ✅ PROMJENA: items -> cartItems
+
+    for (var item in ordersProvider.cartItems) {
+      // ✅ PROMJENA: items -> cartItems
       if (item.selectedAccompanimentIds.isNotEmpty) {
         try {
-          final groups = await ApiService().getProductAccompaniments(item.product.id);
-          final allAccompaniments = groups.expand((g) => g.accompaniments).toList();
-          
+          final groups =
+              await ApiService().getProductAccompaniments(item.product.id);
+          final allAccompaniments =
+              groups.expand((g) => g.accompaniments).toList();
+
           final selectedAccs = allAccompaniments
               .where((acc) => item.selectedAccompanimentIds.contains(acc.id))
               .toList();
-          
+
           setState(() {
-            _accompanimentCache['${item.product.id}_${item.selectedAccompanimentIds.join(',')}'] = selectedAccs;
+            _accompanimentCache[
+                    '${item.product.id}_${item.selectedAccompanimentIds.join(',')}'] =
+                selectedAccs;
           });
         } catch (e) {
           debugPrint('Error loading accompaniments: $e');
@@ -63,21 +77,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder() async {
-    final ordersProvider = context.read<OrdersProvider>(); // ✅ PROMJENA
+    final ordersProvider = context.read<OrdersProvider>();
 
-    if (ordersProvider.cartItems.isEmpty) { // ✅ PROMJENA
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your cart is empty'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+    if (ordersProvider.cartItems.isEmpty) {
+      _showNotification('Your cart is empty', isError: true); // ✅ NOVO
       return;
     }
 
     if (ordersProvider.isLoading) return;
 
-    ordersProvider.setOrderNotes(_notesController.text.trim()); // ✅ Set notes
+    ordersProvider.setOrderNotes(_notesController.text.trim());
 
     showDialog(
       context: context,
@@ -88,7 +97,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
 
     try {
-      // ✅ Use createOrderFromCart which handles everything
       final ok = await ordersProvider.createOrderFromCart();
 
       if (!ok) {
@@ -103,12 +111,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order placed successfully!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      _showNotification('Order placed successfully!'); // ✅ NOVO
 
       Navigator.pushNamedAndRemoveUntil(
         context,
@@ -120,13 +123,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Failed to place order: ${ordersProvider.error ?? e.toString()}',
-          ),
-          backgroundColor: AppColors.error,
-        ),
+      _showNotification(
+        // ✅ NOVO
+        'Failed to place order: ${ordersProvider.error ?? e.toString()}',
+        isError: true,
       );
     }
   }
@@ -139,12 +139,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         title: const Text('Checkout'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            // ✅ Vrati se na Products screen
+            Navigator.pushReplacementNamed(context, AppRouter.products);
+          },
         ),
       ),
-      body: Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+      body: Consumer<OrdersProvider>(
+        // ✅ PROMJENA: CartProvider -> OrdersProvider
         builder: (context, ordersProvider, _) {
-          if (ordersProvider.cartItems.isEmpty) { // ✅ PROMJENA
+          if (ordersProvider.cartItems.isEmpty) {
+            // ✅ PROMJENA
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -165,7 +170,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.pushReplacementNamed(context, AppRouter.products);
+                      Navigator.pushReplacementNamed(
+                          context, AppRouter.products);
                     },
                     child: const Text('Browse Products'),
                   ),
@@ -186,26 +192,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: ordersProvider.cartItems.length, // ✅ PROMJENA
+                        itemCount:
+                            ordersProvider.cartItems.length, // ✅ PROMJENA
                         separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
-                          final item = ordersProvider.cartItems[index]; // ✅ PROMJENA
-                          final cacheKey = '${item.product.id}_${item.selectedAccompanimentIds.join(',')}';
-                          final accompaniments = _accompanimentCache[cacheKey] ?? [];
-                          
+                          final item =
+                              ordersProvider.cartItems[index]; // ✅ PROMJENA
+                          final cacheKey =
+                              '${item.product.id}_${item.selectedAccompanimentIds.join(',')}';
+                          final accompaniments =
+                              _accompanimentCache[cacheKey] ?? [];
+
                           return _ProductCard(
                             item: item,
                             accompaniments: accompaniments,
                             onDecrease: () {
                               // ✅ PROMJENA: Use updateCartItemQuantity or removeFromCart
                               if (item.quantity > 1) {
-                                ordersProvider.updateCartItemQuantity(item.uniqueKey, item.quantity - 1);
+                                ordersProvider.updateCartItemQuantity(
+                                    item.uniqueKey, item.quantity - 1);
                               } else {
                                 ordersProvider.removeFromCart(item.uniqueKey);
                               }
                             },
                             onIncrease: () {
-                              ordersProvider.updateCartItemQuantity(item.uniqueKey, item.quantity + 1);
+                              ordersProvider.updateCartItemQuantity(
+                                  item.uniqueKey, item.quantity + 1);
                             },
                           );
                         },
@@ -230,8 +242,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             child: _RadioTile(
                               label: 'Dine In',
                               icon: Icons.restaurant,
-                              selected: ordersProvider.orderType == 'DineIn', // ✅ PROMJENA
-                              onTap: () => ordersProvider.setOrderType('DineIn'), // ✅ PROMJENA
+                              selected: ordersProvider.orderType ==
+                                  'DineIn', // ✅ PROMJENA
+                              onTap: () => ordersProvider
+                                  .setOrderType('DineIn'), // ✅ PROMJENA
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -239,8 +253,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             child: _RadioTile(
                               label: 'Take Away',
                               icon: Icons.delivery_dining,
-                              selected: ordersProvider.orderType == 'TakeAway', // ✅ PROMJENA
-                              onTap: () => ordersProvider.setOrderType('TakeAway'), // ✅ PROMJENA
+                              selected: ordersProvider.orderType ==
+                                  'TakeAway', // ✅ PROMJENA
+                              onTap: () => ordersProvider
+                                  .setOrderType('TakeAway'), // ✅ PROMJENA
                             ),
                           ),
                         ],
@@ -265,8 +281,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             child: _RadioTile(
                               label: 'Regular',
                               icon: Icons.person,
-                              selected: !ordersProvider.isPartnerOrder, // ✅ PROMJENA
-                              onTap: () => ordersProvider.togglePartnerOrder(), // ✅ PROMJENA
+                              selected:
+                                  !ordersProvider.isPartnerOrder, // ✅ PROMJENA
+                              onTap: () => ordersProvider
+                                  .togglePartnerOrder(), // ✅ PROMJENA
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -274,8 +292,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             child: _RadioTile(
                               label: 'Partner',
                               icon: Icons.handshake,
-                              selected: ordersProvider.isPartnerOrder, // ✅ PROMJENA
-                              onTap: () => ordersProvider.togglePartnerOrder(), // ✅ PROMJENA
+                              selected:
+                                  ordersProvider.isPartnerOrder, // ✅ PROMJENA
+                              onTap: () => ordersProvider
+                                  .togglePartnerOrder(), // ✅ PROMJENA
                             ),
                           ),
                         ],
@@ -305,8 +325,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: Column(
                           children: [
                             _SummaryRow(
-                              label: 'Subtotal (${ordersProvider.cartCount})', // ✅ PROMJENA: itemCount -> cartCount
-                              value: _safeCurrency(ordersProvider.cartTotal), // ✅ PROMJENA: totalAmount -> cartTotal
+                              label:
+                                  'Subtotal (${ordersProvider.cartCount})', // ✅ PROMJENA: itemCount -> cartCount
+                              value: _safeCurrency(ordersProvider
+                                  .cartTotal), // ✅ PROMJENA: totalAmount -> cartTotal
                             ),
                             const SizedBox(height: 12),
                             _SummaryRow(
@@ -316,7 +338,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             const Divider(height: 32),
                             _SummaryRow(
                               label: 'Total',
-                              value: _safeCurrency(ordersProvider.cartTotal), // ✅ PROMJENA
+                              value: _safeCurrency(
+                                  ordersProvider.cartTotal), // ✅ PROMJENA
                               isTotal: true,
                             ),
                           ],
@@ -468,7 +491,8 @@ class _ProductCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary.withValues(alpha: 0.8),
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -521,45 +545,46 @@ class _ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   ...accompaniments.map((acc) => Padding(
-                    padding: const EdgeInsets.only(left: 22, top: 4),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.5),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            acc.name,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textPrimary,
-                              fontWeight: FontWeight.w600,
+                        padding: const EdgeInsets.only(left: 22, top: 4),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.5),
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                        ),
-                        if (acc.extraCharge > 0)
-                          Text(
-                            '+${_safeCurrency(acc.extraCharge)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary.withValues(alpha: 0.7),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                acc.name,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
-                  )),
+                            if (acc.extraCharge > 0)
+                              Text(
+                                '+${_safeCurrency(acc.extraCharge)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      AppColors.primary.withValues(alpha: 0.7),
+                                ),
+                              ),
+                          ],
+                        ),
+                      )),
                 ],
               ),
             ),
           ],
-          
+
           // Notes
           if (item.notes != null && item.notes!.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -661,17 +686,23 @@ class _RadioTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.textSecondary.withValues(alpha: 0.2),
+            color: selected
+                ? AppColors.primary
+                : AppColors.textSecondary.withValues(alpha: 0.2),
             width: selected ? 2 : 1,
           ),
         ),
         child: Row(
           children: [
             Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              selected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked,
               color: selected ? AppColors.primary : AppColors.textSecondary,
               size: 20,
             ),

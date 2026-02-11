@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:orders_mobile/core/api/api_client.dart';
 import 'package:orders_mobile/core/services/api/auth_api_service.dart';
-import 'package:orders_mobile/core/services/api/api_service.dart'; // ✅ DODANO
+import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/core/services/error_handling_service.dart'; // ✅ ADD THIS
 import 'package:orders_mobile/models/auth/auth_response.dart';
 import 'package:orders_mobile/models/auth/user_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthProvider with ChangeNotifier {
   final AuthApiService _apiService = AuthApiService();
   final ApiClient _apiClient = ApiClient();
+  final ErrorHandlingService _errorService = ErrorHandlingService(); // ✅ ADD THIS
 
   // State
   UserModel? _currentUser;
@@ -26,7 +28,7 @@ class AuthProvider with ChangeNotifier {
   bool get isAdmin => _currentUser?.role == 'Admin';
   bool get isWaiter => _currentUser?.role == 'Waiter';
   bool get isBartender => _currentUser?.role == 'Bartender';
-
+  bool get isKitchen => _currentUser?.role == 'Kitchen';  
   // Storage keys
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'current_user';
@@ -43,8 +45,6 @@ class AuthProvider with ChangeNotifier {
       if (savedToken != null && savedUserJson != null) {
         _token = savedToken;
         _apiClient.setToken(savedToken);
-        
-        // ✅ DODANO - Sync token to ApiService (http) as well
         await ApiService().saveToken(savedToken);
 
         // Verify token is still valid
@@ -53,11 +53,11 @@ class AuthProvider with ChangeNotifier {
         if (response.success && response.data == true) {
           // Token valid, get current user
           final userResponse = await _apiService.getCurrentUser();
+          
           if (userResponse.success && userResponse.data != null) {
             _currentUser = userResponse.data;
             _isAuthenticated = true;
           } else {
-            // Token invalid, clear
             await _clearCredentials();
           }
         } else {
@@ -94,7 +94,9 @@ class AuthProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('Login error: $e');
+      // ✅ CONVERT TO AppException AND GET USER MESSAGE
+      final appError = _errorService.handleError(e);
+      _setError(_errorService.getUserMessage(appError));
       return false;
     } finally {
       _setLoading(false);
@@ -129,7 +131,9 @@ class AuthProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('Registration error: $e');
+      // ✅ CONVERT TO AppException AND GET USER MESSAGE
+      final appError = _errorService.handleError(e);
+      _setError(_errorService.getUserMessage(appError));
       return false;
     } finally {
       _setLoading(false);
@@ -170,12 +174,17 @@ class AuthProvider with ChangeNotifier {
         _setError(response.error ?? 'Password change failed');
         return false;
       }
-    } catch (e) {
-      _setError('Password change error: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
+   } catch (e) {
+  // ✅ CONVERT TO AppException AND GET USER MESSAGE
+  final appError = _errorService.handleError(e);
+  final userMessage = _errorService.getUserMessage(appError);
+  
+  debugPrint('🐛 DEBUG: appError = $appError');
+  debugPrint('🐛 DEBUG: userMessage = $userMessage');
+  
+  _setError(userMessage);
+  return false;
+}
   }
 
   /// Refresh current user data
@@ -184,9 +193,10 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final response = await _apiService.getCurrentUser();
+      
       if (response.success && response.data != null) {
         _currentUser = response.data;
-        
+
         // Save updated user
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_userKey, response.data!.toJson().toString());
@@ -213,7 +223,9 @@ class AuthProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('Password reset error: $e');
+      // ✅ CONVERT TO AppException AND GET USER MESSAGE
+      final appError = _errorService.handleError(e);
+      _setError(_errorService.getUserMessage(appError));
       return false;
     } finally {
       _setLoading(false);
@@ -243,7 +255,9 @@ class AuthProvider with ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError('Password reset error: $e');
+      // ✅ CONVERT TO AppException AND GET USER MESSAGE
+      final appError = _errorService.handleError(e);
+      _setError(_errorService.getUserMessage(appError));
       return false;
     } finally {
       _setLoading(false);
@@ -267,7 +281,7 @@ class AuthProvider with ChangeNotifier {
     // Set token in API client (Dio)
     _apiClient.setToken(_token);
     
-    // ✅ DODANO - Set token in ApiService (http) as well
+    // Set token in ApiService (http) as well
     await ApiService().saveToken(_token!);
 
     // Save to storage
@@ -284,7 +298,7 @@ class AuthProvider with ChangeNotifier {
     _isAuthenticated = false;
     _apiClient.clearToken();
     
-    // ✅ DODANO - Clear token in ApiService (http)
+    // Clear token in ApiService (http)
     await ApiService().clearToken();
 
     final prefs = await SharedPreferences.getInstance();
@@ -302,7 +316,7 @@ class AuthProvider with ChangeNotifier {
   void _setError(String? error) {
     _error = error;
     if (error != null) {
-      debugPrint('❌ Auth Error: $error');
+      debugPrint('❌ Auth Error: $error'); // ✅ Now prints actual message!
     }
     notifyListeners();
   }

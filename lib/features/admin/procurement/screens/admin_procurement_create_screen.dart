@@ -11,10 +11,12 @@ class AdminProcurementCreateScreen extends StatefulWidget {
   const AdminProcurementCreateScreen({super.key});
 
   @override
-  State<AdminProcurementCreateScreen> createState() => _AdminProcurementCreateScreenState();
+  State<AdminProcurementCreateScreen> createState() =>
+      _AdminProcurementCreateScreenState();
 }
 
-class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScreen> {
+class _AdminProcurementCreateScreenState
+    extends State<AdminProcurementCreateScreen> {
   final _searchController = TextEditingController();
   String? _selectedStoreId;
 
@@ -31,7 +33,9 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
 
   Future<void> _loadProductsForStore() async {
     if (_selectedStoreId == null) return;
-    await context.read<InventoryProvider>().fetchStoreProducts(storeId: _selectedStoreId!);
+    await context
+        .read<InventoryProvider>()
+        .fetchStoreProducts(storeId: _selectedStoreId!);
   }
 
   double _total() {
@@ -44,11 +48,11 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
 
   Future<void> _continue() async {
     if (_selectedStoreId == null) {
-      _snack('Molimo odaberite prodavnicu', isError: true);
+      _snack('Please select a store', isError: true);
       return;
     }
     if (_cart.isEmpty) {
-      _snack('Molimo odaberite barem jedan artikal', isError: true);
+      _snack('Please select at least one item', isError: true);
       return;
     }
 
@@ -73,7 +77,7 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
     // if checkout returns true => clear cart
     if (result == true && mounted) {
       setState(() => _cart.clear());
-      _snack('Nabavka uspješno kreirana!');
+      _snack('Procurement successfully created!');
       await _loadProductsForStore();
     }
   }
@@ -91,7 +95,7 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Nova nabavka',
+      title: 'New Procurement',
       currentRoute: AppRouter.procurementCreate,
       backgroundColor: AppColors.background,
       body: Column(
@@ -108,7 +112,6 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
             },
             onSearchChanged: (_) => setState(() {}),
           ),
-
           Expanded(
             child: _selectedStoreId == null
                 ? const _PickStoreHint()
@@ -116,7 +119,8 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
                     builder: (context, provider, _) {
                       if (provider.isLoading) {
                         return const Center(
-                          child: CircularProgressIndicator(color: AppColors.primary),
+                          child: CircularProgressIndicator(
+                              color: AppColors.primary),
                         );
                       }
 
@@ -143,21 +147,22 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
                         itemBuilder: (context, index) {
                           final p = products[index];
                           final isInCart = _cart.containsKey(p.id);
-                          final qty = isInCart ? (_cart[p.id]!['quantity'] as int) : 0;
+                          final qty =
+                              isInCart ? (_cart[p.id]!['quantity'] as int) : 0;
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _ProductCard(
                               name: p.name,
-                              price: (p.purchasePrice as double),
-                              stock: p.currentStock as int,
-                              minStock: p.minimumStock as int,
+                              price: p.purchasePrice,
+                              stock: p.currentStock,
+                              minStock: p.minimumStock,
                               selectedQty: qty,
                               selected: isInCart,
                               onTap: () => _openAddItemSheet(
                                 productId: p.id,
                                 productName: p.name,
-                                defaultUnitCost: (p.purchasePrice as double),
+                                defaultUnitCost: p.purchasePrice,
                               ),
                             ),
                           );
@@ -166,7 +171,6 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
                     },
                   ),
           ),
-
           _BottomBar(
             itemsCount: _cart.length,
             total: _total(),
@@ -195,7 +199,9 @@ class _AdminProcurementCreateScreenState extends State<AdminProcurementCreateScr
         productName: productName,
         initialQty: existing?['quantity'] as int? ?? 1,
         initialUnitCost: existing?['unitCost'] as double? ?? defaultUnitCost,
-        onRemove: existing == null ? null : () => Navigator.pop(context, {'remove': true}),
+        onRemove: existing == null
+            ? null
+            : () => Navigator.pop(context, {'remove': true}),
       ),
     );
 
@@ -245,19 +251,21 @@ class _TopPanel extends StatelessWidget {
           Consumer<StoresProvider>(
             builder: (context, storesProvider, _) {
               return DropdownButtonFormField<String>(
-                value: selectedStoreId,
+                initialValue: selectedStoreId,
                 decoration: InputDecoration(
-                  hintText: 'Odaberite prodavnicu',
+                  hintText: 'Select store',
                   filled: true,
                   fillColor: AppColors.surfaceVariant,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
                 items: storesProvider.stores
-                    .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                    .map((s) =>
+                        DropdownMenuItem(value: s.id, child: Text(s.name)))
                     .toList(),
                 onChanged: onStoreChanged,
               );
@@ -268,8 +276,9 @@ class _TopPanel extends StatelessWidget {
             controller: searchController,
             onChanged: onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Pretraži proizvode...',
-              prefixIcon: Icon(Icons.search, color: AppColors.textSecondary.withValues(alpha: 0.6)),
+              hintText: 'Search products...',
+              prefixIcon: Icon(Icons.search,
+                  color: AppColors.textSecondary.withValues(alpha: 0.6)),
               filled: true,
               fillColor: AppColors.surfaceVariant,
               border: OutlineInputBorder(
@@ -292,8 +301,9 @@ class _PickStoreHint extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Text(
-        'Prvo odaberite prodavnicu',
-        style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85)),
+        'First select a store',
+        style:
+            TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85)),
       ),
     );
   }
@@ -346,48 +356,58 @@ class _ProductCard extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary),
+              child: const Icon(Icons.inventory_2_outlined,
+                  color: AppColors.primary),
             ),
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                  Text(name,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   Text('${price.toStringAsFixed(2)} KM',
-                      style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85))),
+                      style: TextStyle(
+                          color:
+                              AppColors.textSecondary.withValues(alpha: 0.85))),
                   if (lowStock) ...[
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.error.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Text(
                         'Low Stock',
-                        style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700, fontSize: 11),
+                        style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11),
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-
             if (selected)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text('x$selectedQty',
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900)),
+                    style: const TextStyle(
+                        color: AppColors.primary, fontWeight: FontWeight.w900)),
               )
             else
-              Icon(Icons.add_circle_outline, color: AppColors.textSecondary.withValues(alpha: 0.7)),
+              Icon(Icons.add_circle_outline,
+                  color: AppColors.textSecondary.withValues(alpha: 0.7)),
           ],
         ),
       ),
@@ -420,7 +440,8 @@ class _AddItemSheetState extends State<_AddItemSheet> {
   void initState() {
     super.initState();
     qty = widget.initialQty;
-    unitCostCtrl = TextEditingController(text: widget.initialUnitCost.toStringAsFixed(2));
+    unitCostCtrl =
+        TextEditingController(text: widget.initialUnitCost.toStringAsFixed(2));
   }
 
   @override
@@ -441,26 +462,29 @@ class _AddItemSheetState extends State<_AddItemSheet> {
             ),
           ),
           const SizedBox(height: 14),
-
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(widget.productName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            child: Text(widget.productName,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
           ),
           const SizedBox(height: 16),
-
           Row(
             children: [
               Expanded(
                 child: _FieldCard(
-                  title: 'Količina',
+                  title: 'Quantity',
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        onPressed: qty <= 1 ? null : () => setState(() => qty--),
+                        onPressed:
+                            qty <= 1 ? null : () => setState(() => qty--),
                         icon: const Icon(Icons.remove),
                       ),
-                      Text('$qty', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                      Text('$qty',
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w900)),
                       IconButton(
                         onPressed: () => setState(() => qty++),
                         icon: const Icon(Icons.add),
@@ -475,7 +499,8 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   title: 'Unit Cost (KM)',
                   child: TextField(
                     controller: unitCostCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(border: InputBorder.none),
                   ),
                 ),
@@ -483,7 +508,6 @@ class _AddItemSheetState extends State<_AddItemSheet> {
             ],
           ),
           const SizedBox(height: 16),
-
           Row(
             children: [
               if (widget.onRemove != null) ...[
@@ -491,11 +515,12 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                   child: OutlinedButton.icon(
                     onPressed: widget.onRemove,
                     icon: const Icon(Icons.delete),
-                    label: const Text('Ukloni'),
+                    label: const Text('Remove'),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       foregroundColor: AppColors.error,
-                      side: BorderSide(color: AppColors.error.withValues(alpha: 0.6)),
+                      side: BorderSide(
+                          color: AppColors.error.withValues(alpha: 0.6)),
                     ),
                   ),
                 ),
@@ -504,17 +529,23 @@ class _AddItemSheetState extends State<_AddItemSheet> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    final unitCost = double.tryParse(unitCostCtrl.text.replaceAll(',', '.')) ?? 0;
+                    final unitCost = double.tryParse(
+                            unitCostCtrl.text.replaceAll(',', '.')) ??
+                        0;
                     if (unitCost <= 0) return;
 
-                    Navigator.pop(context, {'quantity': qty, 'unitCost': unitCost});
+                    Navigator.pop(
+                        context, {'quantity': qty, 'unitCost': unitCost});
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Dodaj', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w800)),
+                  child: const Text('Add',
+                      style: TextStyle(
+                          color: AppColors.white, fontWeight: FontWeight.w800)),
                 ),
               ),
             ],
@@ -544,7 +575,8 @@ class _FieldCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.10)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.10)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -568,7 +600,10 @@ class _BottomBar extends StatelessWidget {
   final double total;
   final VoidCallback onContinue;
 
-  const _BottomBar({required this.itemsCount, required this.total, required this.onContinue});
+  const _BottomBar(
+      {required this.itemsCount,
+      required this.total,
+      required this.onContinue});
 
   @override
   Widget build(BuildContext context) {
@@ -591,16 +626,25 @@ class _BottomBar extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Artikli:', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85))),
-                Text('$itemsCount', style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primary)),
+                Text('Items:',
+                    style: TextStyle(
+                        color:
+                            AppColors.textSecondary.withValues(alpha: 0.85))),
+                Text('$itemsCount',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w900, color: AppColors.primary)),
               ],
             ),
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Ukupno:', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85))),
-                Text('${total.toStringAsFixed(2)} KM', style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text('Total:',
+                    style: TextStyle(
+                        color:
+                            AppColors.textSecondary.withValues(alpha: 0.85))),
+                Text('${total.toStringAsFixed(2)} KM',
+                    style: const TextStyle(fontWeight: FontWeight.w900)),
               ],
             ),
             const SizedBox(height: 10),
@@ -612,11 +656,15 @@ class _BottomBar extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
               child: const Text(
-                'Nastavi',
-                style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w800, fontSize: 16),
+                'Continue',
+                style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16),
               ),
             ),
           ),
@@ -633,8 +681,9 @@ class _EmptyProducts extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Text(
-        'Nema dostupnih proizvoda',
-        style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85)),
+        'No products available',
+        style:
+            TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.85)),
       ),
     );
   }
@@ -653,15 +702,19 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.error.withValues(alpha: 0.6)),
+            Icon(Icons.error_outline,
+                size: 64, color: AppColors.error.withValues(alpha: 0.6)),
             const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('Pokušaj ponovo'),
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              label: const Text('Try Again'),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             ),
           ],
         ),

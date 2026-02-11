@@ -14,83 +14,38 @@ class AdminDrawer extends StatelessWidget {
   });
 
   Future<void> _handleLogout(BuildContext context) async {
-    final confirm = await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
         ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.logout, color: AppColors.error, size: 24),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Odjava',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Da li ste sigurni da želite da se odjavite?',
-          style: TextStyle(
-            fontSize: 15,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        actionsPadding: const EdgeInsets.all(16),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            child: Text(
-              'Otkaži',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
-              foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
             ),
             child: const Text(
-              'Odjavi se',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              'Logout',
+              style: TextStyle(color: AppColors.white),
             ),
           ),
         ],
       ),
     );
 
-    if (confirm == true && context.mounted) {
-      // ✅ FIX: Koristi navigator context, ne dialog context
-      final navigator = Navigator.of(context);
+    if (confirmed == true && context.mounted) {
       await context.read<AuthProvider>().logout();
-      
       if (context.mounted) {
-        navigator.pushNamedAndRemoveUntil(
+        Navigator.pushNamedAndRemoveUntil(
+          context,
           AppRouter.login,
           (route) => false,
         );
@@ -114,7 +69,7 @@ class AdminDrawer extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // ✅ Compact Premium Header
+            // Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -136,7 +91,6 @@ class AdminDrawer extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Avatar (Compact)
                   Container(
                     width: 48,
                     height: 48,
@@ -162,18 +116,14 @@ class AdminDrawer extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
                   const SizedBox(width: 12),
-                  
-                  // User Info (Right Side)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Name
                         Text(
-                          user?.fullName ?? 'Admin',
+                          user?.fullName ?? 'User',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -184,7 +134,6 @@ class AdminDrawer extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
-                        // Email
                         Text(
                           user?.email ?? '',
                           style: TextStyle(
@@ -196,11 +145,11 @@ class AdminDrawer extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 6),
-                        // Role Badge (Inline)
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: AppColors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12),
@@ -212,14 +161,16 @@ class AdminDrawer extends StatelessWidget {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
-                                    Icons.admin_panel_settings_rounded,
+                                  Icon(
+                                    authProvider.isAdmin
+                                        ? Icons.admin_panel_settings_rounded
+                                        : Icons.person_rounded,
                                     size: 12,
                                     color: AppColors.white,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    user?.role ?? 'Admin',
+                                    user?.role ?? 'User',
                                     style: const TextStyle(
                                       fontSize: 10,
                                       color: AppColors.white,
@@ -238,16 +189,117 @@ class AdminDrawer extends StatelessWidget {
               ),
             ),
 
-            // ✅ Menu Items
+            // Menu Items
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  // Admin Section Header
+                  // ✅ ADMIN ONLY SECTION
+                  if (authProvider.isAdmin) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Text(
+                        'ADMIN',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    _DrawerMenuItem(
+                      icon: Icons.dashboard_rounded,
+                      title: 'Dashboard',
+                      subtitle: 'View statistics and analytics',
+                      route: AppRouter.adminDashboard,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.adminDashboard) {
+                          Navigator.pushReplacementNamed(
+                              context, AppRouter.adminDashboard);
+                        }
+                      },
+                    ),
+                    _DrawerMenuItem(
+                      icon: Icons.inventory_2_rounded,
+                      title: 'Products',
+                      subtitle: 'Manage menu items',
+                      route: AppRouter.adminProducts,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.adminProducts) {
+                          Navigator.pushReplacementNamed(
+                              context, AppRouter.adminProducts);
+                        }
+                      },
+                    ),
+                    _DrawerMenuItem(
+                      icon: Icons.warehouse_rounded,
+                      title: 'Inventory',
+                      subtitle: 'Track stock and supplies',
+                      route: AppRouter.inventory,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.inventory) {
+                          Navigator.pushReplacementNamed(
+                              context, AppRouter.inventory);
+                        }
+                      },
+                    ),
+                    _DrawerMenuItem(
+                      icon: Icons.shopping_cart_rounded,
+                      title: 'Procurement',
+                      subtitle: 'Order supplies from stores',
+                      route: AppRouter.procurementList,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.procurementList) {
+                          Navigator.pushReplacementNamed(
+                              context, AppRouter.procurementList);
+                        }
+                      },
+                    ),
+                    _DrawerMenuItem(
+                      icon: Icons.people_rounded,
+                      title: 'Users',
+                      subtitle: 'Manage staff accounts',
+                      route: AppRouter.usersList,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.usersList) {
+                          Navigator.pushReplacementNamed(
+                              context, AppRouter.usersList);
+                        }
+                      },
+                    ),
+                    _DrawerMenuItem(
+                      icon: Icons.category_rounded,
+                      title: 'Categories',
+                      subtitle: 'Organize menu categories',
+                      route: AppRouter.categoriesList,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.categoriesList) {
+                          Navigator.pushReplacementNamed(
+                              context, AppRouter.categoriesList);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+
+                  // ✅ COMMON SECTION
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     child: Text(
-                      'ADMIN',
+                      authProvider.isAdmin ? 'GENERAL' : 'MENU',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -256,134 +308,45 @@ class AdminDrawer extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
-                  _DrawerMenuItem(
-                    icon: Icons.dashboard_rounded,
-                    title: 'Dashboard',
-                    subtitle: 'View statistics and analytics',
-                    route: AppRouter.adminDashboard,
-                    currentRoute: currentRoute,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (currentRoute != AppRouter.adminDashboard) {
-                        Navigator.pushReplacementNamed(context, AppRouter.adminDashboard);
-                      }
-                    },
-                  ),
-                  
-                  _DrawerMenuItem(
-                    icon: Icons.inventory_2_rounded,
-                    title: 'Products',
-                    subtitle: 'Manage menu items',
-                    route: AppRouter.adminProducts,
-                    currentRoute: currentRoute,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (currentRoute != AppRouter.adminProducts) {
-                        Navigator.pushReplacementNamed(context, AppRouter.adminProducts);
-                      }
-                    },
-                  ),
-                  
-                  _DrawerMenuItem(
-                    icon: Icons.warehouse_rounded,
-                    title: 'Inventory',
-                    subtitle: 'Track stock and supplies',
-                    route: AppRouter.inventory,
-                    currentRoute: currentRoute,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (currentRoute != AppRouter.inventory) {
-                        Navigator.pushReplacementNamed(context, AppRouter.inventory);
-                      }
-                    },
-                  ),
-                  
-                  _DrawerMenuItem(
-                    icon: Icons.shopping_cart_rounded,
-                    title: 'Procurement',
-                    subtitle: 'Order supplies from stores',
-                    route: AppRouter.procurementList,
-                    currentRoute: currentRoute,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (currentRoute != AppRouter.procurementList) {
-                        Navigator.pushReplacementNamed(context, AppRouter.procurementList);
-                      }
-                    },
-                  ),
-                  
-                  _DrawerMenuItem(
-                    icon: Icons.people_rounded,
-                    title: 'Users',
-                    subtitle: 'Manage staff accounts',
-                    route: AppRouter.usersList,
-                    currentRoute: currentRoute,
-                    onTap: () {
-                      Navigator.pushReplacementNamed(context, AppRouter.usersList);
-                    },
-                  ),
-                  
-                  _DrawerMenuItem(
-                    icon: Icons.category_rounded,
-                    title: 'Categories',
-                    subtitle: 'Organize menu categories',
-                    route: AppRouter.categoriesList, 
-                    currentRoute: currentRoute,
-                    onTap: () {
-                      Navigator.pushReplacementNamed(context, AppRouter.categoriesList);
-                    },
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Common Section Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: Text(
-                      'GENERAL',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textSecondary.withValues(alpha: 0.6),
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ),
-                  
                   _DrawerMenuItem(
                     icon: Icons.receipt_long_rounded,
                     title: 'Orders',
-                    subtitle: 'View all orders',
-                    route: AppRouter.orders,
+                    subtitle: authProvider.isAdmin
+                        ? 'View all orders'
+                        : 'View your orders',
+                    route: authProvider.isAdmin
+                        ? AppRouter.adminOrders
+                        : AppRouter.orders,
                     currentRoute: currentRoute,
                     onTap: () {
                       Navigator.pop(context);
-                      if (currentRoute != AppRouter.orders) {
-                        Navigator.pushReplacementNamed(context, AppRouter.orders);
+                      final targetRoute = authProvider.isAdmin
+                          ? AppRouter.adminOrders
+                          : AppRouter.orders;
+                      if (currentRoute != targetRoute) {
+                        Navigator.pushReplacementNamed(context, targetRoute);
                       }
                     },
                   ),
-                  
-                  _DrawerMenuItem(
-                    icon: Icons.bar_chart_rounded,
-                    title: 'Statistics',
-                    subtitle: 'Business analytics',
-                    route: AppRouter.adminStatistics,
-                    currentRoute: currentRoute,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (currentRoute != AppRouter.adminStatistics) {
-                        Navigator.pushReplacementNamed(context, AppRouter.adminStatistics);
-                      }
-                    },
-                  ),
-                  
+                  if (authProvider.isAdmin)
+                    _DrawerMenuItem(
+                      icon: Icons.bar_chart_rounded,
+                      title: 'Statistics',
+                      subtitle: 'Business analytics',
+                      route: AppRouter.adminStatistics,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.adminStatistics) {
+                          Navigator.pushReplacementNamed(
+                              context, AppRouter.adminStatistics);
+                        }
+                      },
+                    ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Divider(height: 1),
                   ),
-                  
                   _DrawerMenuItem(
                     icon: Icons.person_rounded,
                     title: 'Profile',
@@ -393,11 +356,11 @@ class AdminDrawer extends StatelessWidget {
                     onTap: () {
                       Navigator.pop(context);
                       if (currentRoute != AppRouter.profile) {
-                        Navigator.pushReplacementNamed(context, AppRouter.profile);
+                        Navigator.pushReplacementNamed(
+                            context, AppRouter.profile);
                       }
                     },
                   ),
-                  
                   _DrawerMenuItem(
                     icon: Icons.info_rounded,
                     title: 'About',
@@ -410,7 +373,8 @@ class AdminDrawer extends StatelessWidget {
                         context: context,
                         applicationName: 'OrderS',
                         applicationVersion: '1.0.0',
-                        applicationLegalese: '© 2025 OrderS - Café Management System',
+                        applicationLegalese:
+                            '© 2025 OrderS - Café Management System',
                         children: [
                           const SizedBox(height: 16),
                           const Text(
@@ -425,19 +389,18 @@ class AdminDrawer extends StatelessWidget {
               ),
             ),
 
-            // ✅ Logout Button (Premium Design)
+            // ✅ LOGOUT Button - REMOVE Navigator.pop!
             Padding(
               padding: const EdgeInsets.all(16),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () {
-                    Navigator.pop(context); // ✅ Zatvori drawer prije dialoga
-                    _handleLogout(context);
-                  },
+                  onTap: () =>
+                      _handleLogout(context), // ✅ DIRECT CALL - NO POP!
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 16),
                     decoration: BoxDecoration(
                       color: AppColors.error.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
@@ -462,7 +425,7 @@ class AdminDrawer extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         const Text(
-                          'Odjavi se',
+                          'Log out',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -481,7 +444,6 @@ class AdminDrawer extends StatelessWidget {
                 ),
               ),
             ),
-
             const SizedBox(height: 8),
           ],
         ),
@@ -528,8 +490,7 @@ class _DrawerMenuItem extends StatelessWidget {
               border: isSelected
                   ? Border.all(
                       color: AppColors.primary.withValues(alpha: 0.3),
-                      width: 1.5,
-                    )
+                      width: 1.5)
                   : null,
             ),
             child: Row(
@@ -545,7 +506,9 @@ class _DrawerMenuItem extends StatelessWidget {
                   child: Icon(
                     icon,
                     size: 20,
-                    color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -557,8 +520,11 @@ class _DrawerMenuItem extends StatelessWidget {
                         title,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       if (subtitle != null) ...[
@@ -567,7 +533,8 @@ class _DrawerMenuItem extends StatelessWidget {
                           subtitle!,
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.textSecondary.withValues(alpha: 0.7),
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.7),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

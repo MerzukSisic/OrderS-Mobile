@@ -50,4 +50,5 @@ class UserModel {
   bool get isAdmin => role.toLowerCase() == 'admin';
   bool get isWaiter => role.toLowerCase() == 'waiter';
   bool get isBartender => role.toLowerCase() == 'bartender';
+  bool get isKitchen => role.toLowerCase() == 'kitchen';
 }

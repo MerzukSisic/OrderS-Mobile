@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/core/utils/top_notification.dart';
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import 'package:provider/provider.dart';
 
@@ -33,7 +34,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.initState();
     _loadAccompaniments();
   }
-  
+
   @override
   void dispose() {
     _notesController.dispose();
@@ -43,8 +44,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _loadAccompaniments() async {
     setState(() => _isLoadingAccompaniments = true);
     try {
-      final groups = await ApiService().getProductAccompaniments(widget.product.id);
-      
+      final groups =
+          await ApiService().getProductAccompaniments(widget.product.id);
+
       setState(() {
         _accompanimentGroups = groups;
         _isLoadingAccompaniments = false;
@@ -55,14 +57,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  void _showSnack(String message) {
-    final rootCtx = NavigationService.context ?? context;
-    ScaffoldMessenger.of(rootCtx).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.warning,
-        duration: const Duration(seconds: 2),
-      ),
+  void _showNotification(String message, {bool isError = false}) {
+    TopNotification.show(
+      context,
+      message: message,
+      isError: isError,
     );
   }
 
@@ -84,7 +83,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           }).toList();
 
           if (selectedForGroup.isEmpty) {
-            _showSnack('Morate izabrati ${group.name}');
+            _showNotification('Morate izabrati ${group.name}',
+                isError: true); // ✅ NOVO
             return;
           }
         }
@@ -93,27 +93,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
     final notes = _notesController.text.trim();
 
-    // ✅ FIXED: Use OrdersProvider.addToCart
     context.read<OrdersProvider>().addToCart(
-      product: widget.product,
-      quantity: 1,
-      selectedAccompanimentIds: _selectedAccompanimentIds,
-      notes: notes.isEmpty ? null : notes,
-    );
+          product: widget.product,
+          quantity: 1,
+          selectedAccompanimentIds: _selectedAccompanimentIds,
+          notes: notes.isEmpty ? null : notes,
+        );
 
-    final rootCtx = NavigationService.context ?? context;
-    ScaffoldMessenger.of(rootCtx).showSnackBar(
-      SnackBar(
-        content: Text('${widget.product.name} added to cart'),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: 'VIEW CART',
-          textColor: AppColors.white,
-          onPressed: _openCart,
-        ),
-      ),
-    );
+    _showNotification('${widget.product.name} added to cart'); // ✅ NOVO
 
     // Clear selections after adding
     setState(() {
@@ -139,14 +126,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         title: Text(widget.product.name),
         actions: [
-          Consumer<OrdersProvider>( // ✅ PROMJENA: CartProvider -> OrdersProvider
+          Consumer<OrdersProvider>(
+            // ✅ PROMJENA: CartProvider -> OrdersProvider
             builder: (context, ordersProvider, _) {
               return IconButton(
                 onPressed: _openCart,
                 icon: Stack(
                   children: [
                     const Icon(Icons.shopping_cart_outlined),
-                    if (ordersProvider.cartCount > 0) // ✅ PROMJENA: itemCount -> cartCount
+                    if (ordersProvider.cartCount >
+                        0) // ✅ PROMJENA: itemCount -> cartCount
                       Positioned(
                         right: 0,
                         top: 0,
@@ -189,7 +178,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.white,
                 elevation: 0,
-                disabledBackgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.8),
+                disabledBackgroundColor:
+                    AppColors.surfaceVariant.withValues(alpha: 0.8),
                 disabledForegroundColor: AppColors.textDisabled,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -240,7 +230,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
             ),
           ),
-
           Container(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
             decoration: BoxDecoration(
@@ -275,14 +264,17 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      _PricePill(amount: widget.product.price + _totalAccompanimentCharge),
+                      _PricePill(
+                          amount:
+                              widget.product.price + _totalAccompanimentCharge),
                     ],
                   ),
 
                   const SizedBox(height: 8),
 
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
@@ -318,7 +310,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: widget.product.ingredients
-                          .map((ingredient) => IngredientChip(name: ingredient.storeProductName))
+                          .map((ingredient) =>
+                              IngredientChip(name: ingredient.storeProductName))
                           .toList(),
                     ),
                     const SizedBox(height: 16),

@@ -80,7 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'ORDER',
+      title: 'OrderS',
       currentRoute: AppRouter.adminDashboard,
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -105,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Expanded(
                               child: _StatCard(
-                                title: 'Sedmična zarada',
+                                title: 'Weekly earnings',
                                 value: _formatMoney(_stats?['weekRevenue'] ?? 0),
                                 subtitle: null, // ✅ Uklonjen hardcoded percentage
                                 valueColor: AppColors.primary,
@@ -114,7 +114,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: _StatCard(
-                                title: 'Narudžbe danas',
+                                title: 'Weekly earnings',
                                 value: '${_stats?['todayOrders'] ?? 0}',
                                 subtitle: null, // ✅ Uklonjen hardcoded percentage
                                 valueColor: const Color(0xFF4ECDC4),
@@ -149,7 +149,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Expanded(
                               child: _MiniStatCard(
                                 icon: Icons.trending_up,
-                                label: 'Danas',
+                                label: 'Today',
                                 value: _formatMoney(_stats?['todayRevenue'] ?? 0),
                                 color: const Color(0xFFFFD93D),
                               ),
@@ -182,7 +182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   children: [
                                     Text(
                                       _selectedCategory == null
-                                          ? 'Top Proizvodi'
+                                          ? 'Top Products'
                                           : 'Top $_selectedCategory',
                                       style: const TextStyle(
                                         fontSize: 16,
@@ -194,7 +194,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       TextButton(
                                         onPressed: () => _filterByCategory(null),
                                         child: const Text(
-                                          'Vidi sve',
+                                          'See all',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: AppColors.primary,
@@ -234,7 +234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
-                                    'Prihod',
+                                    'Revenue',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -242,7 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'Zadnjih 7 dana',
+                                    'Last 7 days',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -263,7 +263,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                       const SizedBox(height: 12),
                                       Text(
-                                        'Grafikon prihoda',
+                                        'Revenue chart',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -271,7 +271,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         ),
                                       ),
                                       Text(
-                                        '(Dolazi uskoro)',
+                                        '(Comming soon)',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: AppColors.textSecondary.withValues(alpha: 0.4),
@@ -308,7 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
-                                    'Konobari',
+                                    'Waiters',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -320,7 +320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       // Navigate to full waiter performance
                                     },
                                     child: const Text(
-                                      'Vidi sve',
+                                      'See all',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: AppColors.primary,
@@ -363,7 +363,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         children: [
           _FilterChip(
-            label: 'Sve',
+            label: 'All',
             selected: _selectedCategory == null,
             onTap: () => _filterByCategory(null),
           ),
@@ -390,7 +390,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Center(
             child: Text(
-              'Nema podataka',
+              'No data',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -439,7 +439,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$quantity prodato',
+                    '$quantity sold',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary.withValues(alpha: 0.7),
@@ -476,7 +476,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Neuspjelo učitavanje',
+              'Failed to load',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -484,7 +484,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _error ?? 'Nepoznata greška',
+              _error ?? 'Unknown error',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -495,7 +495,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ElevatedButton.icon(
               onPressed: _loadDashboard,
               icon: const Icon(Icons.refresh),
-              label: const Text('Pokušaj ponovo'),
+              label: const Text('Try again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
@@ -515,7 +515,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Center(
             child: Text(
-              'Nema podataka o konobarima',
+              'No waiter data',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary.withValues(alpha: 0.6),
@@ -564,7 +564,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$totalOrders narudžbi • ${_formatMoney(totalRevenue)}',
+                    '$totalOrders orders • ${_formatMoney(totalRevenue)}',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary.withValues(alpha: 0.7),

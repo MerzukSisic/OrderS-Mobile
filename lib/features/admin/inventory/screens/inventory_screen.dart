@@ -25,7 +25,7 @@ class _InventoryScreenState extends State<InventoryScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  
+
   String _filterType = 'all';
   String _searchQuery = '';
 
@@ -36,7 +36,8 @@ class _InventoryScreenState extends State<InventoryScreen>
     _tabController.addListener(_onTabChanged);
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
-      Provider.of<InventoryProvider>(context, listen: false).fetchStoreProducts();
+      Provider.of<InventoryProvider>(context, listen: false)
+          .fetchStoreProducts();
     });
   }
 
@@ -90,7 +91,7 @@ class _InventoryScreenState extends State<InventoryScreen>
   void _showAddProductDialog() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Dodavanje proizvoda - u izradi'),
+        content: Text('Add product – in progress'),
         duration: Duration(seconds: 2),
       ),
     );
@@ -192,7 +193,7 @@ class _InventoryScreenState extends State<InventoryScreen>
     final isAdmin = authProvider.currentUser?.role == 'Admin';
 
     return AdminScaffold(
-      title: 'Inventar',
+      title: 'Inventory',
       currentRoute: AppRouter.inventory,
       backgroundColor: AppColors.background,
       floatingActionButton: isAdmin
@@ -200,7 +201,7 @@ class _InventoryScreenState extends State<InventoryScreen>
               onPressed: _showAddProductDialog,
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.add),
-              label: const Text('Dodaj proizvod'),
+              label: const Text('Add product'),
             )
           : null,
       body: Column(
@@ -215,11 +216,13 @@ class _InventoryScreenState extends State<InventoryScreen>
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: CustomTextField(
                     controller: _searchController,
-                    hint: 'Pretraži proizvode...',
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
+                    hint: 'Search products...',
+                    prefixIcon:
+                        Icon(Icons.search, color: Colors.grey[400]),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
-                            icon: Icon(Icons.clear, color: Colors.grey[400]),
+                            icon:
+                                Icon(Icons.clear, color: Colors.grey[400]),
                             onPressed: () {
                               _searchController.clear();
                               _onSearchChanged('');
@@ -241,9 +244,9 @@ class _InventoryScreenState extends State<InventoryScreen>
                     fontSize: 14,
                   ),
                   tabs: const [
-                    Tab(text: 'Svi'),
-                    Tab(text: 'Nisko stanje'),
-                    Tab(text: 'Nema na stanju'),
+                    Tab(text: 'All'),
+                    Tab(text: 'Low stock'),
+                    Tab(text: 'Out of stock'),
                   ],
                 ),
               ],
@@ -265,28 +268,33 @@ class _InventoryScreenState extends State<InventoryScreen>
                   );
                 }
 
-                final products = _getFilteredProducts(provider.storeProducts);
+                final products =
+                    _getFilteredProducts(provider.storeProducts);
 
                 if (products.isEmpty) {
                   String emptyTitle;
                   String emptyMessage;
-                  
+
                   switch (_filterType) {
                     case 'low-stock':
-                      emptyTitle = 'Sve OK!';
-                      emptyMessage = 'Nema proizvoda sa niskim stanjem';
+                      emptyTitle = 'All good!';
+                      emptyMessage =
+                          'There are no products with low stock';
                       break;
                     case 'out-of-stock':
-                      emptyTitle = 'Sve na stanju!';
-                      emptyMessage = 'Nema proizvoda bez stanja';
+                      emptyTitle = 'Everything in stock!';
+                      emptyMessage =
+                          'There are no products that are out of stock';
                       break;
                     default:
                       if (_searchQuery.isNotEmpty) {
-                        emptyTitle = 'Nema rezultata';
-                        emptyMessage = 'Nema rezultata za "$_searchQuery"';
+                        emptyTitle = 'No results';
+                        emptyMessage =
+                            'No results for "$_searchQuery"';
                       } else {
-                        emptyTitle = 'Prazan inventar';
-                        emptyMessage = 'Još nema proizvoda u inventaru';
+                        emptyTitle = 'Empty inventory';
+                        emptyMessage =
+                            'There are no products in inventory yet';
                       }
                   }
 
@@ -294,10 +302,14 @@ class _InventoryScreenState extends State<InventoryScreen>
                     icon: Icons.inventory_2_outlined,
                     title: emptyTitle,
                     message: emptyMessage,
-                    actionLabel: isAdmin && _filterType == 'all' && _searchQuery.isEmpty
-                        ? 'Dodaj prvi proizvod'
+                    actionLabel: isAdmin &&
+                            _filterType == 'all' &&
+                            _searchQuery.isEmpty
+                        ? 'Add first product'
                         : null,
-                    onAction: isAdmin && _filterType == 'all' && _searchQuery.isEmpty
+                    onAction: isAdmin &&
+                            _filterType == 'all' &&
+                            _searchQuery.isEmpty
                         ? _showAddProductDialog
                         : null,
                   );
@@ -306,7 +318,8 @@ class _InventoryScreenState extends State<InventoryScreen>
                 return RefreshIndicator(
                   onRefresh: _onRefresh,
                   child: ListView.builder(
-                    padding: const EdgeInsets.only(top: 8, bottom: 80),
+                    padding:
+                        const EdgeInsets.only(top: 8, bottom: 80),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       final product = products[index];

@@ -13,7 +13,6 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-
 class EditProductScreen extends StatefulWidget {
   final String productId;
 
@@ -30,31 +29,31 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late TextEditingController _quantityController;
   late TextEditingController _descriptionController;
   late TextEditingController _prepTimeController;
-  
+
   String? _selectedCategoryId;
   String? _selectedIngredientId;
   String _selectedLocation = 'Kitchen';
-  
+
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _storeProducts = [];
   List<AccompanimentGroup> _accompanimentGroups = [];
   ProductModel? _product; // Store loaded product
   bool _isLoadingData = true;
-  
+
   File? _selectedImage;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize empty controllers - will be populated after loading
     _nameController = TextEditingController();
     _priceController = TextEditingController();
     _quantityController = TextEditingController();
     _descriptionController = TextEditingController();
     _prepTimeController = TextEditingController();
-    
+
     _loadFormData();
   }
 
@@ -70,35 +69,38 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Future<void> _loadFormData() async {
     setState(() => _isLoadingData = true);
-    
+
     try {
       final api = ApiService();
-      
+
       // Load product details
-      final productResponse = await api.get('${ApiConstants.products}/${widget.productId}');
+      final productResponse =
+          await api.get('${ApiConstants.products}/${widget.productId}');
       _product = ProductModel.fromJson(productResponse);
-      
+
       // Populate controllers with loaded product data
       _nameController.text = _product!.name;
       _priceController.text = _product!.price.toStringAsFixed(2);
       _quantityController.text = _product!.stock.toString();
       _descriptionController.text = _product!.description ?? '';
-      _prepTimeController.text = _product!.preparationTimeMinutes?.toString() ?? '15';
+      _prepTimeController.text = _product!.preparationTimeMinutes.toString();
       _selectedCategoryId = _product!.categoryId;
-      _selectedLocation = _product!.preparationLocation ?? 'Kitchen';
-      
+      _selectedLocation = _product!.preparationLocation;
+
       // Load categories
       final categoriesResponse = await api.get(ApiConstants.categories);
-      
+
       // Load store products
-      final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
+      final inventoryProvider =
+          Provider.of<InventoryProvider>(context, listen: false);
       await inventoryProvider.fetchStoreProducts();
-      
+
       // Load existing accompaniment groups
-      final existingGroups = await api.getProductAccompaniments(widget.productId);
-      
+      final existingGroups =
+          await api.getProductAccompaniments(widget.productId);
+
       if (!mounted) return;
-      
+
       setState(() {
         _categories = (categoriesResponse as List)
             .map((c) => {
@@ -106,14 +108,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   'name': c['name'],
                 })
             .toList();
-        
+
         _storeProducts = inventoryProvider.storeProducts
             .map((sp) => {
                   'id': sp.id,
                   'name': sp.name,
                 })
             .toList();
-        
+
         _accompanimentGroups = existingGroups;
         _isLoadingData = false;
       });
@@ -122,7 +124,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       setState(() => _isLoadingData = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Greška pri učitavanju podataka: $e'),
+          content: Text('Error loading data: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -131,7 +133,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -145,22 +147,26 @@ class _EditProductScreenState extends State<EditProductScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.photo_camera, color: AppColors.primary),
-                title: const Text('Fotografiši'),
+                leading:
+                    const Icon(Icons.photo_camera, color: AppColors.primary),
+                title: const Text('Take a photo'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? image = await picker.pickImage(source: ImageSource.camera);
+                  final XFile? image =
+                      await picker.pickImage(source: ImageSource.camera);
                   if (image != null) {
                     setState(() => _selectedImage = File(image.path));
                   }
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: AppColors.primary),
-                title: const Text('Izaberi iz galerije'),
+                leading:
+                    const Icon(Icons.photo_library, color: AppColors.primary),
+                title: const Text('Choose from gallery'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                  final XFile? image =
+                      await picker.pickImage(source: ImageSource.gallery);
                   if (image != null) {
                     setState(() => _selectedImage = File(image.path));
                   }
@@ -168,8 +174,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
               ),
               if (_selectedImage != null)
                 ListTile(
-                  leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                  title: const Text('Ukloni sliku'),
+                  leading:
+                      const Icon(Icons.delete_outline, color: AppColors.error),
+                  title: const Text('Remove image'),
                   onTap: () {
                     Navigator.pop(context);
                     setState(() => _selectedImage = null);
@@ -184,12 +191,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_selectedCategoryId == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Molimo odaberite kategoriju'),
+          content: Text('Please select a category'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -199,7 +206,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     if (_product == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Proizvod nije učitan'),
+          content: Text('Product is not loaded'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -210,7 +217,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     try {
       final api = ApiService();
-      
+
       // Step 1: Update product
       final productData = {
         'name': _nameController.text.trim(),
@@ -223,17 +230,20 @@ class _EditProductScreenState extends State<EditProductScreen> {
         'isAvailable': _product!.isAvailable,
       };
 
-      await api.put('${ApiConstants.products}/${widget.productId}', body: productData);
+      await api.put('${ApiConstants.products}/${widget.productId}',
+          body: productData);
 
       if (!mounted) return;
 
       // Step 2: Update accompaniment groups
       // First, load existing groups to compare
-      final existingGroups = await api.getProductAccompaniments(widget.productId);
-      
+      final existingGroups =
+          await api.getProductAccompaniments(widget.productId);
+
       // Delete removed groups
       for (final existing in existingGroups) {
-        final stillExists = _accompanimentGroups.any((g) => g.id == existing.id);
+        final stillExists =
+            _accompanimentGroups.any((g) => g.id == existing.id);
         if (!stillExists) {
           await api.deleteAccompanimentGroup(existing.id);
         }
@@ -251,12 +261,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
           'minSelections': group.minSelections,
           'maxSelections': group.maxSelections,
           'displayOrder': group.displayOrder,
-          'accompaniments': group.accompaniments.map((acc) => {
-            'name': acc.name,
-            'extraCharge': acc.extraCharge,
-            'isAvailable': acc.isAvailable,
-            'displayOrder': acc.displayOrder,
-          }).toList(),
+          'accompaniments': group.accompaniments
+              .map((acc) => {
+                    'name': acc.name,
+                    'extraCharge': acc.extraCharge,
+                    'isAvailable': acc.isAvailable,
+                    'displayOrder': acc.displayOrder,
+                  })
+              .toList(),
         };
 
         // Check if group is new (has temp ID) or existing
@@ -270,25 +282,25 @@ class _EditProductScreenState extends State<EditProductScreen> {
       }
 
       if (!mounted) return;
-      
+
       // Refresh products list
       await context.read<ProductsProvider>().fetchProducts();
-      
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Proizvod uspješno ažuriran'),
+          content: Text('Product successfully updated'),
           backgroundColor: AppColors.success,
         ),
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Greška: $e'),
+          content: Text('Error: $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -302,7 +314,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Uredi proizvod',
+      title: 'Edit product',
       currentRoute: AppRouter.adminEditProduct,
       backgroundColor: AppColors.background,
       body: _isLoadingData
@@ -317,13 +329,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Name Field
-                    _buildLabel('Naziv proizvoda *'),
+                    _buildLabel('Product name *'),
                     _buildTextField(
                       controller: _nameController,
-                      hint: 'Npr. Pizza Margherita',
+                      hint: 'e.g. Pizza Margherita',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Unesite naziv proizvoda';
+                          return 'Enter product name';
                         }
                         return null;
                       },
@@ -332,24 +344,25 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     const SizedBox(height: 20),
 
                     // Category Dropdown
-                    _buildLabel('Kategorija *'),
+                    _buildLabel('Category *'),
                     _buildCategoryDropdown(),
 
                     const SizedBox(height: 20),
 
                     // Price Field
-                    _buildLabel('Cijena *'),
+                    _buildLabel('Price *'),
                     _buildTextField(
                       controller: _priceController,
-                      hint: 'Npr. 15.50',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      hint: 'e.g. 15.50',
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       suffixText: 'KM',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Unesite cijenu';
+                          return 'Enter price';
                         }
                         if (double.tryParse(value) == null) {
-                          return 'Unesite validnu cijenu';
+                          return 'Enter a valid price';
                         }
                         return null;
                       },
@@ -358,18 +371,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     const SizedBox(height: 20),
 
                     // Quantity Field
-                    _buildLabel('Količina *'),
+                    _buildLabel('Quantity *'),
                     _buildTextField(
                       controller: _quantityController,
-                      hint: 'Npr. 50',
+                      hint: 'e.g. 50',
                       keyboardType: TextInputType.number,
-                      suffixText: 'kom',
+                      suffixText: 'pcs',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Unesite količinu';
+                          return 'Enter quantity';
                         }
                         if (int.tryParse(value) == null) {
-                          return 'Unesite validan broj';
+                          return 'Enter a valid number';
                         }
                         return null;
                       },
@@ -378,16 +391,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     const SizedBox(height: 20),
 
                     // Preparation Location Dropdown
-                    _buildLabel('Lokacija pripreme *'),
+                    _buildLabel('Preparation location *'),
                     _buildLocationDropdown(),
 
                     const SizedBox(height: 20),
 
                     // Preparation Time
-                    _buildLabel('Vrijeme pripreme (minute)'),
+                    _buildLabel('Preparation time (minutes)'),
                     _buildTextField(
                       controller: _prepTimeController,
-                      hint: 'Npr. 15',
+                      hint: 'e.g. 15',
                       keyboardType: TextInputType.number,
                       suffixText: 'min',
                     ),
@@ -395,17 +408,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     const SizedBox(height: 20),
 
                     // Description Field
-                    _buildLabel('Opis'),
+                    _buildLabel('Description'),
                     _buildTextField(
                       controller: _descriptionController,
-                      hint: 'Unesite opis proizvoda',
+                      hint: 'Enter product description',
                       maxLines: 3,
                     ),
 
                     const SizedBox(height: 20),
 
                     // Image Field
-                    _buildLabel('Slika'),
+                    _buildLabel('Image'),
                     GestureDetector(
                       onTap: _pickImage,
                       child: Container(
@@ -415,7 +428,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.textSecondary.withValues(alpha: 0.2),
+                            color: AppColors.textSecondary.withValues(
+                              alpha: 0.2,
+                            ),
                           ),
                         ),
                         child: _selectedImage != null
@@ -432,7 +447,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                     child: Image.network(
                                       _product!.imageUrl!,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+                                      errorBuilder: (_, __, ___) =>
+                                          _buildImagePlaceholder(),
                                     ),
                                   )
                                 : _buildImagePlaceholder(),
@@ -442,12 +458,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     const SizedBox(height: 20),
 
                     // Ingredients Dropdown
-                    _buildLabel('Glavni sastojak'),
+                    _buildLabel('Main ingredient'),
                     _buildIngredientsDropdown(),
 
                     const SizedBox(height: 32),
 
-                    // ✅ Accompaniment Groups Section
+                    // Accompaniment Groups Section
                     const Divider(height: 32),
                     AccompanimentGroupManager(
                       initialGroups: _accompanimentGroups,
@@ -467,7 +483,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.white,
-                          disabledBackgroundColor: AppColors.textSecondary.withValues(alpha: 0.3),
+                          disabledBackgroundColor:
+                              AppColors.textSecondary.withValues(alpha: 0.3),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -483,7 +500,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 ),
                               )
                             : const Text(
-                                'Sačuvaj izmjene',
+                                'Save changes',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -551,16 +568,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
             color: AppColors.textSecondary.withValues(alpha: 0.2),
           ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(
             color: AppColors.primary,
             width: 2,
           ),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
+        errorBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(
             color: AppColors.error,
           ),
         ),
@@ -575,7 +592,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Widget _buildCategoryDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedCategoryId,
+      initialValue: _selectedCategoryId,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
@@ -591,9 +608,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
             color: AppColors.textSecondary.withValues(alpha: 0.2),
           ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(
             color: AppColors.primary,
             width: 2,
           ),
@@ -604,7 +621,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         ),
       ),
       hint: Text(
-        _categories.isEmpty ? 'Učitavanje...' : 'Odaberite kategoriju',
+        _categories.isEmpty ? 'Loading...' : 'Select a category',
         style: TextStyle(
           color: AppColors.textSecondary.withValues(alpha: 0.5),
           fontSize: 14,
@@ -635,7 +652,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Widget _buildLocationDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedLocation,
+      initialValue: _selectedLocation,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
@@ -651,9 +668,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
             color: AppColors.textSecondary.withValues(alpha: 0.2),
           ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(
             color: AppColors.primary,
             width: 2,
           ),
@@ -670,7 +687,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
             children: [
               Icon(Icons.restaurant, size: 18, color: AppColors.primary),
               SizedBox(width: 12),
-              Text('Kuhinja'),
+              Text('Kitchen'),
             ],
           ),
         ),
@@ -691,7 +708,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Widget _buildIngredientsDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedIngredientId,
+      initialValue: _selectedIngredientId,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
@@ -707,9 +724,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
             color: AppColors.textSecondary.withValues(alpha: 0.2),
           ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderSide: BorderSide(
             color: AppColors.primary,
             width: 2,
           ),
@@ -720,7 +737,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         ),
       ),
       hint: Text(
-        _storeProducts.isEmpty ? 'Učitavanje...' : 'Odaberite sastojak (opciono)',
+        _storeProducts.isEmpty ? 'Loading...' : 'Select ingredient (optional)',
         style: TextStyle(
           color: AppColors.textSecondary.withValues(alpha: 0.5),
           fontSize: 14,
@@ -757,7 +774,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Kliknite da dodate sliku',
+          'Click to add an image',
           style: TextStyle(
             fontSize: 14,
             color: AppColors.textSecondary.withValues(alpha: 0.5),

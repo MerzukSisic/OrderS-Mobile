@@ -49,17 +49,17 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Obriši kategoriju'),
-        content: Text('Da li ste sigurni da želite obrisati "${category.name}"?'),
+        title: const Text('Delete Category'),
+        content: Text('Are you sure you want to delete "${category.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Otkaži'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Obriši', style: TextStyle(color: AppColors.white)),
+            child: const Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),
@@ -71,7 +71,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${category.name} obrisana'),
+              content: Text('${category.name} deleted'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -80,7 +80,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Greška: $e'),
+              content: Text('Error: $e'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -92,7 +92,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
   @override
   Widget build(BuildContext context) {
     return AdminScaffold(
-      title: 'Kategorije',
+      title: 'Categories',
       currentRoute: AppRouter.categoriesList,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -102,7 +102,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
         },
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
-        label: const Text('Dodaj kategoriju'),
+        label: const Text('Add Category'),
       ),
       body: Column(
         children: [
@@ -117,7 +117,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: 'Pretraži kategorije...',
+                      hintText: 'Search categories...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
@@ -175,7 +175,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => provider.fetchCategories(),
-                          child: const Text('Pokušaj ponovo'),
+                          child: const Text('Try Again'),
                         ),
                       ],
                     ),
@@ -196,7 +196,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Nema kategorija',
+                          'No categories',
                           style: TextStyle(
                             fontSize: 18,
                             color: AppColors.textSecondary,
@@ -214,7 +214,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                     padding: const EdgeInsets.all(16),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      childAspectRatio: 0.75, // ✅ Povećana visina kartice (0.85 → 0.75)
+                      childAspectRatio: 0.75, // ✅ Increased card height (0.85 → 0.75)
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),
@@ -284,14 +284,14 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
 
             // Info Section
             Expanded(
-              flex: 4, // ✅ Povećano sa 3 na 4
+              flex: 4, // ✅ Increased from 3 to 4
               child: Padding(
-                padding: const EdgeInsets.all(10), // ✅ Smanjeno sa 12 na 10
+                padding: const EdgeInsets.all(10), // ✅ Reduced from 12 to 10
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Naziv i opis
+                    // Name and description
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +299,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                           Text(
                             category.name,
                             style: const TextStyle(
-                              fontSize: 15, // ✅ Smanjeno sa 16 na 15
+                              fontSize: 15, // ✅ Reduced from 16 to 15
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
                             ),
@@ -307,11 +307,11 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           if (category.description != null) ...[
-                            const SizedBox(height: 3), // ✅ Smanjeno sa 4 na 3
+                            const SizedBox(height: 3), // ✅ Reduced from 4 to 3
                             Text(
                               category.description!,
                               style: TextStyle(
-                                fontSize: 10, // ✅ Smanjeno sa 11 na 10
+                                fontSize: 10, // ✅ Reduced from 11 to 10
                                 color: AppColors.textSecondary.withValues(alpha: 0.7),
                               ),
                               maxLines: 2,
@@ -329,20 +329,20 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                           children: [
                             Icon(
                               Icons.inventory_2_outlined,
-                              size: 13, // ✅ Smanjeno sa 14 na 13
+                              size: 13, // ✅ Reduced from 14 to 13
                               color: AppColors.textSecondary.withValues(alpha: 0.7),
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${category.productCount} proizvoda',
+                              '${category.productCount} products',
                               style: TextStyle(
-                                fontSize: 10, // ✅ Smanjeno sa 11 na 10
+                                fontSize: 10, // ✅ Reduced from 11 to 10
                                 color: AppColors.textSecondary.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6), // ✅ Smanjeno sa 8 na 6
+                        const SizedBox(height: 6), // ✅ Reduced from 8 to 6
                         Row(
                           children: [
                             Expanded(
@@ -356,8 +356,8 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                                     context.read<CategoriesProvider>().fetchCategories();
                                   });
                                 },
-                                icon: const Icon(Icons.edit, size: 13), // ✅ Smanjeno sa 14 na 13
-                                label: const Text('Uredi', style: TextStyle(fontSize: 10)), // ✅ Smanjeno sa 11 na 10
+                                icon: const Icon(Icons.edit, size: 13), // ✅ Reduced from 14 to 13
+                                label: const Text('Edit', style: TextStyle(fontSize: 10)), // ✅ Reduced from 11 to 10
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.primary,
                                   side: BorderSide(
@@ -366,21 +366,21 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  padding: const EdgeInsets.symmetric(vertical: 4), // ✅ Smanjeno sa 6 na 4
+                                  padding: const EdgeInsets.symmetric(vertical: 4), // ✅ Reduced from 6 to 4
                                 ),
                               ),
                             ),
                             const SizedBox(width: 6),
                             IconButton(
                               onPressed: () => _deleteCategory(category),
-                              icon: const Icon(Icons.delete, size: 16), // ✅ Smanjeno sa 18 na 16
+                              icon: const Icon(Icons.delete, size: 16), // ✅ Reduced from 18 to 16
                               color: AppColors.error,
                               style: IconButton.styleFrom(
                                 backgroundColor: AppColors.error.withValues(alpha: 0.1),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                padding: const EdgeInsets.all(4), // ✅ Smanjeno sa 6 na 4
+                                padding: const EdgeInsets.all(4), // ✅ Reduced from 6 to 4
                               ),
                             ),
                           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:orders_mobile/core/utils/top_notification.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -28,6 +29,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showNotification(String message, {bool isError = false}) {
+    TopNotification.show(
+      context,
+      message: message,
+      isError: isError,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   @override
