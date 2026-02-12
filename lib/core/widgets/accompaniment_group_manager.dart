@@ -3,8 +3,8 @@ import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/models/products/accompaniment.dart';
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
 
-/// Widget za upravljanje grupama dodataka (Accompaniment Groups)
-/// Koristi se tokom kreiranja/editovanja proizvoda
+/// Widget for managing Accompaniment Groups
+/// Used during product creation/editing
 class AccompanimentGroupManager extends StatefulWidget {
   final List<AccompanimentGroup> initialGroups;
   final Function(List<AccompanimentGroup>) onGroupsChanged;
@@ -31,9 +31,9 @@ class _AccompanimentGroupManagerState extends State<AccompanimentGroupManager> {
   void _addNewGroup() {
     setState(() {
       _groups.add(AccompanimentGroup(
-        id: 'temp-${DateTime.now().millisecondsSinceEpoch}', // Temporary ID
+        id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
         name: '',
-        productId: '', // Will be set on save
+        productId: '',
         selectionType: 'Multiple',
         isRequired: false,
         displayOrder: _groups.length,
@@ -68,7 +68,7 @@ class _AccompanimentGroupManagerState extends State<AccompanimentGroupManager> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Grupe dodataka',
+              'Accompaniment Groups',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -78,7 +78,7 @@ class _AccompanimentGroupManagerState extends State<AccompanimentGroupManager> {
             TextButton.icon(
               onPressed: _addNewGroup,
               icon: const Icon(Icons.add_circle_outline, size: 18),
-              label: const Text('Dodaj grupu'),
+              label: const Text('Add Group'),
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
               ),
@@ -90,7 +90,7 @@ class _AccompanimentGroupManagerState extends State<AccompanimentGroupManager> {
 
         // Info text
         Text(
-          'Definiši dodatke za proizvod (npr. prilozi uz kafu, namazi za sendvič)',
+          'Define extras for the product (e.g. milk type for coffee, toppings for sandwich)',
           style: TextStyle(
             fontSize: 12,
             color: AppColors.textSecondary.withValues(alpha: 0.7),
@@ -120,7 +120,7 @@ class _AccompanimentGroupManagerState extends State<AccompanimentGroupManager> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Nema dodataka',
+                    'No accompaniments',
                     style: TextStyle(
                       color: AppColors.textSecondary.withValues(alpha: 0.5),
                     ),
@@ -148,7 +148,7 @@ class _AccompanimentGroupManagerState extends State<AccompanimentGroupManager> {
   }
 }
 
-/// Card za prikaz i editovanje pojedinačne grupe dodataka
+/// Card for displaying and editing individual accompaniment group
 class _AccompanimentGroupCard extends StatefulWidget {
   final AccompanimentGroup group;
   final Function(AccompanimentGroup) onUpdate;
@@ -266,7 +266,7 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                   Expanded(
                     child: Text(
                       _nameController.text.isEmpty
-                          ? 'Nova grupa dodataka'
+                          ? 'New Accompaniment Group'
                           : _nameController.text,
                       style: const TextStyle(
                         fontSize: 14,
@@ -313,11 +313,11 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Group name
-                  _buildLabel('Naziv grupe *'),
+                  _buildLabel('Group Name *'),
                   TextFormField(
                     controller: _nameController,
                     decoration: InputDecoration(
-                      hintText: 'Npr. Vrsta mlijeka, Namazi, Prilozi',
+                      hintText: 'e.g. Milk Type, Toppings, Sides',
                       hintStyle: TextStyle(
                         color: AppColors.textSecondary.withValues(alpha: 0.5),
                         fontSize: 14,
@@ -338,7 +338,7 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                   const SizedBox(height: 12),
 
                   // Selection type
-                  _buildLabel('Tip izbora'),
+                  _buildLabel('Selection Type'),
                   DropdownButtonFormField<String>(
                     value: _selectionType,
                     decoration: InputDecoration(
@@ -356,11 +356,11 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                     items: const [
                       DropdownMenuItem(
                         value: 'Single',
-                        child: Text('Jedan izbor (radio button)'),
+                        child: Text('Single choice (radio button)'),
                       ),
                       DropdownMenuItem(
                         value: 'Multiple',
-                        child: Text('Više izbora (checkbox)'),
+                        child: Text('Multiple choice (checkbox)'),
                       ),
                     ],
                     onChanged: (value) {
@@ -383,7 +383,7 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                       });
                     },
                     title: const Text(
-                      'Obavezan izbor',
+                      'Required selection',
                       style: TextStyle(fontSize: 14),
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
@@ -400,7 +400,7 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel('Min izbora'),
+                            _buildLabel('Min selections'),
                             TextFormField(
                               initialValue: _minSelections?.toString() ?? '',
                               keyboardType: TextInputType.number,
@@ -432,12 +432,12 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel('Max izbora'),
+                            _buildLabel('Max selections'),
                             TextFormField(
                               initialValue: _maxSelections?.toString() ?? '',
                               keyboardType: TextInputType.number,
                               decoration: InputDecoration(
-                                hintText: 'Bez limita',
+                                hintText: 'No limit',
                                 filled: true,
                                 fillColor: AppColors.background,
                                 border: OutlineInputBorder(
@@ -468,11 +468,11 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildLabel('Opcije dodataka'),
+                      _buildLabel('Accompaniment Options'),
                       TextButton.icon(
                         onPressed: _addAccompaniment,
                         icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Dodaj'),
+                        label: const Text('Add'),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -493,7 +493,7 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                       ),
                       child: Center(
                         child: Text(
-                          'Nema dodataka',
+                          'No accompaniments',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary.withValues(alpha: 0.5),
@@ -539,7 +539,7 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
   }
 }
 
-/// Item za prikaz i editovanje pojedinačnog dodatka
+/// Item for displaying and editing individual accompaniment
 class _AccompanimentItem extends StatefulWidget {
   final Accompaniment accompaniment;
   final Function(Accompaniment) onUpdate;
@@ -611,7 +611,7 @@ class _AccompanimentItemState extends State<_AccompanimentItem> {
             child: TextFormField(
               controller: _nameController,
               decoration: InputDecoration(
-                hintText: 'Naziv',
+                hintText: 'Name',
                 hintStyle: TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary.withValues(alpha: 0.5),

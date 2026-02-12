@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:orders_mobile/config/env_config.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
 import 'package:orders_mobile/providers/procurement_payments_providers.dart';
 import 'package:orders_mobile/providers/users_accompaniments_providers.dart';
@@ -21,7 +22,7 @@ Future<void> main() async {
 
   // ✅ Stripe init
   Stripe.publishableKey =
-      'pk_test_51QdZsNId2FRgVkuiAMWlpLmNHw4e4igDSx3DihjKQr4m2sz5DxNGJLFJPb48SIdPvHXeKl9IxvOV4IUvsrDjCywk00jLLh7syZ';
+      EnvConfig.stripePublishableKey;
   // ✅ MUST: scheme used for 3DS / redirect flows
   Stripe.urlScheme = 'orders';
   await Stripe.instance.applySettings();
