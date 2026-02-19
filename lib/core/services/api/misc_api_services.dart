@@ -114,40 +114,50 @@ class RecommendationsApiService {
 class ReceiptsApiService {
   final ApiClient _client = ApiClient();
 
-  /// Get receipt by order ID
+  /// Get customer receipt
+  Future<ApiResponse<Map<String, dynamic>>> getCustomerReceipt(String orderId) async {
+    return await _client.get(
+      '/Receipts/customer/$orderId',
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  /// Get kitchen receipt
+  Future<ApiResponse<Map<String, dynamic>>> getKitchenReceipt(String orderId) async {
+    return await _client.get(
+      '/Receipts/kitchen/$orderId',
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  /// Get bar receipt
+  Future<ApiResponse<Map<String, dynamic>>> getBarReceipt(String orderId) async {
+    return await _client.get(
+      '/Receipts/bar/$orderId',
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  /// Get receipt by order ID (alias za customer receipt za provider compatibility)
   Future<ApiResponse<Map<String, dynamic>>> getReceiptByOrderId(String orderId) async {
-    return await _client.get(
-      '/receipts/order/$orderId',
-      fromJson: (json) => json as Map<String, dynamic>,
-    );
+    return getCustomerReceipt(orderId);
   }
 
-  /// Get receipt by ID
+  /// Get receipt by ID (legacy support)
   Future<ApiResponse<Map<String, dynamic>>> getReceiptById(String receiptId) async {
-    return await _client.get(
-      '/receipts/$receiptId',
-      fromJson: (json) => json as Map<String, dynamic>,
-    );
+    return getCustomerReceipt(receiptId);
   }
 
-  /// Get receipts with filters
+  /// Get receipts with filters (placeholder - backend doesn't have this endpoint yet)
   Future<ApiResponse<List<Map<String, dynamic>>>> getReceipts({
     DateTime? fromDate,
     DateTime? toDate,
     String? paymentMethod,
   }) async {
-    return await _client.get(
-      '/receipts',
-      queryParameters: {
-        if (fromDate != null) 'fromDate': fromDate.toIso8601String(),
-        if (toDate != null) 'toDate': toDate.toIso8601String(),
-        if (paymentMethod != null) 'paymentMethod': paymentMethod,
-      },
-      fromJson: (json) => (json as List).cast<Map<String, dynamic>>(),
-    );
+    // Not implemented on backend yet, return empty list
+    return ApiResponse.success([]);
   }
 }
-
 // ==================== PROCUREMENT API SERVICE ====================
 
 class ProcurementApiService {
