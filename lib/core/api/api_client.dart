@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:orders_mobile/config/env_config.dart';
 import '../services/error_handling_interceptor.dart';
 import '../services/error_handling_service.dart'; // ✅ ADD THIS
 
@@ -58,16 +59,7 @@ class ApiClient {
   }
 
   static String _getBaseUrl() {
-    if (kDebugMode) {
-      // Android emulator
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        return 'http://10.0.2.2:5220/api';
-      }
-      // iOS simulator
-      return 'http://localhost:5220/api';
-    }
-    // Production
-    return 'https://your-production-url.com/api';
+    return EnvConfig.baseUrl;
   }
 
   void _setupInterceptors() {
@@ -85,20 +77,22 @@ class ApiClient {
 
           debugPrint('🔵 REQUEST[${options.method}] => ${options.uri}');
           debugPrint('📤 Data: ${options.data}');
-          
+
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          debugPrint('🟢 RESPONSE[${response.statusCode}] => ${response.requestOptions.uri}');
+          debugPrint(
+              '🟢 RESPONSE[${response.statusCode}] => ${response.requestOptions.uri}');
           debugPrint('📥 Data: ${response.data}');
-          
+
           return handler.next(response);
         },
         onError: (error, handler) {
-          debugPrint('🔴 ERROR[${error.response?.statusCode}] => ${error.requestOptions.uri}');
+          debugPrint(
+              '🔴 ERROR[${error.response?.statusCode}] => ${error.requestOptions.uri}');
           debugPrint('❌ Message: ${error.message}');
           debugPrint('❌ Response: ${error.response?.data}');
-          
+
           return handler.next(error);
         },
       ),
@@ -130,7 +124,8 @@ class ApiClient {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = fromJson != null ? fromJson(response.data) : response.data as T;
+        final data =
+            fromJson != null ? fromJson(response.data) : response.data as T;
         return ApiResponse.success(data, statusCode: response.statusCode);
       }
 
@@ -160,8 +155,10 @@ class ApiClient {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = fromJson != null ? fromJson(response.data) : response.data as T;
-        return ApiResponse.success(responseData, statusCode: response.statusCode);
+        final responseData =
+            fromJson != null ? fromJson(response.data) : response.data as T;
+        return ApiResponse.success(responseData,
+            statusCode: response.statusCode);
       }
 
       return ApiResponse.failure(
@@ -191,10 +188,13 @@ class ApiClient {
 
       if (response.statusCode == 200 || response.statusCode == 204) {
         if (response.statusCode == 204 || response.data == null) {
-          return ApiResponse.success(null as T, statusCode: response.statusCode);
+          return ApiResponse.success(null as T,
+              statusCode: response.statusCode);
         }
-        final responseData = fromJson != null ? fromJson(response.data) : response.data as T;
-        return ApiResponse.success(responseData, statusCode: response.statusCode);
+        final responseData =
+            fromJson != null ? fromJson(response.data) : response.data as T;
+        return ApiResponse.success(responseData,
+            statusCode: response.statusCode);
       }
 
       return ApiResponse.failure(
