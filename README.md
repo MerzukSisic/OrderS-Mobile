@@ -74,7 +74,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5220/api
 
 ### Instalacija prebuilt APK-a:
 ```bash
-# Ekstraktovati build arhivu 
+# Ekstraktovati build arhivu (šifra: fit)
 7z x fit-build-26-02-22.zip
 
 # Instalirati na AVD emulator
@@ -108,7 +108,7 @@ flutter build apk --release --dart-define=API_BASE_URL=http://10.0.2.2:5220/api
 
 **Lokacija outputa:** `build/app/outputs/flutter-apk/app-release.apk`
 
-Build arhiva se nalazi u root folderu repoa: `fit-build-26-02-22.zip` 
+Build arhiva se nalazi u root folderu repoa: `fit-build-26-02-22-mobile.zip` (split arhiva, šifra: `fit`).
 
 ---
 
@@ -131,8 +131,8 @@ orders_mobile/
 │   ├── widgets/                   # Reusable komponente
 │   └── main.dart
 ├── build/app/outputs/flutter-apk/ # APK output
-└── fit-build-26-02-22.zip         # Build arhiva 
-
+├── fit-build-26-02-22.zip         # Build arhiva (šifra: fit)
+└── .env.zip                       # Konfiguracijski fajl (šifra: fit)
 ```
 
 ---
