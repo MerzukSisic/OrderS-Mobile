@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:orders_mobile/core/services/api/misc_api_services.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/utils/formatters.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/features/orders/widgets/order_status_badge.dart';
 import 'package:orders_mobile/models/orders/order_model.dart';
+import 'package:orders_mobile/models/receipts/receipt_model.dart';
 import 'package:orders_mobile/providers/orders_provider.dart';
 import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
@@ -151,6 +153,345 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     return '${value.toStringAsFixed(2)} KM';
   }
 
+  void _showNotification(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? AppColors.error : AppColors.success,
+    ));
+  }
+
+  void _showReceiptsDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.4,
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text('Receipts', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _buildReceiptTile(context, icon: Icons.person, title: 'Customer Receipt', subtitle: 'Complete receipt with pricing', color: AppColors.primary, onTap: () => _fetchAndShowCustomerReceipt(context)),
+                  const SizedBox(height: 12),
+                  _buildReceiptTile(context, icon: Icons.restaurant, title: 'Kitchen Receipt', subtitle: 'Kitchen items only', color: AppColors.success, onTap: () => _fetchAndShowKitchenReceipt(context)),
+                  const SizedBox(height: 12),
+                  _buildReceiptTile(context, icon: Icons.local_bar, title: 'Bar Receipt', subtitle: 'Bar items only', color: AppColors.info, onTap: () => _fetchAndShowBarReceipt(context)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceiptTile(BuildContext context, {required IconData icon, required String title, required String subtitle, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(subtitle, style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.8), fontSize: 13)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _fetchAndShowCustomerReceipt(BuildContext ctx) async {
+    Navigator.pop(ctx);
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    try {
+      final response = await ReceiptsApiService().getCustomerReceipt(widget.order.id);
+      if (!mounted) return;
+      Navigator.pop(context);
+      if (response.success && response.data != null) {
+        _showCustomerReceiptView(context, CustomerReceiptModel.fromJson(response.data!));
+      } else {
+        _showNotification('Failed to load receipt: ${response.error}', isError: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      _showNotification('Error loading receipt: $e', isError: true);
+    }
+  }
+
+  Future<void> _fetchAndShowKitchenReceipt(BuildContext ctx) async {
+    Navigator.pop(ctx);
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    try {
+      final response = await ReceiptsApiService().getKitchenReceipt(widget.order.id);
+      if (!mounted) return;
+      Navigator.pop(context);
+      if (response.success && response.data != null) {
+        _showKitchenReceiptView(context, KitchenReceiptModel.fromJson(response.data!));
+      } else {
+        _showNotification('No kitchen items in this order', isError: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      _showNotification('Error loading receipt: $e', isError: true);
+    }
+  }
+
+  Future<void> _fetchAndShowBarReceipt(BuildContext ctx) async {
+    Navigator.pop(ctx);
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+    try {
+      final response = await ReceiptsApiService().getBarReceipt(widget.order.id);
+      if (!mounted) return;
+      Navigator.pop(context);
+      if (response.success && response.data != null) {
+        _showBarReceiptView(context, BarReceiptModel.fromJson(response.data!));
+      } else {
+        _showNotification('No bar items in this order', isError: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      _showNotification('Error loading receipt: $e', isError: true);
+    }
+  }
+
+  void _showCustomerReceiptView(BuildContext context, CustomerReceiptModel receipt) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 12, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Customer Receipt', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Order: ${receipt.orderNumber}', style: const TextStyle(fontSize: 16)),
+                      if (receipt.tableNumber != null) Text('Table: ${receipt.tableNumber}'),
+                      Text('Waiter: ${receipt.waiterName}'),
+                      Text('Date: ${Formatters.dateTime(receipt.createdAt)}'),
+                      const Divider(height: 32),
+                      ...receipt.items.map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(child: Text('${item.productName} × ${item.quantity}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                                Text(_safeCurrency(item.subtotal), style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            if (item.unitPrice > 0)
+                              Text('${_safeCurrency(item.unitPrice)} each', style: TextStyle(fontSize: 12, color: AppColors.textSecondary.withValues(alpha: 0.7))),
+                          ],
+                        ),
+                      )),
+                      const Divider(height: 32),
+                      _buildReceiptSummaryRow('Subtotal', _safeCurrency(receipt.subtotal)),
+                      if (receipt.discount > 0) _buildReceiptSummaryRow('Discount', '-${_safeCurrency(receipt.discount)}'),
+                      _buildReceiptSummaryRow('Tax (17%)', _safeCurrency(receipt.tax)),
+                      const Divider(height: 16),
+                      _buildReceiptSummaryRow('TOTAL', _safeCurrency(receipt.total), isTotal: true),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showKitchenReceiptView(BuildContext context, KitchenReceiptModel receipt) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 12, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(children: [Icon(Icons.restaurant, color: AppColors.success), SizedBox(width: 8), Text('Kitchen Receipt', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))]),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Order: ${receipt.orderNumber}', style: const TextStyle(fontSize: 16)),
+                      if (receipt.tableNumber != null) Text('Table: ${receipt.tableNumber}'),
+                      Text('Waiter: ${receipt.waiterName}'),
+                      const Divider(height: 24),
+                      ...receipt.items.map((item) => Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: AppColors.surfaceVariant, borderRadius: BorderRadius.circular(8)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(child: Text(item.productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                                Text('× ${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              ],
+                            ),
+                            if (item.notes != null && item.notes!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(item.notes!, style: TextStyle(fontSize: 12, color: AppColors.warning, fontStyle: FontStyle.italic)),
+                            ],
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBarReceiptView(BuildContext context, BarReceiptModel receipt) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 12, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Row(children: [Icon(Icons.local_bar, color: AppColors.info), SizedBox(width: 8), Text('Bar Receipt', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))]),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  ],
+                ),
+              ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Order: ${receipt.orderNumber}', style: const TextStyle(fontSize: 16)),
+                      if (receipt.tableNumber != null) Text('Table: ${receipt.tableNumber}'),
+                      Text('Waiter: ${receipt.waiterName}'),
+                      const Divider(height: 24),
+                      ...receipt.items.map((item) => Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: AppColors.surfaceVariant, borderRadius: BorderRadius.circular(8)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(child: Text(item.productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                            Text('× ${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceiptSummaryRow(String label, String value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: isTotal ? 16 : 14, fontWeight: isTotal ? FontWeight.bold : FontWeight.normal)),
+          Text(value, style: TextStyle(fontSize: isTotal ? 18 : 14, fontWeight: FontWeight.bold, color: isTotal ? AppColors.primary : AppColors.textPrimary)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final subtotal = _calculateSubtotal();
@@ -178,13 +519,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Print functionality coming soon'),
-                      ),
-                    );
-                  },
+                  onPressed: () => _showReceiptsDialog(context),
                   icon: const Icon(Icons.print),
                   label: const Text('Print'),
                 ),

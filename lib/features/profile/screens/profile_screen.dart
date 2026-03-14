@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/notification_recommendation_providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../routes/app_router.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<NotificationsProvider>().fetchNotifications();
+    });
+  }
 
   String _getRoleIcon(String role) {
     switch (role.toLowerCase()) {
@@ -85,14 +99,33 @@ class ProfileScreen extends StatelessWidget {
         title: const Text('Profile'),
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Settings - Coming soon'),
-                  duration: Duration(seconds: 2),
-                ),
+          Consumer<NotificationsProvider>(
+            builder: (context, notifProvider, _) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => Navigator.pushNamed(context, AppRouter.notifications),
+                  ),
+                  if (notifProvider.hasUnread)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          notifProvider.unreadCount > 99 ? '99+' : notifProvider.unreadCount.toString(),
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           ),
@@ -320,6 +353,26 @@ class ProfileScreen extends StatelessWidget {
                           subtitle: 'View all orders',
                           onTap: () {
                             Navigator.pushNamed(context, AppRouter.adminOrders);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        _ProfileMenuItem(
+                          icon: Icons.table_restaurant_outlined,
+                          title: 'Tables',
+                          subtitle: 'Manage cafe tables',
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.adminTables);
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        _ProfileMenuItem(
+                          icon: Icons.store_outlined,
+                          title: 'Stores',
+                          subtitle: 'Manage stores and suppliers',
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRouter.adminStores);
                           },
                         ),
                         const SizedBox(height: 12),

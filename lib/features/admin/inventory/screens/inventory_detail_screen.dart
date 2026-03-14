@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/models/inventory/store_product_model.dart';
+import '../widgets/adjust_inventory_dialog.dart';
 
 
 class InventoryDetailScreen extends StatelessWidget {
@@ -177,13 +179,18 @@ class InventoryDetailScreen extends StatelessWidget {
           const SizedBox(height: 16),
 
 
-          // Placeholder actions (until we add edit/restock functions)
           ElevatedButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('In development: edit stock')),
-              );
-            },
+            onPressed: product is StoreProductModel
+                ? () async {
+                    final result = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AdjustInventoryDialog(product: product as StoreProductModel),
+                    );
+                    if (result == true && context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  }
+                : null,
             icon: const Icon(Icons.edit),
             label: const Text('Edit Stock'),
             style: ElevatedButton.styleFrom(

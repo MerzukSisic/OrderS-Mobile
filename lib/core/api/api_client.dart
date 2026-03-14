@@ -154,7 +154,10 @@ class ApiClient {
         queryParameters: queryParameters,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+        if (response.statusCode == 204 || response.data == null) {
+          return ApiResponse.success(null as T, statusCode: response.statusCode);
+        }
         final responseData =
             fromJson != null ? fromJson(response.data) : response.data as T;
         return ApiResponse.success(responseData,

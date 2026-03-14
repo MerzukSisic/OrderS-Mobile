@@ -119,8 +119,7 @@ class _AdminProcurementListScreenState
           children: [
             Text('Status: ${_translateStatus(order.status)}'),
             Text('Store: ${order.storeName ?? 'N/A'}'),
-            Text(
-                'Amount: ${(order.totalAmount as double).toStringAsFixed(2)} KM'),
+            Text('Amount: ${(order.totalAmount as double).toStringAsFixed(2)} KM'),
             Text('Items: ${order.items.length}'),
           ],
         ),
@@ -129,9 +128,69 @@ class _AdminProcurementListScreenState
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
+          if (order.status == 'Pending')
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(
+                  context,
+                  AppRouter.procurementCheckout,
+                  arguments: {
+                    'existingOrderId': order.id,
+                    'storeId': order.storeId ?? '',
+                    'sourceStoreId': null,
+                    'items': (order.items as List).map((item) => {
+                      'productName': item.storeProductName,
+                      'quantity': item.quantity,
+                      'unitCost': item.unitCost,
+                    }).toList(),
+                  },
+                );
+              },
+              icon: const Icon(Icons.payment, size: 18),
+              label: const Text('Pay Now'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          if (order.status == 'Paid')
+            ElevatedButton.icon(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _receiveOrder(order);
+              },
+              icon: const Icon(Icons.inventory_2, size: 18),
+              label: const Text('Receive'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Future<void> _receiveOrder(dynamic order) async {
+    final items = (order.items as List).map((item) => {
+      'itemId': item.id,
+      'receivedQuantity': item.quantity,
+    }).toList();
+
+    final success = await context.read<ProcurementProvider>().receiveProcurement(
+      procurementOrderId: order.id,
+      items: items,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(success
+          ? 'Order received — inventory updated'
+          : context.read<ProcurementProvider>().error ?? 'Failed to receive'),
+      backgroundColor: success ? AppColors.success : AppColors.error,
+    ));
   }
 
   String _translateStatus(String status) {

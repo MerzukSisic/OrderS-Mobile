@@ -46,9 +46,24 @@ import '../features/admin/procurement/screens/procurement_list_screen.dart';
 import '../features/admin/procurement/screens/admin_procurement_create_screen.dart';
 import '../features/admin/procurement/screens/procurement_checkout_screen.dart';
 
+// STORES
+import '../features/admin/stores/screens/admin_stores_screen.dart';
+import '../features/admin/stores/screens/admin_store_create_screen.dart';
+import '../features/admin/stores/screens/admin_store_edit_screen.dart';
+
+// TABLES ADMIN
+import '../features/admin/tables/screens/admin_tables_screen.dart';
+import '../features/admin/tables/screens/admin_table_create_screen.dart';
+import '../features/admin/tables/screens/admin_table_edit_screen.dart';
+
+// NOTIFICATIONS
+import '../features/notifications/screens/notifications_screen.dart';
+
 // MODELS
 import '../models/products/product_model.dart';
 import '../models/orders/order_model.dart';
+import '../models/tables/table_model.dart';
+import '../models/inventory/store_model.dart';
 
 class AppRouter {
   // Route names
@@ -91,6 +106,19 @@ class AppRouter {
   // Admin Orders routes
   static const String adminOrders = '/admin/orders';
   static const String adminOrderDetail = '/admin/orders/detail';
+
+  // Stores routes
+  static const String adminStores = '/admin/stores';
+  static const String adminStoreCreate = '/admin/stores/create';
+  static const String adminStoreEdit = '/admin/stores/edit';
+
+  // Tables admin routes
+  static const String adminTables = '/admin/tables';
+  static const String adminTableCreate = '/admin/tables/create';
+  static const String adminTableEdit = '/admin/tables/edit';
+
+  // Notifications
+  static const String notifications = '/notifications';
 
   // Bar/Kitchen routes
   static const String barOrders = '/bar/orders';
@@ -176,6 +204,27 @@ class AppRouter {
         return const _RouteError('Checkout arguments missing');
       },
       
+      // STORES
+      adminStores: (_) => const AdminStoresScreen(),
+      adminStoreCreate: (_) => const AdminStoreCreateScreen(),
+      adminStoreEdit: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is Store) return AdminStoreEditScreen(store: args);
+        return const _RouteError('Store not found');
+      },
+
+      // TABLES ADMIN
+      adminTables: (_) => const AdminTablesScreen(),
+      adminTableCreate: (_) => const AdminTableCreateScreen(),
+      adminTableEdit: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is TableModel) return AdminTableEditScreen(table: args);
+        return const _RouteError('Table not found');
+      },
+
+      // NOTIFICATIONS
+      notifications: (_) => const NotificationsScreen(),
+
       // CATEGORIES
       categoriesList: (_) => const CategoriesListScreen(),
       categoryCreate: (_) => const CategoryCreateScreen(),

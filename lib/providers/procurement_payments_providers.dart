@@ -72,6 +72,7 @@ class ProcurementProvider with ChangeNotifier {
 
   Future<bool> createProcurementOrder({
     required String storeId,
+    String? sourceStoreId,
     required String supplier,
     String? notes,
     required List<Map<String, dynamic>> items,
@@ -82,6 +83,7 @@ class ProcurementProvider with ChangeNotifier {
     try {
       final response = await _apiService.createProcurementOrder(
         storeId: storeId,
+        sourceStoreId: sourceStoreId,
         supplier: supplier,
         notes: notes,
         items: items,

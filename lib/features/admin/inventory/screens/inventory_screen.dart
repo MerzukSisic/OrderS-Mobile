@@ -6,6 +6,7 @@ import 'package:orders_mobile/core/widgets/empty_state.dart';
 import 'package:orders_mobile/core/widgets/error_display.dart';
 import 'package:orders_mobile/core/widgets/loading_indicator.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import 'package:orders_mobile/models/inventory/store_model.dart';
 import 'package:orders_mobile/providers/auth_provider.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
 import 'package:orders_mobile/routes/app_router.dart';
@@ -28,6 +29,7 @@ class _InventoryScreenState extends State<InventoryScreen>
 
   String _filterType = 'all';
   String _searchQuery = '';
+  String? _selectedStoreId;
 
   @override
   void initState() {
@@ -38,6 +40,7 @@ class _InventoryScreenState extends State<InventoryScreen>
     SchedulerBinding.instance.addPostFrameCallback((_) {
       Provider.of<InventoryProvider>(context, listen: false)
           .fetchStoreProducts();
+      Provider.of<StoresProvider>(context, listen: false).fetchStores();
     });
   }
 
@@ -74,7 +77,12 @@ class _InventoryScreenState extends State<InventoryScreen>
   }
 
   Future<void> _onRefresh() async {
-    await context.read<InventoryProvider>().fetchStoreProducts();
+    await context.read<InventoryProvider>().fetchStoreProducts(storeId: _selectedStoreId);
+  }
+
+  void _onStoreFilterChanged(String? storeId) {
+    setState(() => _selectedStoreId = storeId);
+    context.read<InventoryProvider>().fetchStoreProducts(storeId: storeId);
   }
 
   void _navigateToDetail(dynamic product) {
@@ -187,6 +195,26 @@ class _InventoryScreenState extends State<InventoryScreen>
     return filtered;
   }
 
+  Widget _storeChip(String label, String? storeId) {
+    final isSelected = _selectedStoreId == storeId;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => _onStoreFilterChanged(storeId),
+      backgroundColor: AppColors.surface,
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      checkmarkColor: AppColors.primary,
+      side: BorderSide(
+        color: isSelected ? AppColors.primary : Colors.grey.withValues(alpha: 0.3),
+      ),
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.primary : null,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 13,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -231,6 +259,27 @@ class _InventoryScreenState extends State<InventoryScreen>
                         : null,
                     onChanged: _onSearchChanged,
                   ),
+                ),
+
+                // Store Filter
+                Consumer<StoresProvider>(
+                  builder: (context, storesProvider, _) {
+                    final stores = storesProvider.stores;
+                    if (stores.isEmpty) return const SizedBox.shrink();
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Row(
+                        children: [
+                          _storeChip('All Stores', null),
+                          ...stores.map((Store s) => Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: _storeChip(s.name, s.id),
+                          )),
+                        ],
+                      ),
+                    );
+                  },
                 ),
 
                 // Filter Tabs

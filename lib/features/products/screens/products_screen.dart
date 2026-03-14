@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,6 +5,7 @@ import '../../../providers/products_provider.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../providers/notification_recommendation_providers.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../routes/app_router.dart';
@@ -24,49 +24,44 @@ class _ProductsScreenState extends State<ProductsScreen> {
   String? _selectedCategory;
   String _sortMode = 'name';
 
-  final PageController _carouselController = PageController(viewportFraction: 0.88);
-  Timer? _autoScrollTimer;
-  int _currentCarouselPage = 0;
+  int _recTabIndex = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      final isAdmin = context.read<AuthProvider>().isAdmin;
+      final ordersProvider = context.read<OrdersProvider>();
+      final isTakeAway = ordersProvider.orderType == 'TakeAway';
+      final hasTable = ordersProvider.selectedTableId != null;
+
+      if (!isAdmin && !isTakeAway && !hasTable) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select a table first.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed(AppRouter.tables);
+        return;
+      }
+
       context.read<ProductsProvider>().fetchProducts();
       context.read<CategoriesProvider>().fetchCategories();
-      context.read<RecommendationsProvider>().fetchPopularProducts(count: 5);
-      
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) _startAutoScroll();
-      });
+      final rec = context.read<RecommendationsProvider>();
+      rec.fetchPopularProducts(count: 5);
+      rec.fetchTimeBasedRecommendations(count: 4);
+      rec.fetchRecommendedProducts(count: 4);
+
     });
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _carouselController.dispose();
-    _autoScrollTimer?.cancel();
     super.dispose();
-  }
-
-  void _startAutoScroll() {
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (!mounted) return;
-      
-      final provider = context.read<RecommendationsProvider>();
-      if (provider.popularProducts.isEmpty) return;
-
-      final nextPage = (_currentCarouselPage + 1) % provider.popularProducts.length;
-      
-      _carouselController.animateToPage(
-        nextPage,
-        duration: const Duration(milliseconds: 800),
-        curve: Curves.easeInOut,
-      );
-      
-      _currentCarouselPage = nextPage;
-    });
   }
 
   void _openFiltersSheet(List categories) {
@@ -360,73 +355,19 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     onRefresh: () => productsProvider.fetchProducts(),
                     child: CustomScrollView(
                       slivers: [
-                        // ✅ CAROUSEL as part of scroll (not fixed!)
-                        if (recProvider.popularProducts.isNotEmpty) ...[
+                        // ✅ UNIFIED RECOMMENDATIONS SECTION
+                        if (recProvider.popularProducts.isNotEmpty ||
+                            recProvider.timeBasedProducts.isNotEmpty ||
+                            recProvider.recommendedProducts.isNotEmpty)
                           SliverToBoxAdapter(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.local_fire_department_rounded,
-                                        color: AppColors.primary,
-                                        size: 20,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Popular Right Now',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 140,
-                                  child: PageView.builder(
-                                    controller: _carouselController,
-                                    itemCount: recProvider.popularProducts.length,
-                                    onPageChanged: (index) {
-                                      setState(() => _currentCarouselPage = index);
-                                    },
-                                    itemBuilder: (context, index) {
-                                      final product = recProvider.popularProducts[index];
-                                      return _FeaturedProductCard(
-                                        product: product,
-                                        isActive: index == _currentCarouselPage,
-                                      );
-                                    },
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: List.generate(
-                                    recProvider.popularProducts.length,
-                                    (index) => Container(
-                                      margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-                                      width: _currentCarouselPage == index ? 20 : 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        color: _currentCarouselPage == index
-                                            ? AppColors.primary
-                                            : AppColors.textSecondary.withOpacity(0.3),
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                // ✅ NO DIVIDER! Just spacing
-                                const SizedBox(height: 8),
-                              ],
+                            child: _RecommendationsSection(
+                              popularProducts: recProvider.popularProducts,
+                              timeBasedProducts: recProvider.timeBasedProducts,
+                              recommendedProducts: recProvider.recommendedProducts,
+                              selectedTab: _recTabIndex,
+                              onTabChanged: (i) => setState(() => _recTabIndex = i),
                             ),
                           ),
-                        ],
 
                         // ✅ PRODUCT LIST
                         SliverPadding(
@@ -467,143 +408,142 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 }
 
-// ✅ Featured Card - Same as before
-class _FeaturedProductCard extends StatelessWidget {
-  final dynamic product;
-  final bool isActive;
+class _RecommendationsSection extends StatelessWidget {
+  final List popularProducts;
+  final List timeBasedProducts;
+  final List recommendedProducts;
+  final int selectedTab;
+  final void Function(int) onTabChanged;
 
-  const _FeaturedProductCard({
-    required this.product,
-    required this.isActive,
+  const _RecommendationsSection({
+    required this.popularProducts,
+    required this.timeBasedProducts,
+    required this.recommendedProducts,
+    required this.selectedTab,
+    required this.onTabChanged,
   });
 
-  String _safeCurrency(double value) {
-    try {
-      final s = Formatters.currency(value);
-      if (s.trim().isNotEmpty) return s;
-    } catch (_) {}
-    return '${value.toStringAsFixed(2)} KM';
-  }
+  static const _tabs = [
+    (icon: Icons.local_fire_department_rounded, label: 'Popular',   color: AppColors.primary),
+    (icon: Icons.access_time_rounded,           label: 'Right Now', color: Colors.teal),
+    (icon: Icons.recommend_rounded,             label: 'For You',   color: Colors.deepPurple),
+  ];
+
+  List _productsForTab(int i) => switch (i) {
+    0 => popularProducts,
+    1 => timeBasedProducts,
+    _ => recommendedProducts,
+  };
 
   @override
   Widget build(BuildContext context) {
-    final double price = (product.price is num)
-        ? (product.price as num).toDouble()
-        : double.tryParse(product.price.toString()) ?? 0.0;
+    // Determine first tab with data
+    final visibleTabs = [0, 1, 2].where((i) => _productsForTab(i).isNotEmpty).toList();
+    if (visibleTabs.isEmpty) return const SizedBox.shrink();
 
-    return AnimatedScale(
-      scale: isActive ? 1.0 : 0.94,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-      child: GestureDetector(
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            AppRouter.productDetail,
-            arguments: product,
-          );
-        },
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.primary.withOpacity(0.8),
-                AppColors.primary.withOpacity(0.5),
-              ],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(isActive ? 0.3 : 0.15),
-                blurRadius: isActive ? 16 : 8,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.3)),
+    final activeTab = visibleTabs.contains(selectedTab) ? selectedTab : visibleTabs.first;
+    final products = _productsForTab(activeTab);
+    final accent = _tabs[activeTab].color;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Tab row
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: visibleTabs.map((i) {
+                final tab = _tabs[i];
+                final selected = i == activeTab;
+                return GestureDetector(
+                  onTap: () => onTabChanged(i),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? tab.color.withValues(alpha: 0.15)
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: selected
+                            ? tab.color.withValues(alpha: 0.5)
+                            : AppColors.textSecondary.withValues(alpha: 0.15),
+                        width: 1.5,
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.local_fire_department, color: Colors.white, size: 12),
-                          SizedBox(width: 4),
-                          Text(
-                            'Popular',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(tab.icon,
+                            size: 14,
+                            color: selected ? tab.color : AppColors.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          tab.label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            color: selected ? tab.color : AppColors.textSecondary,
                           ),
-                        ],
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        _safeCurrency(price),
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: AppColors.primary,
-                  size: 18,
-                ),
-              ),
-            ],
+                  ),
+                );
+              }).toList(),
+            ),
           ),
-        ),
+          const SizedBox(height: 10),
+          // Product cards
+          SizedBox(
+            height: 80,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: products.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final p = products[index];
+                return GestureDetector(
+                  onTap: () => Navigator.pushNamed(
+                      context, AppRouter.productDetail, arguments: p),
+                  child: Container(
+                    width: 130,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: accent.withValues(alpha: 0.25)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          p.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 13),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '${(p.price as num).toStringAsFixed(2)} KM',
+                          style: TextStyle(
+                              color: accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

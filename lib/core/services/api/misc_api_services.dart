@@ -189,6 +189,7 @@ class ProcurementApiService {
   /// Create procurement order
   Future<ApiResponse<ProcurementOrderModel>> createProcurementOrder({
     required String storeId,
+    String? sourceStoreId,
     required String supplier,
     String? notes,
     required List<Map<String, dynamic>> items,
@@ -197,6 +198,7 @@ class ProcurementApiService {
       '/procurement',
       data: {
         'storeId': storeId,
+        if (sourceStoreId != null) 'sourceStoreId': sourceStoreId,
         'supplier': supplier,
         'notes': notes,
         'items': items,

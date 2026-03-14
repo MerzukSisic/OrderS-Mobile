@@ -292,6 +292,32 @@ class AdminDrawer extends StatelessWidget {
                         }
                       },
                     ),
+                    _DrawerMenuItem(
+                      icon: Icons.table_restaurant_rounded,
+                      title: 'Tables',
+                      subtitle: 'Manage cafe tables',
+                      route: AppRouter.adminTables,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.adminTables) {
+                          Navigator.pushReplacementNamed(context, AppRouter.adminTables);
+                        }
+                      },
+                    ),
+                    _DrawerMenuItem(
+                      icon: Icons.store_rounded,
+                      title: 'Stores',
+                      subtitle: 'Manage stores and suppliers',
+                      route: AppRouter.adminStores,
+                      currentRoute: currentRoute,
+                      onTap: () {
+                        Navigator.pop(context);
+                        if (currentRoute != AppRouter.adminStores) {
+                          Navigator.pushReplacementNamed(context, AppRouter.adminStores);
+                        }
+                      },
+                    ),
                     const SizedBox(height: 8),
                   ],
 

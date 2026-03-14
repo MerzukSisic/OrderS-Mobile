@@ -18,7 +18,8 @@ class AdminProcurementCreateScreen extends StatefulWidget {
 class _AdminProcurementCreateScreenState
     extends State<AdminProcurementCreateScreen> {
   final _searchController = TextEditingController();
-  String? _selectedStoreId;
+  String? _selectedDestinationStoreId;
+  String? _selectedSourceStoreId;
 
   // cart: storeProductId -> {quantity, unitCost, productName}
   final Map<String, Map<String, dynamic>> _cart = {};
@@ -32,10 +33,10 @@ class _AdminProcurementCreateScreenState
   }
 
   Future<void> _loadProductsForStore() async {
-    if (_selectedStoreId == null) return;
+    if (_selectedSourceStoreId == null) return;
     await context
         .read<InventoryProvider>()
-        .fetchStoreProducts(storeId: _selectedStoreId!);
+        .fetchStoreProducts(storeId: _selectedSourceStoreId!);
   }
 
   double _total() {
@@ -47,12 +48,33 @@ class _AdminProcurementCreateScreenState
   }
 
   Future<void> _continue() async {
-    if (_selectedStoreId == null) {
-      _snack('Please select a store', isError: true);
+    if (_selectedDestinationStoreId == null) {
+      _snack('Please select a destination store', isError: true);
       return;
     }
     if (_cart.isEmpty) {
       _snack('Please select at least one item', isError: true);
+      return;
+    }
+
+    // Validate cart quantities against current stock
+    final products = context.read<InventoryProvider>().storeProducts;
+    final overStock = <String>[];
+    for (final entry in _cart.entries) {
+      final product = products.where((p) => p.id == entry.key).firstOrNull;
+      if (product == null) continue;
+      final requestedQty = entry.value['quantity'] as int;
+      if (requestedQty > product.currentStock) {
+        overStock.add(
+          '${product.name}: requested $requestedQty, available ${product.currentStock}',
+        );
+      }
+    }
+    if (overStock.isNotEmpty) {
+      _snack(
+        'Insufficient stock:\n${overStock.join('\n')}',
+        isError: true,
+      );
       return;
     }
 
@@ -69,7 +91,8 @@ class _AdminProcurementCreateScreenState
       context,
       AppRouter.procurementCheckout,
       arguments: {
-        'storeId': _selectedStoreId,
+        'storeId': _selectedDestinationStoreId,
+        'sourceStoreId': _selectedSourceStoreId,
         'items': items,
       },
     );
@@ -102,10 +125,16 @@ class _AdminProcurementCreateScreenState
         children: [
           _TopPanel(
             searchController: _searchController,
-            selectedStoreId: _selectedStoreId,
-            onStoreChanged: (storeId) async {
+            selectedDestinationStoreId: _selectedDestinationStoreId,
+            selectedSourceStoreId: _selectedSourceStoreId,
+            onDestinationStoreChanged: (storeId) {
               setState(() {
-                _selectedStoreId = storeId;
+                _selectedDestinationStoreId = storeId;
+              });
+            },
+            onSourceStoreChanged: (storeId) async {
+              setState(() {
+                _selectedSourceStoreId = storeId;
                 _cart.clear();
               });
               await _loadProductsForStore();
@@ -113,7 +142,7 @@ class _AdminProcurementCreateScreenState
             onSearchChanged: (_) => setState(() {}),
           ),
           Expanded(
-            child: _selectedStoreId == null
+            child: _selectedSourceStoreId == null
                 ? const _PickStoreHint()
                 : Consumer<InventoryProvider>(
                     builder: (context, provider, _) {
@@ -159,11 +188,14 @@ class _AdminProcurementCreateScreenState
                               minStock: p.minimumStock,
                               selectedQty: qty,
                               selected: isInCart,
-                              onTap: () => _openAddItemSheet(
-                                productId: p.id,
-                                productName: p.name,
-                                defaultUnitCost: p.purchasePrice,
-                              ),
+                              onTap: p.currentStock == 0
+                                  ? null
+                                  : () => _openAddItemSheet(
+                                        productId: p.id,
+                                        productName: p.name,
+                                        defaultUnitCost: p.purchasePrice,
+                                        currentStock: p.currentStock,
+                                      ),
                             ),
                           );
                         },
@@ -185,6 +217,7 @@ class _AdminProcurementCreateScreenState
     required String productId,
     required String productName,
     required double defaultUnitCost,
+    required int currentStock,
   }) async {
     final existing = _cart[productId];
 
@@ -199,6 +232,7 @@ class _AdminProcurementCreateScreenState
         productName: productName,
         initialQty: existing?['quantity'] as int? ?? 1,
         initialUnitCost: existing?['unitCost'] as double? ?? defaultUnitCost,
+        maxStock: currentStock,
         onRemove: existing == null
             ? null
             : () => Navigator.pop(context, {'remove': true}),
@@ -230,14 +264,18 @@ class _AdminProcurementCreateScreenState
 
 class _TopPanel extends StatelessWidget {
   final TextEditingController searchController;
-  final String? selectedStoreId;
-  final ValueChanged<String?> onStoreChanged;
+  final String? selectedDestinationStoreId;
+  final String? selectedSourceStoreId;
+  final ValueChanged<String?> onDestinationStoreChanged;
+  final ValueChanged<String?> onSourceStoreChanged;
   final ValueChanged<String> onSearchChanged;
 
   const _TopPanel({
     required this.searchController,
-    required this.selectedStoreId,
-    required this.onStoreChanged,
+    required this.selectedDestinationStoreId,
+    required this.selectedSourceStoreId,
+    required this.onDestinationStoreChanged,
+    required this.onSourceStoreChanged,
     required this.onSearchChanged,
   });
 
@@ -250,24 +288,48 @@ class _TopPanel extends StatelessWidget {
         children: [
           Consumer<StoresProvider>(
             builder: (context, storesProvider, _) {
-              return DropdownButtonFormField<String>(
-                initialValue: selectedStoreId,
-                decoration: InputDecoration(
-                  hintText: 'Select store',
-                  filled: true,
-                  fillColor: AppColors.surfaceVariant,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+              final internalStores = storesProvider.stores.where((s) => !s.isExternal).toList();
+              final externalStores = storesProvider.stores.where((s) => s.isExternal).toList();
+              return Column(
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: selectedDestinationStoreId,
+                    decoration: InputDecoration(
+                      labelText: 'Destination Store',
+                      hintText: 'Select your store',
+                      filled: true,
+                      fillColor: AppColors.surfaceVariant,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    items: internalStores
+                        .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                        .toList(),
+                    onChanged: onDestinationStoreChanged,
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                ),
-                items: storesProvider.stores
-                    .map((s) =>
-                        DropdownMenuItem(value: s.id, child: Text(s.name)))
-                    .toList(),
-                onChanged: onStoreChanged,
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    value: selectedSourceStoreId,
+                    decoration: InputDecoration(
+                      labelText: 'Source Store (Supplier)',
+                      hintText: 'Select supplier store',
+                      filled: true,
+                      fillColor: AppColors.surfaceVariant,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    items: externalStores
+                        .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                        .toList(),
+                    onChanged: onSourceStoreChanged,
+                  ),
+                ],
               );
             },
           ),
@@ -316,7 +378,7 @@ class _ProductCard extends StatelessWidget {
   final int minStock;
   final bool selected;
   final int selectedQty;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _ProductCard({
     required this.name,
@@ -330,20 +392,25 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lowStock = stock < minStock;
+    final outOfStock = stock == 0;
+    final lowStock = !outOfStock && stock < minStock;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
+      child: Opacity(
+        opacity: outOfStock ? 0.5 : 1.0,
+        child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected
-                ? AppColors.primary.withValues(alpha: 0.35)
-                : AppColors.textSecondary.withValues(alpha: 0.12),
+            color: outOfStock
+                ? AppColors.error.withValues(alpha: 0.25)
+                : selected
+                    ? AppColors.primary.withValues(alpha: 0.35)
+                    : AppColors.textSecondary.withValues(alpha: 0.12),
             width: selected ? 2 : 1,
           ),
         ),
@@ -372,22 +439,27 @@ class _ProductCard extends StatelessWidget {
                       style: TextStyle(
                           color:
                               AppColors.textSecondary.withValues(alpha: 0.85))),
-                  if (lowStock) ...[
+                  if (outOfStock) ...[
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.error.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        'Low Stock',
-                        style: TextStyle(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11),
+                      child: const Text('Out of Stock',
+                          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700, fontSize: 11)),
+                    ),
+                  ] else if (lowStock) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      child: Text('Low Stock ($stock)',
+                          style: const TextStyle(color: AppColors.warning, fontWeight: FontWeight.w700, fontSize: 11)),
                     ),
                   ],
                 ],
@@ -395,22 +467,21 @@ class _ProductCard extends StatelessWidget {
             ),
             if (selected)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text('x$selectedQty',
-                    style: const TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.w900)),
+                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900)),
               )
-            else
+            else if (!outOfStock)
               Icon(Icons.add_circle_outline,
                   color: AppColors.textSecondary.withValues(alpha: 0.7)),
           ],
         ),
       ),
+    ),
     );
   }
 }
@@ -419,12 +490,14 @@ class _AddItemSheet extends StatefulWidget {
   final String productName;
   final int initialQty;
   final double initialUnitCost;
+  final int maxStock;
   final VoidCallback? onRemove;
 
   const _AddItemSheet({
     required this.productName,
     required this.initialQty,
     required this.initialUnitCost,
+    required this.maxStock,
     this.onRemove,
   });
 
@@ -482,11 +555,23 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                             qty <= 1 ? null : () => setState(() => qty--),
                         icon: const Icon(Icons.remove),
                       ),
-                      Text('$qty',
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w900)),
+                      Column(
+                        children: [
+                          Text('$qty',
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w900)),
+                          Text('/ ${widget.maxStock}',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: qty >= widget.maxStock
+                                      ? AppColors.error
+                                      : AppColors.textSecondary.withValues(alpha: 0.7))),
+                        ],
+                      ),
                       IconButton(
-                        onPressed: () => setState(() => qty++),
+                        onPressed: qty >= widget.maxStock
+                            ? null
+                            : () => setState(() => qty++),
                         icon: const Icon(Icons.add),
                       ),
                     ],

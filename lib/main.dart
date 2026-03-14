@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:orders_mobile/config/env_config.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
@@ -20,12 +21,15 @@ import 'routes/app_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Stripe init
-  Stripe.publishableKey =
-      EnvConfig.stripePublishableKey;
-  // ✅ MUST: scheme used for 3DS / redirect flows
-  Stripe.urlScheme = 'orders';
-  await Stripe.instance.applySettings();
+  await dotenv.load(fileName: '.env');
+
+  // ✅ Stripe init (samo ako je key postavljen)
+  final stripeKey = EnvConfig.stripePublishableKey;
+  if (stripeKey.isNotEmpty) {
+    Stripe.publishableKey = stripeKey;
+    Stripe.urlScheme = 'orders';
+    await Stripe.instance.applySettings();
+  }
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -84,13 +88,15 @@ class OrdersApp extends StatelessWidget {
         navigatorKey: NavigationService.navigatorKey,
         onGenerateRoute: (settings) {
           final routeName = settings.name;
-          final builder = routeName != null ? AppRouter.routes[routeName] : null;
+          final builder =
+              routeName != null ? AppRouter.routes[routeName] : null;
           if (builder != null) {
             return MaterialPageRoute(builder: builder, settings: settings);
           }
           final fallbackBuilder = AppRouter.routes[AppRouter.initial];
           if (fallbackBuilder != null) {
-            return MaterialPageRoute(builder: fallbackBuilder, settings: settings);
+            return MaterialPageRoute(
+                builder: fallbackBuilder, settings: settings);
           }
           return MaterialPageRoute(
             builder: (_) => const Scaffold(

@@ -7,6 +7,7 @@ class Store extends Equatable {
   final String? description;
   final String? location;
   final bool isActive;
+  final bool isExternal;
 
   const Store({
     required this.id,
@@ -14,6 +15,7 @@ class Store extends Equatable {
     this.description,
     this.location,
     this.isActive = true,
+    this.isExternal = false,
   });
 
   factory Store.fromJson(Map<String, dynamic> json) {
@@ -21,8 +23,9 @@ class Store extends Equatable {
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
-      location: json['location'] as String?,
+      location: json['address'] as String?,
       isActive: json['isActive'] as bool? ?? true,
+      isExternal: json['isExternal'] as bool? ?? false,
     );
   }
 
@@ -32,10 +35,11 @@ class Store extends Equatable {
         'description': description,
         'location': location,
         'isActive': isActive,
+        'isExternal': isExternal,
       };
 
   @override
-  List<Object?> get props => [id, name, description, location, isActive];
+  List<Object?> get props => [id, name, description, location, isActive, isExternal];
 }
 
 // Store Product DTO (for inventory management)

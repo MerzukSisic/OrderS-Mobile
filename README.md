@@ -35,7 +35,12 @@ OrderS mobilna aplikacija razvijena je u Flutteru i namijenjena je operativnom o
 **Admin (mobilna):**
 - ✅ Dashboard s prihodima i statistikama
 - ✅ Upravljanje proizvodima, kategorijama, korisnicima
-- ✅ Inventar i nabavka (Procurement + Stripe plaćanje)
+- ✅ Inventar s filtriranjem po skladištu i AdjustInventoryDialog (dodaj/oduzmi/postavi)
+- ✅ Nabavka (Procurement + Stripe plaćanje) s validacijom dostupnih zaliha
+- ✅ Plaćanje Pending procurement narudžbi direktno iz liste
+- ✅ Upravljanje stolovima — kreiranje/uređivanje na zasebnim stranicama s Location dropdownom
+- ✅ Upravljanje skladištima — kreiranje/uređivanje s product listom i AddProductDialog
+- ✅ Print računa (gost/kuhinja/šank) na admin order detail ekranu
 - ✅ Statistike s grafikonima (fl_chart)
 
 ### Povezani repozitoriji:
@@ -52,6 +57,7 @@ OrderS mobilna aplikacija razvijena je u Flutteru i namijenjena je operativnom o
 - **shared_preferences** — Lokalno čuvanje JWT tokena
 - **fl_chart** — Grafikoni za statistike i dashboard
 - **Stripe Flutter SDK** — Payment Sheet za procurement plaćanja
+- **flutter_dotenv** — Runtime učitavanje `.env` konfiguracije (Stripe ključ)
 
 ---
 

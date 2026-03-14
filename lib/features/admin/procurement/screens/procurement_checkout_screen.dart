@@ -30,7 +30,22 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
   String? _procurementOrderId;
 
   String? get _storeId => widget.arguments['storeId'] as String?;
-  List<Map<String, dynamic>> get _items => (widget.arguments['items'] as List).cast<Map<String, dynamic>>();
+  String? get _sourceStoreId => widget.arguments['sourceStoreId'] as String?;
+  List<Map<String, dynamic>> get _items {
+    final raw = widget.arguments['items'];
+    if (raw == null) return [];
+    return (raw as List).cast<Map<String, dynamic>>();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final existingId = widget.arguments['existingOrderId'] as String?;
+    if (existingId != null && existingId.isNotEmpty) {
+      _procurementOrderId = existingId;
+      _currentStep = 1;
+    }
+  }
 
   double _calculateTotal() {
     double total = 0;
@@ -56,14 +71,14 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
 
       final success = await procurementProvider.createProcurementOrder(
         storeId: _storeId!,
+        sourceStoreId: _sourceStoreId,
         supplier: _supplierController.text.trim(),
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         items: _items.map((x) {
-          // backend probably expects storeProductId + quantity (and optionally unitCost)
           return {
             'storeProductId': x['storeProductId'],
             'quantity': x['quantity'],
-            'unitCost': x['unitCost'], // keep if backend supports
+            'unitCost': x['unitCost'],
           };
         }).toList(),
       );
@@ -268,6 +283,7 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
       padding: const EdgeInsets.all(24),
       child: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

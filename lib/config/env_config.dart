@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class EnvConfig {
   // ✅ dart-define overrides (build-time)
@@ -6,7 +7,7 @@ class EnvConfig {
   static const String _signalRUrl = String.fromEnvironment('SIGNALR_URL');
 
   // 🔧 Fallback IP za lokalni development
-  static const String _macIpAddress = '10.101.20.141';
+  static const String _macIpAddress = '192.168.1.101';
 
   static String get baseUrl {
     if (_apiBaseUrl.isNotEmpty) return _apiBaseUrl;
@@ -27,9 +28,9 @@ class EnvConfig {
     return 'http://$_macIpAddress:5220/hubs/orders';
   }
 
-  static const String stripePublishableKey = String.fromEnvironment(
-    'STRIPE_PUBLISHABLE_KEY',
-    defaultValue:
-        'pk_test_51QdZsNId2FRgVkuiAMWlpLmNHw4e4igDSx3DihjKQr4m2sz5DxNGJLFJPb48SIdPvHXeKl9IxvOV4IUvsrDjCywk00jLLh7syZ',
-  );
+  static String get stripePublishableKey {
+    const fromBuild = String.fromEnvironment('STRIPE_PUBLISHABLE_KEY');
+    if (fromBuild.isNotEmpty) return fromBuild;
+    return dotenv.maybeGet('STRIPE_PUBLISHABLE_KEY') ?? '';
+  }
 }
