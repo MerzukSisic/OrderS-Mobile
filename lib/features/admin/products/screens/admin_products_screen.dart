@@ -92,10 +92,11 @@ class _AdminProductsScreenState extends State<AdminProductsScreen> {
           );
         }
       } catch (e) {
+        debugPrint('❌ Error deleting product: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error while deleting: $e'),
+            const SnackBar(
+              content: Text('Failed to delete product. Please try again.'),
               backgroundColor: AppColors.error,
             ),
           );

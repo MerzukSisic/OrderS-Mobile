@@ -73,10 +73,11 @@ class _CategoryCreateScreenState extends State<CategoryCreateScreen> {
         );
       }
     } catch (e) {
+      debugPrint('❌ Error creating category: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
+          const SnackBar(
+            content: Text('Failed to create category. Please try again.'),
             backgroundColor: AppColors.error,
           ),
         );

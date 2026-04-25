@@ -92,7 +92,8 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
         _showError(procurementProvider.error ?? 'Error creating order');
       }
     } catch (e) {
-      _showError('Error: $e');
+      debugPrint('❌ Error creating procurement order: $e');
+      _showError('Failed to create order. Please try again.');
     } finally {
       setState(() => _isProcessing = false);
     }
@@ -151,7 +152,8 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
         _showError(e.error.localizedMessage ?? e.error.message ?? 'Payment failed');
       }
     } catch (e) {
-      _showError('Unexpected error: $e');
+      debugPrint('❌ Error during payment: $e');
+      _showError('Payment failed. Please try again.');
     } finally {
       setState(() => _isProcessing = false);
     }

@@ -11,7 +11,9 @@ import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class StatisticsScreen extends StatefulWidget {
-  const StatisticsScreen({super.key});
+  final int initialTabIndex;
+
+  const StatisticsScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<StatisticsScreen> createState() => _StatisticsScreenState();
@@ -21,11 +23,12 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   String _selectedPeriod = '7'; // Days
   DateTime _fromDate = DateTime.now().subtract(const Duration(days: 7));
   DateTime _toDate = DateTime.now();
-  int _selectedTabIndex = 0; // 0: overview, 1: products, 2: waiters, 3: hours
+  late int _selectedTabIndex;
 
   @override
   void initState() {
     super.initState();
+    _selectedTabIndex = widget.initialTabIndex;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadData();

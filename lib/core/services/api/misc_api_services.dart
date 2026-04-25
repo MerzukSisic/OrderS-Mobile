@@ -154,8 +154,7 @@ class ReceiptsApiService {
     DateTime? toDate,
     String? paymentMethod,
   }) async {
-    // Not implemented on backend yet, return empty list
-    return ApiResponse.success([]);
+    return ApiResponse.failure('Receipt history is not yet available.');
   }
 }
 // ==================== PROCUREMENT API SERVICE ====================
@@ -241,7 +240,7 @@ Future<ApiResponse<Map<String, dynamic>>> createPaymentIntent(String procurement
   }) async {
     return await _client.put(
       '/procurement/$procurementOrderId/status',
-      data: {'status': status},
+      queryParameters: {'status': status},
     );
   }
 

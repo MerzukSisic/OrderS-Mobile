@@ -90,21 +90,22 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Order'),
+        title: const Text('Archive Order'),
         content: const Text(
-          'Are you sure you want to permanently delete this order? This action cannot be undone.',
+          'Are you sure you want to archive this order? '
+          'The order will be cancelled and no data will be permanently deleted.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Keep'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
+              backgroundColor: AppColors.warning,
             ),
-            child: const Text('Delete'),
+            child: const Text('Archive'),
           ),
         ],
       ),
@@ -121,19 +122,30 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       ),
     );
 
-    // TODO: Implement delete in OrdersProvider
-    // final success = await context.read<OrdersProvider>().deleteOrder(widget.order.id);
-    
+    final success =
+        await context.read<OrdersProvider>().softDeleteOrder(widget.order.id);
+
     if (!mounted) return;
 
     Navigator.pop(context); // Close loading
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Delete functionality - implement in provider'),
-        backgroundColor: AppColors.warning,
-      ),
-    );
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order archived successfully'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+      Navigator.pop(context); // Go back to list
+    } else {
+      final err = context.read<OrdersProvider>().error ?? 'Failed to archive order';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   double _calculateSubtotal() {

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 import 'package:orders_mobile/core/services/api/misc_api_services.dart';
 import 'package:orders_mobile/models/procurement/procurement_order_model.dart';
 

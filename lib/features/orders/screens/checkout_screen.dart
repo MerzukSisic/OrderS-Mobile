@@ -5,8 +5,9 @@ import '../../../providers/orders_provider.dart';
 import '../../../providers/tables_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/services/api/api_service.dart';
+import '../../../core/services/api/common_api_services.dart';
 import '../../../models/products/accompaniment.dart';
+import '../../../models/products/accompaniment_group.dart';
 import '../../../routes/app_router.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -41,10 +42,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // ✅ PROMJENA: items -> cartItems
       if (item.selectedAccompanimentIds.isNotEmpty) {
         try {
-          final groups =
-              await ApiService().getProductAccompaniments(item.product.id);
-          final allAccompaniments =
-              groups.expand((g) => g.accompaniments).toList();
+          final accResponse = await AccompanimentsApiService()
+              .getByProductId(item.product.id);
+          final groups = accResponse.success && accResponse.data != null
+              ? accResponse.data!
+              : <AccompanimentGroup>[];
+          final allAccompaniments = groups
+              .expand<Accompaniment>((g) => g.accompaniments)
+              .toList();
 
           final selectedAccs = allAccompaniments
               .where((acc) => item.selectedAccompanimentIds.contains(acc.id))

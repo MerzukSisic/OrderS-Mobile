@@ -79,9 +79,10 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
         ));
       }
     } catch (e) {
+      debugPrint('❌ Error adjusting inventory: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error: $e'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to adjust inventory. Please try again.'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ));

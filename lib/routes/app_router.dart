@@ -170,7 +170,11 @@ class AppRouter {
       },
 
       inventory: (_) => const InventoryScreen(),
-      adminStatistics: (_) => const StatisticsScreen(),
+      adminStatistics: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments;
+        final initialTab = args is int ? args : 0;
+        return StatisticsScreen(initialTabIndex: initialTab);
+      },
 
       adminOrders: (_) => const AdminOrdersScreen(),
       
@@ -230,8 +234,11 @@ class AppRouter {
       categoryCreate: (_) => const CategoryCreateScreen(),
       
       categoryEdit: (context) {
-        final categoryId = ModalRoute.of(context)!.settings.arguments as String;
-        return CategoryEditScreen(categoryId: categoryId);
+        final args = ModalRoute.of(context)?.settings.arguments;
+        if (args is String && args.isNotEmpty) {
+          return CategoryEditScreen(categoryId: args);
+        }
+        return const _RouteError('Category ID not provided');
       },
     };
   }

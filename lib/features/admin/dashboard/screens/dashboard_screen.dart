@@ -317,7 +317,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   TextButton(
                                     onPressed: () {
-                                      // Navigate to full waiter performance
+                                      Navigator.pushNamed(
+                                        context,
+                                        AppRouter.adminStatistics,
+                                        arguments: 2, // Staff tab index
+                                      );
                                     },
                                     child: const Text(
                                       'See all',

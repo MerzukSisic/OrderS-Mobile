@@ -21,7 +21,11 @@ import 'routes/app_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (_) {
+    // .env absent or unreadable — dart-define values and hardcoded fallbacks apply
+  }
 
   // ✅ Stripe init (samo ako je key postavljen)
   final stripeKey = EnvConfig.stripePublishableKey;

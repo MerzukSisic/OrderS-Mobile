@@ -77,10 +77,11 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
           );
         }
       } catch (e) {
+        debugPrint('❌ Error deleting category: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $e'),
+            const SnackBar(
+              content: Text('Failed to delete category. Please try again.'),
               backgroundColor: AppColors.error,
             ),
           );

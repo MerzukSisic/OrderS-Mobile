@@ -76,11 +76,12 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
 
       setState(() => _isLoading = false);
     } catch (e) {
+      debugPrint('❌ Error loading category: $e');
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading: $e'),
+          const SnackBar(
+            content: Text('Failed to load category. Please try again.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -130,10 +131,11 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
+      debugPrint('❌ Error updating category: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
+          const SnackBar(
+            content: Text('Failed to update category. Please try again.'),
             backgroundColor: AppColors.error,
           ),
         );

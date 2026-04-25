@@ -94,11 +94,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _isLoadingData = false;
       });
     } catch (e) {
+      debugPrint('❌ Error loading product form data: $e');
       if (!mounted) return;
       setState(() => _isLoadingData = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading data: $e'),
+        const SnackBar(
+          content: Text('Failed to load form data. Please try again.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -232,11 +233,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
+      debugPrint('❌ Error saving product: $e');
       if (!mounted) return;
-      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
+        const SnackBar(
+          content: Text('Failed to save product. Please try again.'),
           backgroundColor: AppColors.error,
         ),
       );

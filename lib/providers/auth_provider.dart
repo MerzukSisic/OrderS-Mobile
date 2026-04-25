@@ -31,6 +31,7 @@ class AuthProvider with ChangeNotifier {
   bool get isKitchen => _currentUser?.role == 'Kitchen';  
   // Storage keys
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'current_user';
 
   /// Initialize - Load saved credentials
@@ -49,11 +50,11 @@ class AuthProvider with ChangeNotifier {
 
         // Verify token is still valid
         final response = await _apiService.validateToken(savedToken);
-        
+
         if (response.success && response.data == true) {
           // Token valid, get current user
           final userResponse = await _apiService.getCurrentUser();
-          
+
           if (userResponse.success && userResponse.data != null) {
             _currentUser = userResponse.data;
             _isAuthenticated = true;
@@ -61,7 +62,18 @@ class AuthProvider with ChangeNotifier {
             await _clearCredentials();
           }
         } else {
-          await _clearCredentials();
+          // Access token expired — try silent refresh
+          final savedRefreshToken = prefs.getString(_refreshTokenKey);
+          if (savedRefreshToken != null) {
+            final refreshResponse = await _apiService.refreshToken(savedRefreshToken);
+            if (refreshResponse.success && refreshResponse.data != null) {
+              await _handleAuthSuccess(refreshResponse.data!);
+            } else {
+              await _clearCredentials();
+            }
+          } else {
+            await _clearCredentials();
+          }
         }
       }
     } catch (e) {
@@ -287,6 +299,9 @@ class AuthProvider with ChangeNotifier {
     // Save to storage
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, _token!);
+    if (authResponse.refreshToken != null) {
+      await prefs.setString(_refreshTokenKey, authResponse.refreshToken!);
+    }
     await prefs.setString(_userKey, _currentUser!.toJson().toString());
 
     notifyListeners();
@@ -303,6 +318,7 @@ class AuthProvider with ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_refreshTokenKey);
     await prefs.remove(_userKey);
 
     notifyListeners();

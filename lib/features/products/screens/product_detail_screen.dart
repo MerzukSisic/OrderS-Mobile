@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/core/services/api/common_api_services.dart';
 import 'package:orders_mobile/core/utils/top_notification.dart';
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import 'package:provider/provider.dart';
@@ -44,11 +44,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _loadAccompaniments() async {
     setState(() => _isLoadingAccompaniments = true);
     try {
-      final groups =
-          await ApiService().getProductAccompaniments(widget.product.id);
+      final response = await AccompanimentsApiService()
+          .getByProductId(widget.product.id);
 
       setState(() {
-        _accompanimentGroups = groups;
+        _accompanimentGroups =
+            response.success && response.data != null ? response.data! : [];
         _isLoadingAccompaniments = false;
       });
     } catch (e) {

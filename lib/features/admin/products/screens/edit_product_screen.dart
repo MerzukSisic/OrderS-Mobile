@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/constants/api_constants.dart';
 import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/core/services/api/common_api_services.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/widgets/accompaniment_group_manager.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
@@ -96,8 +97,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
       await inventoryProvider.fetchStoreProducts();
 
       // Load existing accompaniment groups
-      final existingGroups =
-          await api.getProductAccompaniments(widget.productId);
+      final accResponse = await AccompanimentsApiService()
+          .getByProductId(widget.productId);
+      final existingGroups = accResponse.success && accResponse.data != null
+          ? accResponse.data!
+          : <AccompanimentGroup>[];
 
       if (!mounted) return;
 
@@ -120,11 +124,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
         _isLoadingData = false;
       });
     } catch (e) {
+      debugPrint('❌ Error loading product form data: $e');
       if (!mounted) return;
       setState(() => _isLoadingData = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading data: $e'),
+        const SnackBar(
+          content: Text('Failed to load product data. Please try again.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -237,8 +242,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
       // Step 2: Update accompaniment groups
       // First, load existing groups to compare
-      final existingGroups =
-          await api.getProductAccompaniments(widget.productId);
+      final accResp = await AccompanimentsApiService()
+          .getByProductId(widget.productId);
+      final existingGroups = accResp.success && accResp.data != null
+          ? accResp.data!
+          : <AccompanimentGroup>[];
 
       // Delete removed groups
       for (final existing in existingGroups) {
@@ -296,11 +304,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
       );
       Navigator.pop(context);
     } catch (e) {
+      debugPrint('❌ Error updating product: $e');
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
+        const SnackBar(
+          content: Text('Failed to update product. Please try again.'),
           backgroundColor: AppColors.error,
         ),
       );

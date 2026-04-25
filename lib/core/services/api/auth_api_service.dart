@@ -95,7 +95,7 @@ class AuthApiService {
   Future<ApiResponse<void>> forgotPassword(String email) async {
     return await _client.post(
       '/auth/forgot-password',
-      data: email,
+      data: {'email': email},
     );
   }
 

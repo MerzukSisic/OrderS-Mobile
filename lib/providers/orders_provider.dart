@@ -363,6 +363,15 @@ class OrdersProvider with ChangeNotifier {
     }
   }
 
+  /// Soft-delete (archive) an order by cancelling it with an explicit admin reason.
+  /// No physical DB row is removed — the order is preserved with status Cancelled.
+  Future<bool> softDeleteOrder(String orderId) async {
+    return cancelOrder(
+      orderId: orderId,
+      reason: 'Archived by admin',
+    );
+  }
+
   /// Set selected order
   void setSelectedOrder(OrderModel? order) {
     _selectedOrder = order;

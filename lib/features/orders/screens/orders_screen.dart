@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:orders_mobile/core/utils/top_notification.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -16,6 +15,7 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -29,15 +29,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _showNotification(String message, {bool isError = false}) {
-    TopNotification.show(
-      context,
-      message: message,
-      isError: isError,
-      duration: const Duration(seconds: 2),
-    );
   }
 
   @override
@@ -66,7 +57,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: (value) {
-                // Implement search
+                setState(() => _searchQuery = value.toLowerCase().trim());
               },
             ),
           ),
@@ -108,7 +99,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   );
                 }
 
-                if (provider.orders.isEmpty) {
+                final filteredOrders = _searchQuery.isEmpty
+                    ? provider.orders
+                    : provider.orders.where((o) {
+                        final q = _searchQuery;
+                        return o.id.toLowerCase().contains(q) ||
+                            o.status.toLowerCase().contains(q) ||
+                            (o.tableId?.toLowerCase().contains(q) ?? false) ||
+                            o.type.toLowerCase().contains(q);
+                      }).toList();
+
+                if (filteredOrders.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -119,21 +120,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           color: AppColors.textSecondary.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'No orders yet',
-                          style: TextStyle(
+                        Text(
+                          _searchQuery.isEmpty
+                              ? 'No orders yet'
+                              : 'No orders match "$_searchQuery"',
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushReplacementNamed(
-                                context, AppRouter.products);
-                          },
-                          child: const Text('Start Shopping'),
-                        ),
+                        if (_searchQuery.isEmpty)
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pushReplacementNamed(
+                                  context, AppRouter.products);
+                            },
+                            child: const Text('Start Shopping'),
+                          ),
                       ],
                     ),
                   );
@@ -143,11 +147,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   onRefresh: () => provider.fetchOrders(),
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
-                    itemCount: provider.orders.length,
+                    itemCount: filteredOrders.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final order = provider.orders[index];
+                      final order = filteredOrders[index];
                       return OrderCard(
                         order: order,
                         onTap: () {
