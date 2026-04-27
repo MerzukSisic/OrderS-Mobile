@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
-import 'package:orders_mobile/core/widgets/custom_text_field.dart';
+import 'package:orders_mobile/core/widgets/app_search_bar.dart';
 import 'package:orders_mobile/core/widgets/empty_state.dart';
 import 'package:orders_mobile/core/widgets/error_display.dart';
 import 'package:orders_mobile/core/widgets/loading_indicator.dart';
@@ -77,7 +77,9 @@ class _InventoryScreenState extends State<InventoryScreen>
   }
 
   Future<void> _onRefresh() async {
-    await context.read<InventoryProvider>().fetchStoreProducts(storeId: _selectedStoreId);
+    await context
+        .read<InventoryProvider>()
+        .fetchStoreProducts(storeId: _selectedStoreId);
   }
 
   void _onStoreFilterChanged(String? storeId) {
@@ -97,12 +99,21 @@ class _InventoryScreenState extends State<InventoryScreen>
   }
 
   void _showAddProductDialog() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Add product – in progress'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    final storesProvider = context.read<StoresProvider>();
+    final selectedStore = _selectedStoreId == null
+        ? null
+        : storesProvider.getStoreById(_selectedStoreId!);
+
+    if (selectedStore != null) {
+      Navigator.pushNamed(
+        context,
+        AppRouter.adminStoreEdit,
+        arguments: selectedStore,
+      );
+      return;
+    }
+
+    Navigator.pushNamed(context, AppRouter.adminStores);
   }
 
   int _toInt(dynamic value) {
@@ -205,7 +216,8 @@ class _InventoryScreenState extends State<InventoryScreen>
       selectedColor: AppColors.primary.withValues(alpha: 0.15),
       checkmarkColor: AppColors.primary,
       side: BorderSide(
-        color: isSelected ? AppColors.primary : Colors.grey.withValues(alpha: 0.3),
+        color:
+            isSelected ? AppColors.primary : Colors.grey.withValues(alpha: 0.3),
       ),
       labelStyle: TextStyle(
         color: isSelected ? AppColors.primary : null,
@@ -240,25 +252,11 @@ class _InventoryScreenState extends State<InventoryScreen>
             child: Column(
               children: [
                 // Search Bar
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: CustomTextField(
-                    controller: _searchController,
-                    hint: 'Search products...',
-                    prefixIcon:
-                        Icon(Icons.search, color: Colors.grey[400]),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon:
-                                Icon(Icons.clear, color: Colors.grey[400]),
-                            onPressed: () {
-                              _searchController.clear();
-                              _onSearchChanged('');
-                            },
-                          )
-                        : null,
-                    onChanged: _onSearchChanged,
-                  ),
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search products...',
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  onChanged: _onSearchChanged,
                 ),
 
                 // Store Filter
@@ -273,9 +271,9 @@ class _InventoryScreenState extends State<InventoryScreen>
                         children: [
                           _storeChip('All Stores', null),
                           ...stores.map((Store s) => Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: _storeChip(s.name, s.id),
-                          )),
+                                padding: const EdgeInsets.only(left: 8),
+                                child: _storeChip(s.name, s.id),
+                              )),
                         ],
                       ),
                     );
@@ -317,8 +315,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                   );
                 }
 
-                final products =
-                    _getFilteredProducts(provider.storeProducts);
+                final products = _getFilteredProducts(provider.storeProducts);
 
                 if (products.isEmpty) {
                   String emptyTitle;
@@ -327,8 +324,7 @@ class _InventoryScreenState extends State<InventoryScreen>
                   switch (_filterType) {
                     case 'low-stock':
                       emptyTitle = 'All good!';
-                      emptyMessage =
-                          'There are no products with low stock';
+                      emptyMessage = 'There are no products with low stock';
                       break;
                     case 'out-of-stock':
                       emptyTitle = 'Everything in stock!';
@@ -338,12 +334,10 @@ class _InventoryScreenState extends State<InventoryScreen>
                     default:
                       if (_searchQuery.isNotEmpty) {
                         emptyTitle = 'No results';
-                        emptyMessage =
-                            'No results for "$_searchQuery"';
+                        emptyMessage = 'No results for "$_searchQuery"';
                       } else {
                         emptyTitle = 'Empty inventory';
-                        emptyMessage =
-                            'There are no products in inventory yet';
+                        emptyMessage = 'There are no products in inventory yet';
                       }
                   }
 
@@ -351,24 +345,21 @@ class _InventoryScreenState extends State<InventoryScreen>
                     icon: Icons.inventory_2_outlined,
                     title: emptyTitle,
                     message: emptyMessage,
-                    actionLabel: isAdmin &&
-                            _filterType == 'all' &&
-                            _searchQuery.isEmpty
-                        ? 'Add first product'
-                        : null,
-                    onAction: isAdmin &&
-                            _filterType == 'all' &&
-                            _searchQuery.isEmpty
-                        ? _showAddProductDialog
-                        : null,
+                    actionLabel:
+                        isAdmin && _filterType == 'all' && _searchQuery.isEmpty
+                            ? 'Add first product'
+                            : null,
+                    onAction:
+                        isAdmin && _filterType == 'all' && _searchQuery.isEmpty
+                            ? _showAddProductDialog
+                            : null,
                   );
                 }
 
                 return RefreshIndicator(
                   onRefresh: _onRefresh,
                   child: ListView.builder(
-                    padding:
-                        const EdgeInsets.only(top: 8, bottom: 80),
+                    padding: const EdgeInsets.only(top: 8, bottom: 80),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       final product = products[index];

@@ -223,9 +223,6 @@ class UsersProvider with ChangeNotifier {
 
   void _setError(String? error) {
     _error = error;
-    if (error != null) {
-      debugPrint('❌ Users Error: $error');
-    }
     notifyListeners();
   }
 
@@ -421,7 +418,8 @@ class AccompanimentsProvider with ChangeNotifier {
       if (response.success && response.data != null) {
         // Update local state
         for (var group in _accompanimentGroups) {
-          final index = group.accompaniments.indexWhere((a) => a.id == accompanimentId);
+          final index =
+              group.accompaniments.indexWhere((a) => a.id == accompanimentId);
           if (index != -1) {
             final newAvailability = response.data!['isAvailable'] as bool;
             group.accompaniments[index] = group.accompaniments[index].copyWith(

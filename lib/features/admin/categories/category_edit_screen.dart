@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/loading_indicator.dart';
 import 'package:orders_mobile/models/products/category_model.dart';
 import 'package:orders_mobile/providers/categories_provider.dart';
@@ -79,12 +80,7 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
       debugPrint('❌ Error loading category: $e');
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load category. Please try again.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppNotification.error(context, 'Failed to load category. Please try again.');
       }
     }
   }
@@ -123,22 +119,12 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Category successfully updated'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      AppNotification.success(context, 'Category successfully updated');
       Navigator.pop(context);
     } catch (e) {
       debugPrint('❌ Error updating category: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update category. Please try again.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppNotification.error(context, 'Failed to update category. Please try again.');
       }
     } finally {
       if (mounted) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/providers/categories_provider.dart';
 
 class CategoryCreateScreen extends StatefulWidget {
@@ -57,30 +58,15 @@ class _CategoryCreateScreenState extends State<CategoryCreateScreen> {
       if (!mounted) return;
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Category successfully created'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        AppNotification.success(context, 'Category successfully created');
         Navigator.pop(context);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error creating category'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppNotification.error(context, 'Error creating category');
       }
     } catch (e) {
       debugPrint('❌ Error creating category: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to create category. Please try again.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppNotification.error(context, 'Failed to create category. Please try again.');
       }
     } finally {
       if (mounted) {

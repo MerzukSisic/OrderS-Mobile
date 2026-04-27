@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:orders_mobile/core/utils/top_notification.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../providers/tables_provider.dart';
@@ -28,11 +28,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _showNotification(String message, {bool isError = false}) {
-    TopNotification.show(
-      context,
-      message: message,
-      isError: isError,
-    );
+    AppNotification.show(context, message, isError: isError);
   }
 
   Future<void> _loadAccompanimentsForCartItems() async {
@@ -42,14 +38,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // ✅ PROMJENA: items -> cartItems
       if (item.selectedAccompanimentIds.isNotEmpty) {
         try {
-          final accResponse = await AccompanimentsApiService()
-              .getByProductId(item.product.id);
+          final accResponse =
+              await AccompanimentsApiService().getByProductId(item.product.id);
           final groups = accResponse.success && accResponse.data != null
               ? accResponse.data!
               : <AccompanimentGroup>[];
-          final allAccompaniments = groups
-              .expand<Accompaniment>((g) => g.accompaniments)
-              .toList();
+          final allAccompaniments =
+              groups.expand<Accompaniment>((g) => g.accompaniments).toList();
 
           final selectedAccs = allAccompaniments
               .where((acc) => item.selectedAccompanimentIds.contains(acc.id))
@@ -130,7 +125,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       _showNotification(
         // ✅ NOVO
-        'Failed to place order: ${ordersProvider.error ?? e.toString()}',
+        ordersProvider.error ??
+            'We could not place the order. Please try again.',
         isError: true,
       );
     }

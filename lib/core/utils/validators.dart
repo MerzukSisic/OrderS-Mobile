@@ -24,8 +24,8 @@ class Validators {
 
   // Required field validator
   static String? required(String? value, {String? fieldName}) {
-    if (value == null || value.isEmpty) {
-      return ' is required';
+    if (value == null || value.trim().isEmpty) {
+      return '${fieldName ?? 'This field'} is required';
     }
     return null;
   }
@@ -48,7 +48,7 @@ class Validators {
       return 'This field is required';
     }
     if (value.length < length) {
-      return 'Must be at least  characters';
+      return 'Must be at least $length characters';
     }
     return null;
   }
@@ -56,7 +56,7 @@ class Validators {
   // Max length validator
   static String? maxLength(String? value, int length) {
     if (value != null && value.length > length) {
-      return 'Must be at most  characters';
+      return 'Must be at most $length characters';
     }
     return null;
   }
@@ -79,7 +79,7 @@ class Validators {
     }
     final number = double.tryParse(value);
     if (number == null || number < min) {
-      return 'Value must be at least ';
+      return 'Value must be at least $min';
     }
     return null;
   }

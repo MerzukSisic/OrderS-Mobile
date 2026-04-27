@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import '../utils/user_message.dart';
 
 /// Custom exception types for better error handling
 class AppException implements Exception {
@@ -14,39 +15,33 @@ class AppException implements Exception {
 }
 
 class NetworkException extends AppException {
-  NetworkException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  NetworkException(super.message, {super.code, super.originalError});
 }
 
 class AuthException extends AppException {
-  AuthException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  AuthException(super.message, {super.code, super.originalError});
 }
 
 class ValidationException extends AppException {
   final Map<String, List<String>>? errors;
-  
-  ValidationException(String message, {this.errors, String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+
+  ValidationException(super.message,
+      {this.errors, super.code, super.originalError});
 }
 
 class ServerException extends AppException {
-  ServerException(String message, {String? code, dynamic originalError})
-      : super(message, code: code, originalError: originalError);
+  ServerException(super.message, {super.code, super.originalError});
 }
 
 /// Error handling middleware service
 class ErrorHandlingService {
-  static final ErrorHandlingService _instance = ErrorHandlingService._internal();
+  static final ErrorHandlingService _instance =
+      ErrorHandlingService._internal();
   factory ErrorHandlingService() => _instance;
   ErrorHandlingService._internal();
 
   /// Handle Dio errors and convert to app-specific exceptions
   AppException handleDioError(DioException error) {
-    debugPrint('🔴 DIO ERROR: ${error.type}');
-    debugPrint('🔴 MESSAGE: ${error.message}');
-    debugPrint('🔴 RESPONSE: ${error.response?.data}');
-
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -88,19 +83,16 @@ class ErrorHandlingService {
     final statusCode = error.response?.statusCode;
     final data = error.response?.data;
 
-    debugPrint('🔴 STATUS CODE: $statusCode');
-    debugPrint('🔴 RESPONSE DATA: $data');
-
     // Extract error message from response
     String message = 'An error occurred';
-    
+
     if (data is Map<String, dynamic>) {
       // ✅ PARSE ASP.NET ERROR FORMAT
       // Format: { errors: { "error": ["message"], "field": ["error1", "error2"] } }
       if (data['errors'] != null && data['errors'] is Map) {
         final errors = data['errors'] as Map<String, dynamic>;
         final errorMessages = <String, List<String>>{};
-        
+
         errors.forEach((key, value) {
           if (value is List) {
             errorMessages[key] = value.map((e) => e.toString()).toList();
@@ -124,14 +116,14 @@ class ErrorHandlingService {
           );
         }
       }
-      
+
       // Try common error message keys if errors didn't have it
       if (message == 'An error occurred') {
-        message = data['message'] ?? 
-                  data['error'] ?? 
-                  data['title'] ??
-                  data['detail'] ??
-                  message;
+        message = data['message'] ??
+            data['error'] ??
+            data['title'] ??
+            data['detail'] ??
+            message;
       }
     } else if (data is String) {
       message = data;
@@ -147,21 +139,27 @@ class ErrorHandlingService {
 
       case 401:
         return AuthException(
-          message.isEmpty ? 'Unauthorized. Please login again.' : message, // ✅ Use extracted message!
+          message.isEmpty
+              ? 'Unauthorized. Please login again.'
+              : message, // ✅ Use extracted message!
           code: 'UNAUTHORIZED',
           originalError: error,
         );
 
       case 403:
         return AuthException(
-          message.isEmpty ? 'Access forbidden. You don\'t have permission.' : message, // ✅ Use extracted message!
+          message.isEmpty
+              ? 'Access forbidden. You don\'t have permission.'
+              : message, // ✅ Use extracted message!
           code: 'FORBIDDEN',
           originalError: error,
         );
 
       case 404:
         return NetworkException(
-          message.isEmpty ? 'Resource not found' : message, // ✅ Use extracted message!
+          message.isEmpty
+              ? 'Resource not found'
+              : message, // ✅ Use extracted message!
           code: 'NOT_FOUND',
           originalError: error,
         );
@@ -185,7 +183,9 @@ class ErrorHandlingService {
       case 503:
       case 504:
         return ServerException(
-          message.isEmpty ? 'Server error. Please try again later.' : message, // ✅ Use extracted message!
+          message.isEmpty
+              ? 'Server error. Please try again later.'
+              : message, // ✅ Use extracted message!
           code: 'SERVER_ERROR',
           originalError: error,
         );
@@ -201,9 +201,11 @@ class ErrorHandlingService {
 
   /// Handle generic errors
   AppException handleError(dynamic error, [StackTrace? stackTrace]) {
-    debugPrint('🔴 GENERIC ERROR: $error');
-    if (stackTrace != null) {
-      debugPrint('🔴 STACK TRACE: $stackTrace');
+    if (kDebugMode) {
+      debugPrint('GENERIC ERROR: $error');
+      if (stackTrace != null) {
+        debugPrint('STACK TRACE: $stackTrace');
+      }
     }
 
     if (error is DioException) {
@@ -233,7 +235,7 @@ class ErrorHandlingService {
 
     // Generic error
     return AppException(
-      error.toString(),
+      UserMessage.friendly(error),
       code: 'UNKNOWN',
       originalError: error,
     );
@@ -250,24 +252,19 @@ class ErrorHandlingService {
       return messages.join('\n');
     }
 
-    return error.message;
+    return UserMessage.friendly(error.message);
   }
 
   /// Check if error requires re-authentication
   bool requiresReauth(AppException error) {
-    return error is AuthException && 
-           (error.code == 'UNAUTHORIZED' || error.code == 'FORBIDDEN');
+    return error is AuthException &&
+        (error.code == 'UNAUTHORIZED' || error.code == 'FORBIDDEN');
   }
 
   /// Log error (extend this to send to analytics/crash reporting)
   void logError(dynamic error, [StackTrace? stackTrace]) {
-    debugPrint('📊 LOGGING ERROR: $error');
-    if (stackTrace != null) {
-      debugPrint('📊 STACK TRACE: $stackTrace');
+    if (kDebugMode && error is AppException && error is! ValidationException) {
+      debugPrint('LOGGING ERROR: ${error.message}');
     }
-
-    // TODO: Send to analytics service (Firebase, Sentry, etc.)
-    // Example:
-    // FirebaseCrashlytics.instance.recordError(error, stackTrace);
   }
 }

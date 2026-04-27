@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:orders_mobile/config/env_config.dart';
+import 'package:orders_mobile/core/utils/user_message.dart';
 import '../services/error_handling_interceptor.dart';
 import '../services/error_handling_service.dart'; // ✅ ADD THIS
 
@@ -75,23 +76,25 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $_token';
           }
 
-          debugPrint('🔵 REQUEST[${options.method}] => ${options.uri}');
-          debugPrint('📤 Data: ${options.data}');
+          if (kDebugMode) {
+            debugPrint('REQUEST[${options.method}] => ${options.uri}');
+          }
 
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          debugPrint(
-              '🟢 RESPONSE[${response.statusCode}] => ${response.requestOptions.uri}');
-          debugPrint('📥 Data: ${response.data}');
+          if (kDebugMode) {
+            debugPrint(
+                'RESPONSE[${response.statusCode}] => ${response.requestOptions.uri}');
+          }
 
           return handler.next(response);
         },
         onError: (error, handler) {
-          debugPrint(
-              '🔴 ERROR[${error.response?.statusCode}] => ${error.requestOptions.uri}');
-          debugPrint('❌ Message: ${error.message}');
-          debugPrint('❌ Response: ${error.response?.data}');
+          if (kDebugMode && error.response?.statusCode == null) {
+            debugPrint(
+                'ERROR[${error.response?.statusCode}] => ${error.requestOptions.uri}');
+          }
 
           return handler.next(error);
         },
@@ -102,13 +105,17 @@ class ApiClient {
   /// Set authentication token
   void setToken(String? token) {
     _token = token;
-    debugPrint('🔑 Token set: ${token != null ? "Yes" : "No"}');
+    if (kDebugMode) {
+      debugPrint('Token set: ${token != null ? "Yes" : "No"}');
+    }
   }
 
   /// Clear authentication token
   void clearToken() {
     _token = null;
-    debugPrint('🔓 Token cleared');
+    if (kDebugMode) {
+      debugPrint('Token cleared');
+    }
   }
 
   /// GET request
@@ -136,7 +143,7 @@ class ApiClient {
     } on DioException catch (e) {
       return _handleDioError(e);
     } catch (e) {
-      return ApiResponse.failure('Unexpected error: $e');
+      return ApiResponse.failure(UserMessage.friendly(e));
     }
   }
 
@@ -154,9 +161,12 @@ class ApiClient {
         queryParameters: queryParameters,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201 || response.statusCode == 204) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         if (response.statusCode == 204 || response.data == null) {
-          return ApiResponse.success(null as T, statusCode: response.statusCode);
+          return ApiResponse.success(null as T,
+              statusCode: response.statusCode);
         }
         final responseData =
             fromJson != null ? fromJson(response.data) : response.data as T;
@@ -171,7 +181,7 @@ class ApiClient {
     } on DioException catch (e) {
       return _handleDioError(e);
     } catch (e) {
-      return ApiResponse.failure('Unexpected error: $e');
+      return ApiResponse.failure(UserMessage.friendly(e));
     }
   }
 
@@ -207,7 +217,7 @@ class ApiClient {
     } on DioException catch (e) {
       return _handleDioError(e);
     } catch (e) {
-      return ApiResponse.failure('Unexpected error: $e');
+      return ApiResponse.failure(UserMessage.friendly(e));
     }
   }
 
@@ -233,7 +243,7 @@ class ApiClient {
     } on DioException catch (e) {
       return _handleDioError(e);
     } catch (e) {
-      return ApiResponse.failure('Unexpected error: $e');
+      return ApiResponse.failure(UserMessage.friendly(e));
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/providers/users_accompaniments_providers.dart';
 
 class UserCreateScreen extends StatefulWidget {
@@ -22,6 +23,20 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
   bool _isSubmitting = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _showPasswordHelp = false;
+
+  void _showNotification(String message, {bool isError = false}) {
+    AppNotification.show(context, message, isError: isError);
+  }
+
+  List<String> _passwordIssues(String value) {
+    return [
+      if (value.length < 8) 'At least 8 characters',
+      if (!RegExp(r'[A-Z]').hasMatch(value)) 'At least one uppercase letter',
+      if (!RegExp(r'[a-z]').hasMatch(value)) 'At least one lowercase letter',
+      if (!RegExp(r'\d').hasMatch(value)) 'At least one number',
+    ];
+  }
 
   @override
   void dispose() {
@@ -34,7 +49,10 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    setState(() => _showPasswordHelp = true);
     if (!_formKey.currentState!.validate()) return;
+    final issues = _passwordIssues(_passwordController.text);
+    if (issues.isNotEmpty) return;
 
     setState(() => _isSubmitting = true);
 
@@ -43,28 +61,28 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text,
           role: _selectedRole,
-          phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+          phoneNumber: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
         );
 
     if (mounted) {
       setState(() => _isSubmitting = false);
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User successfully created'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        _showNotification('User successfully created');
         Navigator.pop(context);
       } else {
-        final error = context.read<UsersProvider>().error;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error ?? 'Error creating user'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        final providerError = context.read<UsersProvider>().error;
+        if (providerError != null &&
+            providerError.toLowerCase().contains('password')) {
+          setState(() => _showPasswordHelp = true);
+        } else {
+          _showNotification(
+            providerError ?? 'Failed to create user. Please try again.',
+            isError: true,
+          );
+        }
       }
     }
   }
@@ -90,6 +108,9 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
       ),
       body: Form(
         key: _formKey,
+        autovalidateMode: _showPasswordHelp
+            ? AutovalidateMode.onUserInteraction
+            : AutovalidateMode.disabled,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -110,7 +131,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +207,7 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
 
           // Role
           DropdownButtonFormField<String>(
-            value: _selectedRole,
+            initialValue: _selectedRole,
             decoration: InputDecoration(
               labelText: 'Role *',
               prefixIcon: const Icon(Icons.badge),
@@ -216,7 +238,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +259,8 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
               hintText: 'Enter password',
               prefixIcon: const Icon(Icons.lock),
               suffixIcon: IconButton(
-                icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off),
                 onPressed: () {
                   setState(() => _obscurePassword = !_obscurePassword);
                 },
@@ -245,15 +269,34 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
+            onChanged: (_) {
+              if (_showPasswordHelp) setState(() {});
+            },
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Password is required';
               }
-              if (value.length < 6) {
-                return 'Password must be at least 6 characters';
+              if (value.length < 8) {
+                return 'Password must be at least 8 characters';
+              }
+              if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                return 'Password must contain at least one uppercase letter';
+              }
+              if (!RegExp(r'[a-z]').hasMatch(value)) {
+                return 'Password must contain at least one lowercase letter';
+              }
+              if (!RegExp(r'\d').hasMatch(value)) {
+                return 'Password must contain at least one number';
               }
               return null;
             },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _PasswordRequirements(
+              password: _passwordController.text,
+              visible: _showPasswordHelp || _passwordController.text.isNotEmpty,
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -266,9 +309,12 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
               hintText: 'Re-enter password',
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
-                icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                icon: Icon(_obscureConfirmPassword
+                    ? Icons.visibility
+                    : Icons.visibility_off),
                 onPressed: () {
-                  setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                  setState(
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword);
                 },
               ),
               border: OutlineInputBorder(
@@ -340,6 +386,60 @@ class _UserCreateScreenState extends State<UserCreateScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PasswordRequirements extends StatelessWidget {
+  final String password;
+  final bool visible;
+
+  const _PasswordRequirements({
+    required this.password,
+    required this.visible,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!visible) return const SizedBox.shrink();
+
+    final items = [
+      ('At least 8 characters', password.length >= 8),
+      ('At least one uppercase letter', RegExp(r'[A-Z]').hasMatch(password)),
+      ('At least one lowercase letter', RegExp(r'[a-z]').hasMatch(password)),
+      ('At least one number', RegExp(r'\d').hasMatch(password)),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: items.map((item) {
+        final ok = item.$2;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(
+            children: [
+              Icon(
+                ok ? Icons.check_circle : Icons.cancel,
+                size: 14,
+                color: ok ? AppColors.success : AppColors.error,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  item.$1,
+                  style: TextStyle(
+                    color: ok
+                        ? AppColors.success
+                        : AppColors.error.withValues(alpha: 0.9),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

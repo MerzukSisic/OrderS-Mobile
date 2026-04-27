@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
@@ -11,12 +13,25 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotificationsProvider>().fetchNotifications();
     });
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        context.read<NotificationsProvider>().refresh();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   Color _typeColor(String type) {
@@ -74,11 +89,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.notifications_none, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.4)),
+                  Icon(Icons.notifications_none,
+                      size: 64,
+                      color: AppColors.textSecondary.withValues(alpha: 0.4)),
                   const SizedBox(height: 16),
                   Text(
                     'No notifications',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 16),
                   ),
                 ],
               ),
@@ -107,14 +125,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.only(right: 20),
                     color: AppColors.error,
-                    child: const Icon(Icons.delete_outline, color: Colors.white),
+                    child:
+                        const Icon(Icons.delete_outline, color: Colors.white),
                   ),
-                  onDismissed: (_) => provider.deleteNotification(n['id'].toString()),
+                  onDismissed: (_) =>
+                      provider.deleteNotification(n['id'].toString()),
                   child: InkWell(
-                    onTap: isRead ? null : () => provider.markAsRead(n['id'].toString()),
+                    onTap: isRead
+                        ? null
+                        : () => provider.markAsRead(n['id'].toString()),
                     child: Container(
                       color: isRead ? null : color.withValues(alpha: 0.04),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -125,7 +148,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               color: color.withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(_typeIcon(type), color: color, size: 20),
+                            child:
+                                Icon(_typeIcon(type), color: color, size: 20),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -138,7 +162,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       child: Text(
                                         n['title'] ?? '',
                                         style: TextStyle(
-                                          fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                                          fontWeight: isRead
+                                              ? FontWeight.normal
+                                              : FontWeight.bold,
                                           fontSize: 14,
                                           color: AppColors.textPrimary,
                                         ),

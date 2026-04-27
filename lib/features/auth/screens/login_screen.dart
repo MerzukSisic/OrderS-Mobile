@@ -96,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen>
           authProvider.error!,
           code: 'LOGIN_FAILED',
         );
-        handleError(appError, onRetry: _handleLogin);
+        handleError(appError);
       }
     }
   }
@@ -303,6 +303,8 @@ class _LoginScreenState extends State<LoginScreen>
                               const SizedBox(height: 8),
                               _buildDemoCredential(
                                   'Bartender', 'ana@orders.com'),
+                              const SizedBox(height: 8),
+                              _buildDemoCredential('Chef', 'kuhar@orders.com'),
                               const SizedBox(height: 12),
                               Text(
                                 'Password: password123',

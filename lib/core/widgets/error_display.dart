@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/user_message.dart';
 import '../theme/app_colors.dart';
 import 'custom_button.dart';
 
@@ -35,7 +36,7 @@ class ErrorDisplay extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              message,
+              UserMessage.friendly(message),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppColors.textSecondary,
                   ),

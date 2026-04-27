@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
 import 'package:orders_mobile/routes/app_router.dart';
@@ -107,12 +108,7 @@ class _AdminProcurementCreateScreenState
 
   void _snack(String msg, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? AppColors.error : AppColors.success,
-      ),
-    );
+    AppNotification.show(context, msg, isError: isError);
   }
 
   @override
@@ -288,12 +284,14 @@ class _TopPanel extends StatelessWidget {
         children: [
           Consumer<StoresProvider>(
             builder: (context, storesProvider, _) {
-              final internalStores = storesProvider.stores.where((s) => !s.isExternal).toList();
-              final externalStores = storesProvider.stores.where((s) => s.isExternal).toList();
+              final internalStores =
+                  storesProvider.stores.where((s) => !s.isExternal).toList();
+              final externalStores =
+                  storesProvider.stores.where((s) => s.isExternal).toList();
               return Column(
                 children: [
                   DropdownButtonFormField<String>(
-                    value: selectedDestinationStoreId,
+                    initialValue: selectedDestinationStoreId,
                     decoration: InputDecoration(
                       labelText: 'Destination Store',
                       hintText: 'Select your store',
@@ -303,16 +301,18 @@ class _TopPanel extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
                     ),
                     items: internalStores
-                        .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                        .map((s) =>
+                            DropdownMenuItem(value: s.id, child: Text(s.name)))
                         .toList(),
                     onChanged: onDestinationStoreChanged,
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    value: selectedSourceStoreId,
+                    initialValue: selectedSourceStoreId,
                     decoration: InputDecoration(
                       labelText: 'Source Store (Supplier)',
                       hintText: 'Select supplier store',
@@ -322,10 +322,12 @@ class _TopPanel extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
                     ),
                     items: externalStores
-                        .map((s) => DropdownMenuItem(value: s.id, child: Text(s.name)))
+                        .map((s) =>
+                            DropdownMenuItem(value: s.id, child: Text(s.name)))
                         .toList(),
                     onChanged: onSourceStoreChanged,
                   ),
@@ -401,87 +403,98 @@ class _ProductCard extends StatelessWidget {
       child: Opacity(
         opacity: outOfStock ? 0.5 : 1.0,
         child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: outOfStock
-                ? AppColors.error.withValues(alpha: 0.25)
-                : selected
-                    ? AppColors.primary.withValues(alpha: 0.35)
-                    : AppColors.textSecondary.withValues(alpha: 0.12),
-            width: selected ? 2 : 1,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: outOfStock
+                  ? AppColors.error.withValues(alpha: 0.25)
+                  : selected
+                      ? AppColors.primary.withValues(alpha: 0.35)
+                      : AppColors.textSecondary.withValues(alpha: 0.12),
+              width: selected ? 2 : 1,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.inventory_2_outlined,
-                  color: AppColors.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  Text('${price.toStringAsFixed(2)} KM',
-                      style: TextStyle(
-                          color:
-                              AppColors.textSecondary.withValues(alpha: 0.85))),
-                  if (outOfStock) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Text('Out of Stock',
-                          style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700, fontSize: 11)),
-                    ),
-                  ] else if (lowStock) ...[
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text('Low Stock ($stock)',
-                          style: const TextStyle(color: AppColors.warning, fontWeight: FontWeight.w700, fontSize: 11)),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (selected)
+          child: Row(
+            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('x$selectedQty',
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900)),
-              )
-            else if (!outOfStock)
-              Icon(Icons.add_circle_outline,
-                  color: AppColors.textSecondary.withValues(alpha: 0.7)),
-          ],
+                child: const Icon(Icons.inventory_2_outlined,
+                    color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text('${price.toStringAsFixed(2)} KM',
+                        style: TextStyle(
+                            color: AppColors.textSecondary
+                                .withValues(alpha: 0.85))),
+                    if (outOfStock) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text('Out of Stock',
+                            style: TextStyle(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11)),
+                      ),
+                    ] else if (lowStock) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text('Low Stock ($stock)',
+                            style: const TextStyle(
+                                color: AppColors.warning,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (selected)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text('x$selectedQty',
+                      style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w900)),
+                )
+              else if (!outOfStock)
+                Icon(Icons.add_circle_outline,
+                    color: AppColors.textSecondary.withValues(alpha: 0.7)),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -565,7 +578,8 @@ class _AddItemSheetState extends State<_AddItemSheet> {
                                   fontSize: 11,
                                   color: qty >= widget.maxStock
                                       ? AppColors.error
-                                      : AppColors.textSecondary.withValues(alpha: 0.7))),
+                                      : AppColors.textSecondary
+                                          .withValues(alpha: 0.7))),
                         ],
                       ),
                       IconButton(

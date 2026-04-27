@@ -69,9 +69,8 @@ class StatisticsApiService {
         'count': count,
         'days': days,
       },
-      fromJson: (json) => (json as List)
-          .map((item) => ProductSales.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => ProductSales.fromJson(item)).toList(),
     );
   }
 
@@ -80,9 +79,8 @@ class StatisticsApiService {
     return await _client.get(
       '/statistics/peak-hours',
       queryParameters: {'days': days},
-      fromJson: (json) => (json as List)
-          .map((item) => PeakHour.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => PeakHour.fromJson(item)).toList(),
     );
   }
 
@@ -97,9 +95,8 @@ class StatisticsApiService {
         'fromDate': fromDate.toIso8601String(),
         'toDate': toDate.toIso8601String(),
       },
-      fromJson: (json) => (json as List)
-          .map((item) => CategorySales.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => CategorySales.fromJson(item)).toList(),
     );
   }
 }
@@ -111,11 +108,15 @@ class InventoryApiService {
   /// Get all store products
   Future<ApiResponse<List<StoreProductModel>>> getAllStoreProducts({
     String? storeId,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/inventory/store-products',
       queryParameters: {
         if (storeId != null) 'storeId': storeId,
+        'page': page,
+        'pageSize': pageSize,
       },
       fromJson: (json) => (json as List)
           .map((item) => StoreProductModel.fromJson(item))
@@ -135,6 +136,10 @@ class InventoryApiService {
   Future<ApiResponse<List<StoreProductModel>>> getLowStockProducts() async {
     return await _client.get(
       '/inventory/low-stock',
+      queryParameters: const {
+        'page': 1,
+        'pageSize': 100,
+      },
       fromJson: (json) => (json as List)
           .map((item) => StoreProductModel.fromJson(item))
           .toList(),
@@ -145,12 +150,16 @@ class InventoryApiService {
   Future<ApiResponse<List<InventoryLogModel>>> getInventoryLogs({
     String? storeProductId,
     int days = 30,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/inventory/logs',
       queryParameters: {
         if (storeProductId != null) 'storeProductId': storeProductId,
         'days': days,
+        'page': page,
+        'pageSize': pageSize,
       },
       fromJson: (json) => (json as List)
           .map((item) => InventoryLogModel.fromJson(item))
@@ -176,10 +185,16 @@ class InventoryApiService {
   /// Get consumption forecast
   Future<ApiResponse<List<ConsumptionForecastModel>>> getConsumptionForecast({
     int days = 30,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/inventory/consumption-forecast',
-      queryParameters: {'days': days},
+      queryParameters: {
+        'days': days,
+        'page': page,
+        'pageSize': pageSize,
+      },
       fromJson: (json) => (json as List)
           .map((item) => ConsumptionForecastModel.fromJson(item))
           .toList(),
@@ -265,9 +280,12 @@ class StoresApiService {
   Future<ApiResponse<List<Store>>> getStores() async {
     return await _client.get(
       '/stores',
-      fromJson: (json) => (json as List)
-          .map((item) => Store.fromJson(item))
-          .toList(),
+      queryParameters: const {
+        'page': 1,
+        'pageSize': 100,
+      },
+      fromJson: (json) =>
+          (json as List).map((item) => Store.fromJson(item)).toList(),
     );
   }
 

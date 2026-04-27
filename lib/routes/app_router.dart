@@ -25,6 +25,8 @@ import '../features/orders/screens/order_detail_screen.dart';
 
 // PROFILE
 import '../features/profile/screens/profile_screen.dart';
+import '../features/profile/screens/edit_profile_screen.dart';
+import '../features/profile/screens/change_password_screen.dart';
 
 // ADMIN
 import '../features/admin/dashboard/screens/dashboard_screen.dart';
@@ -79,6 +81,8 @@ class AppRouter {
   static const String orderDetail = '/order-detail';
 
   static const String profile = '/profile';
+  static const String editProfile = '/profile/edit';
+  static const String changePassword = '/profile/change-password';
 
   // Admin routes
   static const String adminDashboard = '/admin/dashboard';
@@ -151,6 +155,8 @@ class AppRouter {
       },
 
       profile: (_) => const ProfileScreen(),
+      editProfile: (_) => const EditProfileScreen(),
+      changePassword: (_) => const ChangePasswordScreen(),
 
       // BAR/KITCHEN
       barOrders: (_) => const BarOrdersScreen(),

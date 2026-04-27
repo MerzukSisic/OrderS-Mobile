@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/services/error_handling_service.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import '../theme/app_colors.dart';
 
 /// Global error handler mixin for widgets
@@ -7,14 +8,14 @@ mixin ErrorHandlerMixin<T extends StatefulWidget> on State<T> {
   final ErrorHandlingService _errorService = ErrorHandlingService();
 
   /// Handle error and show appropriate UI feedback
-  void handleError(dynamic error, {
+  void handleError(
+    dynamic error, {
     bool showSnackBar = true,
     VoidCallback? onRetry,
     VoidCallback? onAuthRequired,
   }) {
-    final appException = error is AppException 
-        ? error 
-        : _errorService.handleError(error);
+    final appException =
+        error is AppException ? error : _errorService.handleError(error);
 
     // Log the error
     _errorService.logError(appException);
@@ -37,37 +38,8 @@ mixin ErrorHandlerMixin<T extends StatefulWidget> on State<T> {
 
   void _showErrorSnackBar(AppException error, {VoidCallback? onRetry}) {
     final message = _errorService.getUserMessage(error);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              _getErrorIcon(error),
-              color: AppColors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: AppColors.white),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: _getErrorColor(error),
-        behavior: SnackBarBehavior.floating,
-        action: onRetry != null
-            ? SnackBarAction(
-                label: 'Retry',
-                textColor: AppColors.white,
-                onPressed: onRetry,
-              )
-            : null,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+
+    AppNotification.error(context, message);
   }
 
   void _showAuthRequiredDialog() {
@@ -103,32 +75,6 @@ mixin ErrorHandlerMixin<T extends StatefulWidget> on State<T> {
         ],
       ),
     );
-  }
-
-  IconData _getErrorIcon(AppException error) {
-    if (error is NetworkException) {
-      return Icons.wifi_off;
-    } else if (error is AuthException) {
-      return Icons.lock_outline;
-    } else if (error is ValidationException) {
-      return Icons.error_outline;
-    } else if (error is ServerException) {
-      return Icons.cloud_off;
-    }
-    return Icons.warning;
-  }
-
-  Color _getErrorColor(AppException error) {
-    if (error is NetworkException) {
-      return AppColors.warning;
-    } else if (error is AuthException) {
-      return AppColors.error;
-    } else if (error is ValidationException) {
-      return AppColors.warning;
-    } else if (error is ServerException) {
-      return AppColors.error;
-    }
-    return AppColors.error;
   }
 }
 
@@ -211,14 +157,14 @@ class ErrorDisplay extends StatelessWidget {
 
   String _getErrorTitle() {
     if (error is NetworkException) {
-      return 'Connection Error';
+      return 'Connection issue';
     } else if (error is AuthException) {
-      return 'Authentication Error';
+      return 'Please sign in again';
     } else if (error is ValidationException) {
-      return 'Validation Error';
+      return 'Please check your input';
     } else if (error is ServerException) {
-      return 'Server Error';
+      return 'Service unavailable';
     }
-    return 'Error';
+    return 'Something went wrong';
   }
 }

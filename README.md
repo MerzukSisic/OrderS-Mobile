@@ -1,7 +1,7 @@
 # OrderS — Mobilna Aplikacija
 **Autor:** Merzuk Šišić (IB220060)  
 **Predmet:** Razvoj softvera II  
-**Akademska godina:** 2024/2025
+**Akademska godina:** 2025/2026
 
 ---
 
@@ -44,8 +44,8 @@ OrderS mobilna aplikacija razvijena je u Flutteru i namijenjena je operativnom o
 - ✅ Statistike s grafikonima (fl_chart)
 
 ### Povezani repozitoriji:
-- ⚙️ **Backend API:** [OrdersAPI repo]
-- 🖥️ **Desktop aplikacija:** [rs2-desktop repo]
+- **Backend API:** OrdersAPI repo
+- **Desktop aplikacija:** rs2-desktop repo
 
 ---
 
@@ -57,7 +57,7 @@ OrderS mobilna aplikacija razvijena je u Flutteru i namijenjena je operativnom o
 - **shared_preferences** — Lokalno čuvanje JWT tokena
 - **fl_chart** — Grafikoni za statistike i dashboard
 - **Stripe Flutter SDK** — Payment Sheet za procurement plaćanja
-- **flutter_dotenv** — Runtime učitavanje `.env` konfiguracije (Stripe ključ)
+- **dart-define konfiguracija** — API, SignalR i Stripe publishable key se prosljeđuju pri pokretanju/build-u
 
 ---
 
@@ -75,7 +75,10 @@ cd orders_mobile
 
 flutter pub get
 
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5220/api
+flutter run ^
+  --dart-define=API_BASE_URL=http://10.0.2.2:5220/api ^
+  --dart-define=SIGNALR_URL=http://10.0.2.2:5220/hubs/orders ^
+  --dart-define=STRIPE_PUBLISHABLE_KEY=<stripe_publishable_key>
 ```
 
 ### Instalacija prebuilt APK-a:
@@ -94,12 +97,12 @@ adb install app-release.apk
 
 ## 🔐 Login podaci
 
-| Email | Lozinka | Uloga |
-|---|---|---|
-| admin@orders.com | password123 | Admin |
-| marko@orders.com | password123 | Waiter |
-| ana@orders.com | password123 | Bartender |
-| kuhar@orders.com | password123 | Kitchen |
+| Kontekst | Email | Lozinka | Uloga |
+|---|---|---|---|
+| Mobilna verzija | admin@orders.com | password123 | Admin |
+| Mobilna verzija | marko@orders.com | password123 | Waiter |
+| Mobilna verzija | ana@orders.com | password123 | Bartender |
+| Mobilna verzija | kuhar@orders.com | password123 | Kitchen |
 
 > **Napomena:** Backend mora biti pokrenut prije logina. API adresa za AVD emulator je `http://10.0.2.2:5220/api`.
 
@@ -109,12 +112,16 @@ adb install app-release.apk
 
 ```bash
 flutter clean
-flutter build apk --release --dart-define=API_BASE_URL=http://10.0.2.2:5220/api
+flutter clean
+flutter build apk --release ^
+  --dart-define=API_BASE_URL=http://10.0.2.2:5220/api ^
+  --dart-define=SIGNALR_URL=http://10.0.2.2:5220/hubs/orders ^
+  --dart-define=STRIPE_PUBLISHABLE_KEY=<stripe_publishable_key>
 ```
 
 **Lokacija outputa:** `build/app/outputs/flutter-apk/app-release.apk`
 
-Build arhiva se nalazi u root folderu repoa: `fit-build-26-02-22-mobile.zip` (split arhiva, šifra: `fit`).
+Build arhivu za predaju kreirati kroz GitHub Release, npr. `fit-build-2026-04-26.zip`. U release ne postavljati `.env`; konfiguracijske tajne držati u šifrovanoj ZIP arhivi, npr. `fit_env.zip`.
 
 ---
 
@@ -137,10 +144,9 @@ orders_mobile/
 │   ├── widgets/                   # Reusable komponente
 │   └── main.dart
 ├── build/app/outputs/flutter-apk/ # APK output
-├── fit-build-26-02-22.zip         # Build arhiva (šifra: fit)
-└── .env.zip                       # Konfiguracijski fajl (šifra: fit)
+└── fit_env.zip                    # Konfiguracijski fajlovi/tajne (šifra: fit)
 ```
 
 ---
 
-*OrderS — RS2 2024/2025 — Merzuk Šišić — IB220060*
+*OrderS — RS2 2025/2026 — Merzuk Šišić — IB220060*

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/user_message.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/models/statistics/dashboard_stats.dart';
 import 'package:orders_mobile/models/statistics/peak_hour.dart';
@@ -21,8 +22,6 @@ class StatisticsScreen extends StatefulWidget {
 
 class _StatisticsScreenState extends State<StatisticsScreen> {
   String _selectedPeriod = '7'; // Days
-  DateTime _fromDate = DateTime.now().subtract(const Duration(days: 7));
-  DateTime _toDate = DateTime.now();
   late int _selectedTabIndex;
 
   @override
@@ -49,8 +48,6 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     if (value != null) {
       setState(() {
         _selectedPeriod = value;
-        _fromDate = DateTime.now().subtract(Duration(days: int.parse(value)));
-        _toDate = DateTime.now();
       });
       _loadData();
     }
@@ -81,7 +78,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.arrow_drop_down, size: 20, color: AppColors.primary),
+              const Icon(Icons.arrow_drop_down,
+                  size: 20, color: AppColors.primary),
             ],
           ),
           color: AppColors.surface,
@@ -89,15 +87,18 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
           itemBuilder: (context) => [
             PopupMenuItem(
               value: '7',
-              child: Text('Last 7 days', style: TextStyle(color: AppColors.textPrimary)),
+              child: Text('Last 7 days',
+                  style: TextStyle(color: AppColors.textPrimary)),
             ),
             PopupMenuItem(
               value: '30',
-              child: Text('Last 30 days', style: TextStyle(color: AppColors.textPrimary)),
+              child: Text('Last 30 days',
+                  style: TextStyle(color: AppColors.textPrimary)),
             ),
             PopupMenuItem(
               value: '90',
-              child: Text('Last 90 days', style: TextStyle(color: AppColors.textPrimary)),
+              child: Text('Last 90 days',
+                  style: TextStyle(color: AppColors.textPrimary)),
             ),
           ],
         ),
@@ -123,7 +124,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   Icon(Icons.error_outline, size: 48, color: AppColors.error),
                   const SizedBox(height: 16),
                   Text(
-                    provider.error!,
+                    UserMessage.friendly(provider.error!),
                     style: const TextStyle(color: AppColors.error),
                     textAlign: TextAlign.center,
                   ),
@@ -227,7 +228,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final stats = provider.dashboardStats;
     if (stats == null) {
       return const Center(
-        child: Text('No data available', style: TextStyle(color: AppColors.textSecondary)),
+        child: Text('No data available',
+            style: TextStyle(color: AppColors.textSecondary)),
       );
     }
 
@@ -261,7 +263,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // Row 2: Month + Orders
           Row(
             children: [
@@ -285,7 +287,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           // Row 3: Tables + Stock
           Row(
             children: [
@@ -327,7 +329,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.inventory_2, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+            Icon(Icons.inventory_2,
+                size: 64,
+                color: AppColors.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
               'No data available',
@@ -357,7 +361,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.people, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+            Icon(Icons.people,
+                size: 64,
+                color: AppColors.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
               'No data available',
@@ -386,7 +392,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.schedule, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+            Icon(Icons.schedule,
+                size: 64,
+                color: AppColors.textSecondary.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
               'No data available',
@@ -416,7 +424,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,7 +496,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,7 +577,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -650,7 +661,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,7 +680,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: products.map((p) => p.revenue).reduce((a, b) => a > b ? a : b) * 1.2,
+                maxY: products
+                        .map((p) => p.revenue)
+                        .reduce((a, b) => a > b ? a : b) *
+                    1.2,
                 barTouchData: BarTouchData(enabled: false),
                 titlesData: FlTitlesData(
                   show: true,
@@ -676,7 +691,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= products.length) return const Text('');
+                        if (value.toInt() >= products.length) {
+                          return const Text('');
+                        }
                         final name = products[value.toInt()].productName;
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -706,8 +723,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       },
                     ),
                   ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                 ),
                 gridData: FlGridData(
                   show: true,
@@ -718,7 +737,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   ),
                 ),
                 borderData: FlBorderData(show: false),
-                barGroups: products.take(8).toList().asMap().entries.map((entry) {
+                barGroups:
+                    products.take(8).toList().asMap().entries.map((entry) {
                   return BarChartGroupData(
                     x: entry.key,
                     barRods: [
@@ -726,7 +746,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         toY: entry.value.revenue,
                         color: AppColors.primary,
                         width: 16,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4)),
                       ),
                     ],
                   );
@@ -744,7 +765,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
@@ -826,7 +848,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             product.categoryName,
                             style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                              color: AppColors.textSecondary
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -865,7 +888,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -874,7 +898,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: rank <= 3 ? AppColors.primary.withValues(alpha: 0.1) : AppColors.textSecondary.withValues(alpha: 0.1),
+              color: rank <= 3
+                  ? AppColors.primary.withValues(alpha: 0.1)
+                  : AppColors.textSecondary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -883,7 +909,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: rank <= 3 ? AppColors.primary : AppColors.textSecondary,
+                  color:
+                      rank <= 3 ? AppColors.primary : AppColors.textSecondary,
                 ),
               ),
             ),
@@ -905,7 +932,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.receipt, size: 12, color: AppColors.textSecondary),
+                    Icon(Icons.receipt,
+                        size: 12, color: AppColors.textSecondary),
                     const SizedBox(width: 4),
                     Text(
                       '${waiter.totalOrders} orders',
@@ -915,7 +943,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Icon(Icons.attach_money, size: 12, color: AppColors.textSecondary),
+                    Icon(Icons.attach_money,
+                        size: 12, color: AppColors.textSecondary),
                     const SizedBox(width: 4),
                     Text(
                       'Avg: ${waiter.averageOrderValue.toStringAsFixed(0)} KM',
@@ -952,7 +981,8 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -984,7 +1014,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       interval: 2,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
-                        if (index < 0 || index >= peakHours.length) return const Text('');
+                        if (index < 0 || index >= peakHours.length) {
+                          return const Text('');
+                        }
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
                           child: Text(
@@ -1013,8 +1045,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       },
                     ),
                   ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
                 ),
                 borderData: FlBorderData(show: false),
                 lineBarsData: [

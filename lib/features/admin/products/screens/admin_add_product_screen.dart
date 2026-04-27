@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:orders_mobile/core/constants/api_constants.dart';
 import 'package:orders_mobile/core/services/api/api_service.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/accompaniment_group_manager.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
@@ -11,8 +12,8 @@ import 'package:orders_mobile/providers/products_provider.dart';
 import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import 'dart:io';
-
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -25,21 +26,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
+  final _purchasePriceController = TextEditingController();
   final _quantityController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _prepTimeController = TextEditingController(text: '15');
-  
+
   String? _selectedCategoryId;
   String? _selectedIngredientId;
   String _selectedLocation = 'Kitchen';
-  
+
   List<Map<String, dynamic>> _categories = [];
   List<Map<String, dynamic>> _storeProducts = [];
   List<AccompanimentGroup> _accompanimentGroups = [];
   bool _isLoadingData = true;
-  
+
   File? _selectedImage;
+  String? _selectedImageDataUrl;
   bool _isSaving = false;
+
+  void _showNotification(String message, {bool isError = false}) {
+    AppNotification.show(context, message, isError: isError);
+  }
 
   @override
   void initState() {
@@ -53,6 +60,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
+    _purchasePriceController.dispose();
     _quantityController.dispose();
     _descriptionController.dispose();
     _prepTimeController.dispose();
@@ -61,21 +69,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<void> _loadFormData() async {
     setState(() => _isLoadingData = true);
-    
+
     try {
       final api = ApiService();
-      
+
       // Load categories from backend
       final categoriesResponse = await api.get(ApiConstants.categories);
-      
+
       if (!mounted) return;
-      
+
       // Load store products (ingredients) from backend
-      final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
+      final inventoryProvider =
+          Provider.of<InventoryProvider>(context, listen: false);
       await inventoryProvider.fetchStoreProducts();
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         _categories = (categoriesResponse as List)
             .map((c) => {
@@ -83,32 +92,43 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   'name': c['name'],
                 })
             .toList();
-        
+
         _storeProducts = inventoryProvider.storeProducts
             .map((sp) => {
                   'id': sp.id,
                   'name': sp.name,
                 })
             .toList();
-        
+
         _isLoadingData = false;
       });
     } catch (e) {
       debugPrint('❌ Error loading product form data: $e');
       if (!mounted) return;
       setState(() => _isLoadingData = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load form data. Please try again.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showNotification('Failed to load form data. Please try again.',
+          isError: true);
     }
+  }
+
+  Future<void> _setSelectedImage(XFile image) async {
+    final bytes = await image.readAsBytes();
+    final extension = image.path.split('.').last.toLowerCase();
+    final mimeType = switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+
+    setState(() {
+      _selectedImage = File(image.path);
+      _selectedImageDataUrl = 'data:$mimeType;base64,${base64Encode(bytes)}';
+    });
   }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -122,34 +142,48 @@ class _AddProductScreenState extends State<AddProductScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.photo_camera, color: AppColors.primary),
+                leading:
+                    const Icon(Icons.photo_camera, color: AppColors.primary),
                 title: const Text('Take a photo'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? image = await picker.pickImage(source: ImageSource.camera);
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.camera,
+                    maxWidth: 1200,
+                    imageQuality: 85,
+                  );
                   if (image != null) {
-                    setState(() => _selectedImage = File(image.path));
+                    await _setSelectedImage(image);
                   }
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library, color: AppColors.primary),
+                leading:
+                    const Icon(Icons.photo_library, color: AppColors.primary),
                 title: const Text('Choose from gallery'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 1200,
+                    imageQuality: 85,
+                  );
                   if (image != null) {
-                    setState(() => _selectedImage = File(image.path));
+                    await _setSelectedImage(image);
                   }
                 },
               ),
               if (_selectedImage != null)
                 ListTile(
-                  leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                  leading:
+                      const Icon(Icons.delete_outline, color: AppColors.error),
                   title: const Text('Remove image'),
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _selectedImage = null);
+                    setState(() {
+                      _selectedImage = null;
+                      _selectedImageDataUrl = null;
+                    });
                   },
                 ),
             ],
@@ -161,15 +195,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_selectedCategoryId == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a category'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showNotification('Please select a category', isError: true);
       return;
     }
 
@@ -177,20 +206,32 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     try {
       final api = ApiService();
-      
+
       // Step 1: Create product
       final productData = {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
+        if (_purchasePriceController.text.trim().isNotEmpty)
+          'purchasePrice': double.parse(_purchasePriceController.text.trim()),
         'stock': int.parse(_quantityController.text.trim()),
         'categoryId': _selectedCategoryId,
         'preparationLocation': _selectedLocation,
         'preparationTimeMinutes': int.parse(_prepTimeController.text.trim()),
         'isAvailable': true,
+        if (_selectedImageDataUrl != null) 'imageUrl': _selectedImageDataUrl,
+        'ingredients': _selectedIngredientId == null
+            ? []
+            : [
+                {
+                  'storeProductId': _selectedIngredientId,
+                  'quantity': 1,
+                }
+              ],
       };
 
-      final createdProduct = await api.post(ApiConstants.products, body: productData);
+      final createdProduct =
+          await api.post(ApiConstants.products, body: productData);
       final productId = createdProduct['id'] as String;
 
       if (!mounted) return;
@@ -207,40 +248,33 @@ class _AddProductScreenState extends State<AddProductScreen> {
           'minSelections': group.minSelections,
           'maxSelections': group.maxSelections,
           'displayOrder': group.displayOrder,
-          'accompaniments': group.accompaniments.map((acc) => {
-            'name': acc.name,
-            'extraCharge': acc.extraCharge,
-            'isAvailable': acc.isAvailable,
-            'displayOrder': acc.displayOrder,
-          }).toList(),
+          'accompaniments': group.accompaniments
+              .map((acc) => {
+                    'name': acc.name,
+                    'extraCharge': acc.extraCharge,
+                    'isAvailable': acc.isAvailable,
+                    'displayOrder': acc.displayOrder,
+                  })
+              .toList(),
         };
 
         await api.createAccompanimentGroup(groupData);
       }
 
       if (!mounted) return;
-      
+
       // Refresh products list
       await context.read<ProductsProvider>().fetchProducts();
-      
+
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product successfully added'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      _showNotification('Product successfully added');
       Navigator.pop(context);
     } catch (e) {
       debugPrint('❌ Error saving product: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to save product. Please try again.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showNotification('Failed to save product. Please try again.',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -291,14 +325,40 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     _buildTextField(
                       controller: _priceController,
                       hint: 'e.g. 15.50',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       suffixText: 'KM',
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Enter price';
                         }
-                        if (double.tryParse(value) == null) {
-                          return 'Enter a valid price';
+                        final parsed = double.tryParse(value);
+                        if (parsed == null) return 'Enter a valid price';
+                        if (parsed < 0) return 'Price cannot be negative';
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Purchase Price Field
+                    _buildLabel('Purchase price'),
+                    _buildTextField(
+                      controller: _purchasePriceController,
+                      hint: 'e.g. 8.20',
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      suffixText: 'KM',
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return null;
+                        }
+                        final parsed = double.tryParse(value);
+                        if (parsed == null) {
+                          return 'Enter a valid purchase price';
+                        }
+                        if (parsed < 0) {
+                          return 'Purchase price cannot be negative';
                         }
                         return null;
                       },
@@ -317,9 +377,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Enter quantity';
                         }
-                        if (int.tryParse(value) == null) {
-                          return 'Enter a valid number';
-                        }
+                        final parsed = int.tryParse(value);
+                        if (parsed == null) return 'Enter a valid number';
+                        if (parsed < 0) return 'Quantity cannot be negative';
                         return null;
                       },
                     ),
@@ -336,9 +396,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     _buildLabel('Preparation time (minutes)'),
                     _buildTextField(
                       controller: _prepTimeController,
-                      hint: 'e,g, 15',
+                      hint: 'e.g. 15',
                       keyboardType: TextInputType.number,
                       suffixText: 'min',
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return null;
+                        final parsed = int.tryParse(value);
+                        if (parsed == null) return 'Enter a valid number';
+                        if (parsed < 0) {
+                          return 'Preparation time cannot be negative';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: 20),
@@ -364,7 +433,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.textSecondary.withValues(alpha: 0.2),
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.2),
                           ),
                         ),
                         child: _selectedImage != null
@@ -372,7 +442,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.file(
                                   _selectedImage!,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                 ),
                               )
                             : _buildImagePlaceholder(),
@@ -408,38 +478,55 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                     const SizedBox(height: 32),
 
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveProduct,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
-                          disabledBackgroundColor: AppColors.textSecondary.withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: AppColors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'Save product',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed:
+                                _isSaving ? null : () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                      ),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveProduct,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.white,
+                              disabledBackgroundColor: AppColors.textSecondary
+                                  .withValues(alpha: 0.3),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Add',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 32),
@@ -525,7 +612,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Widget _buildCategoryDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedCategoryId,
+      key: ValueKey(_selectedCategoryId ?? 'no-category'),
+      initialValue: _selectedCategoryId,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
@@ -585,7 +673,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Widget _buildLocationDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedLocation,
+      key: ValueKey(_selectedLocation),
+      initialValue: _selectedLocation,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
@@ -615,6 +704,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
       items: const [
         DropdownMenuItem(
+          value: 'Both',
+          child: Row(
+            children: [
+              Icon(Icons.restaurant_menu, size: 18, color: AppColors.primary),
+              SizedBox(width: 12),
+              Text('Both'),
+            ],
+          ),
+        ),
+        DropdownMenuItem(
           value: 'Kitchen',
           child: Row(
             children: [
@@ -641,10 +740,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Widget _buildIngredientsDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedIngredientId,
+      key: ValueKey(_selectedIngredientId ?? 'no-ingredient'),
+      initialValue: _selectedIngredientId,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
+        suffixIcon: _selectedIngredientId == null
+            ? null
+            : IconButton(
+                tooltip: 'Remove ingredient',
+                icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                onPressed: () => setState(() => _selectedIngredientId = null),
+              ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
@@ -670,7 +777,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
       ),
       hint: Text(
-        _storeProducts.isEmpty ? 'Loading...' : 'Select an ingredient (optional)',
+        _storeProducts.isEmpty
+            ? 'Loading...'
+            : 'Select an ingredient (optional)',
         style: TextStyle(
           color: AppColors.textSecondary.withValues(alpha: 0.5),
           fontSize: 14,

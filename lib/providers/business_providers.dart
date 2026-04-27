@@ -210,7 +210,8 @@ class InventoryProvider with ChangeNotifier {
   List<StoreProductModel> get storeProducts => _storeProducts;
   List<StoreProductModel> get lowStockProducts => _lowStockProducts;
   List<InventoryLogModel> get inventoryLogs => _inventoryLogs;
-  List<ConsumptionForecastModel> get consumptionForecasts => _consumptionForecasts;
+  List<ConsumptionForecastModel> get consumptionForecasts =>
+      _consumptionForecasts;
   StoreProductModel? get selectedProduct => _selectedProduct;
   double? get totalStockValue => _totalStockValue;
   bool get isLoading => _isLoading;
@@ -535,6 +536,7 @@ class StoresProvider with ChangeNotifier {
       );
 
       if (response.success && response.data != null) {
+        _selectedStore = response.data;
         await fetchStores(); // Refresh
         return true;
       } else {

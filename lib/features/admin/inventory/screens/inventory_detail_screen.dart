@@ -3,13 +3,10 @@ import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/models/inventory/store_product_model.dart';
 import '../widgets/adjust_inventory_dialog.dart';
 
-
 class InventoryDetailScreen extends StatelessWidget {
   final dynamic product;
 
-
   const InventoryDetailScreen({super.key, required this.product});
-
 
   int _toInt(dynamic value) {
     if (value == null) return 0;
@@ -19,9 +16,7 @@ class InventoryDetailScreen extends StatelessWidget {
     return 0;
   }
 
-
   String _getString(dynamic v) => v == null ? '' : v.toString();
-
 
   String _getProductName() {
     try {
@@ -29,61 +24,49 @@ class InventoryDetailScreen extends StatelessWidget {
       if (v != null) return _getString(v);
     } catch (_) {}
 
-
     try {
       final v = (product as dynamic).name;
       if (v != null) return _getString(v);
     } catch (_) {}
 
-
     return 'Product';
   }
-
 
   int _getCurrentStock() {
     try {
       return _toInt((product as dynamic).currentStock);
     } catch (_) {}
 
-
     try {
       return _toInt((product as dynamic).stock);
     } catch (_) {}
-
 
     try {
       return _toInt((product as dynamic).quantity);
     } catch (_) {}
 
-
     return 0;
   }
-
 
   int _getMinStockLevel() {
     try {
       return _toInt((product as dynamic).minStockLevel);
     } catch (_) {}
 
-
     try {
       return _toInt((product as dynamic).minimumStockLevel);
     } catch (_) {}
-
 
     try {
       return _toInt((product as dynamic).minStock);
     } catch (_) {}
 
-
     try {
       return _toInt((product as dynamic).minimumStock);
     } catch (_) {}
 
-
     return 0;
   }
-
 
   dynamic _tryGet(dynamic Function() getter) {
     try {
@@ -93,33 +76,26 @@ class InventoryDetailScreen extends StatelessWidget {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final name = _getProductName();
     final currentStock = _getCurrentStock();
     final minStock = _getMinStockLevel();
 
-
     final id = _tryGet(() => (product as dynamic).id) ??
         _tryGet(() => (product as dynamic).storeProductId);
-
 
     final unit = _tryGet(() => (product as dynamic).unit) ??
         _tryGet(() => (product as dynamic).unitName);
 
-
     final category = _tryGet(() => (product as dynamic).categoryName) ??
         _tryGet(() => (product as dynamic).category);
-
 
     final price = _tryGet(() => (product as dynamic).price) ??
         _tryGet(() => (product as dynamic).salePrice);
 
-
     final isLow = currentStock > 0 && currentStock <= minStock;
     final isOut = currentStock == 0;
-
 
     return Scaffold(
       appBar: AppBar(
@@ -134,7 +110,7 @@ class InventoryDetailScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.06)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,24 +123,17 @@ class InventoryDetailScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-
-
                 if (id != null) _InfoRow(label: 'ID', value: _getString(id)),
-                if (category != null) _InfoRow(label: 'Category', value: _getString(category)),
-                if (unit != null) _InfoRow(label: 'Unit', value: _getString(unit)),
-                if (price != null) _InfoRow(label: 'Price', value: _getString(price)),
-
-
+                if (category != null)
+                  _InfoRow(label: 'Category', value: _getString(category)),
+                if (unit != null)
+                  _InfoRow(label: 'Unit', value: _getString(unit)),
+                if (price != null)
+                  _InfoRow(label: 'Price', value: _getString(price)),
                 const Divider(height: 24),
-
-
                 _InfoRow(label: 'Stock', value: '$currentStock'),
                 _InfoRow(label: 'Minimum Stock', value: '$minStock'),
-
-
                 const SizedBox(height: 12),
-
-
                 if (isOut)
                   _StatusChip(text: 'Out of stock', color: Colors.red)
                 else if (isLow)
@@ -174,17 +143,14 @@ class InventoryDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-
-
           const SizedBox(height: 16),
-
-
           ElevatedButton.icon(
             onPressed: product is StoreProductModel
                 ? () async {
                     final result = await showDialog<bool>(
                       context: context,
-                      builder: (_) => AdjustInventoryDialog(product: product as StoreProductModel),
+                      builder: (_) => AdjustInventoryDialog(
+                          product: product as StoreProductModel),
                     );
                     if (result == true && context.mounted) {
                       Navigator.pop(context);
@@ -208,14 +174,11 @@ class InventoryDetailScreen extends StatelessWidget {
   }
 }
 
-
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-
   const _InfoRow({required this.label, required this.value});
-
 
   @override
   Widget build(BuildContext context) {
@@ -245,14 +208,11 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-
 class _StatusChip extends StatelessWidget {
   final String text;
   final Color color;
 
-
   const _StatusChip({required this.text, required this.color});
-
 
   @override
   Widget build(BuildContext context) {
@@ -261,9 +221,9 @@ class _StatusChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.16),
+          color: color.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: color.withOpacity(0.35)),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: Text(
           text,

@@ -19,6 +19,7 @@ dependencies:
   shimmer: ^3.0.0
   lottie: ^3.0.0
   animations: ^2.0.11
+  flutter_dotenv: ^6.0.0
   flutter_staggered_animations: ^1.1.1
   
   # ?? State Management & Navigation
@@ -46,7 +47,6 @@ dependencies:
   
   # ?? Payment
   flutter_stripe: ^12.1.1
-  flutter_dotenv: ^5.2.1
   
   # ?? Charts
   fl_chart: ^1.1.1
@@ -63,9 +63,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - .env
-  
 
 

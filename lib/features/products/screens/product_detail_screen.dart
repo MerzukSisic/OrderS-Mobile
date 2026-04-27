@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/services/api/common_api_services.dart';
-import 'package:orders_mobile/core/utils/top_notification.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import 'package:provider/provider.dart';
 
@@ -8,6 +8,7 @@ import '../../../models/products/product_model.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/services/navigation_service.dart';
+import '../../../core/widgets/product_image.dart';
 import '../../../providers/orders_provider.dart'; // ✅ DODAJ IMPORT
 import '../widgets/ingredient_chip.dart';
 import '../../../core/widgets/accompaniment_selector.dart';
@@ -42,28 +43,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _loadAccompaniments() async {
+    if (!mounted) return;
     setState(() => _isLoadingAccompaniments = true);
     try {
-      final response = await AccompanimentsApiService()
-          .getByProductId(widget.product.id);
+      final response =
+          await AccompanimentsApiService().getByProductId(widget.product.id);
 
+      if (!mounted) return;
       setState(() {
         _accompanimentGroups =
             response.success && response.data != null ? response.data! : [];
         _isLoadingAccompaniments = false;
       });
     } catch (e) {
-      setState(() => _isLoadingAccompaniments = false);
       debugPrint('❌ ERROR loading accompaniments: $e');
+      if (!mounted) return;
+      setState(() => _isLoadingAccompaniments = false);
     }
   }
 
   void _showNotification(String message, {bool isError = false}) {
-    TopNotification.show(
-      context,
-      message: message,
-      isError: isError,
-    );
+    AppNotification.show(context, message, isError: isError);
   }
 
   void _openCart() {
@@ -210,24 +210,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   color: AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: widget.product.imageUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          widget.product.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.restaurant,
-                            size: 80,
-                            color: AppColors.textDisabled,
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.restaurant,
-                        size: 80,
-                        color: AppColors.textDisabled,
-                      ),
+                child: ProductImage(
+                  imageUrl: widget.product.imageUrl,
+                  borderRadius: BorderRadius.circular(16),
+                  fit: BoxFit.contain,
+                  placeholder: const Icon(
+                    Icons.restaurant,
+                    size: 80,
+                    color: AppColors.textDisabled,
+                  ),
+                ),
               ),
             ),
           ),

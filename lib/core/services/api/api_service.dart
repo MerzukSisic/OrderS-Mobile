@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:orders_mobile/models/products/accompaniment.dart' show Accompaniment;
+import 'package:orders_mobile/models/products/accompaniment.dart'
+    show Accompaniment;
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import '../../constants/api_constants.dart';
 import '../../constants/app_constants.dart';
 
-
 class ApiService {
-  static const bool _logHttp = true;
+  static const bool _logHttp = false;
 
   void _log(String message) {
     if (_logHttp && kDebugMode) {
@@ -90,7 +90,8 @@ class ApiService {
   // ============================================
 
   /// GET Request
-  Future<dynamic> get(String endpoint, {Map<String, String>? queryParams}) async {
+  Future<dynamic> get(String endpoint,
+      {Map<String, String>? queryParams}) async {
     final uri = Uri.parse(ApiConstants.baseUrl + endpoint)
         .replace(queryParameters: queryParams);
 
@@ -101,13 +102,15 @@ class ApiService {
           .get(uri, headers: await _getHeaders())
           .timeout(ApiConstants.timeout);
 
-      _log('⬅️ GET  $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
+      _log(
+          '⬅️ GET  $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
       return _handleResponse(response, uri: uri);
     } on http.ClientException catch (e) {
       throw ApiException('Connection error: ${e.message}. URL: $uri');
     } on Exception catch (e) {
       final errorMessage = e.toString();
-      if (errorMessage.contains('TimeoutException') || errorMessage.contains('timeout')) {
+      if (errorMessage.contains('TimeoutException') ||
+          errorMessage.contains('timeout')) {
         throw ApiException('Request timeout. URL: $uri');
       }
       throw ApiException('Network error: $errorMessage. URL: $uri');
@@ -128,13 +131,15 @@ class ApiService {
           .post(uri, headers: await _getHeaders(), body: json.encode(body))
           .timeout(ApiConstants.timeout);
 
-      _log('⬅️ POST $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
+      _log(
+          '⬅️ POST $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
       return _handleResponse(response, uri: uri);
     } on http.ClientException catch (e) {
       throw ApiException('Connection error: ${e.message}. URL: $uri');
     } on Exception catch (e) {
       final errorMessage = e.toString();
-      if (errorMessage.contains('TimeoutException') || errorMessage.contains('timeout')) {
+      if (errorMessage.contains('TimeoutException') ||
+          errorMessage.contains('timeout')) {
         throw ApiException('Request timeout. URL: $uri');
       }
       throw ApiException('Network error: $errorMessage. URL: $uri');
@@ -155,13 +160,15 @@ class ApiService {
           .put(uri, headers: await _getHeaders(), body: json.encode(body))
           .timeout(ApiConstants.timeout);
 
-      _log('⬅️ PUT  $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
+      _log(
+          '⬅️ PUT  $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
       return _handleResponse(response, uri: uri);
     } on http.ClientException catch (e) {
       throw ApiException('Connection error: ${e.message}. URL: $uri');
     } on Exception catch (e) {
       final errorMessage = e.toString();
-      if (errorMessage.contains('TimeoutException') || errorMessage.contains('timeout')) {
+      if (errorMessage.contains('TimeoutException') ||
+          errorMessage.contains('timeout')) {
         throw ApiException('Request timeout. URL: $uri');
       }
       throw ApiException('Network error: $errorMessage. URL: $uri');
@@ -182,13 +189,15 @@ class ApiService {
           .patch(uri, headers: await _getHeaders(), body: json.encode(body))
           .timeout(ApiConstants.timeout);
 
-      _log('⬅️ PATCH $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
+      _log(
+          '⬅️ PATCH $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
       return _handleResponse(response, uri: uri);
     } on http.ClientException catch (e) {
       throw ApiException('Connection error: ${e.message}. URL: $uri');
     } on Exception catch (e) {
       final errorMessage = e.toString();
-      if (errorMessage.contains('TimeoutException') || errorMessage.contains('timeout')) {
+      if (errorMessage.contains('TimeoutException') ||
+          errorMessage.contains('timeout')) {
         throw ApiException('Request timeout. URL: $uri');
       }
       throw ApiException('Network error: $errorMessage. URL: $uri');
@@ -208,13 +217,15 @@ class ApiService {
           .delete(uri, headers: await _getHeaders())
           .timeout(ApiConstants.timeout);
 
-      _log('⬅️ DELETE $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
+      _log(
+          '⬅️ DELETE $uri  [${response.statusCode}] ${response.body.isEmpty ? '(empty body)' : ''}');
       return _handleResponse(response, uri: uri);
     } on http.ClientException catch (e) {
       throw ApiException('Connection error: ${e.message}. URL: $uri');
     } on Exception catch (e) {
       final errorMessage = e.toString();
-      if (errorMessage.contains('TimeoutException') || errorMessage.contains('timeout')) {
+      if (errorMessage.contains('TimeoutException') ||
+          errorMessage.contains('timeout')) {
         throw ApiException('Request timeout. URL: $uri');
       }
       throw ApiException('Network error: $errorMessage. URL: $uri');
@@ -238,20 +249,25 @@ class ApiService {
         return null;
 
       case 400:
-        throw ApiException('Bad request (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
+        throw ApiException(
+            'Bad request (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
 
       case 401:
-        throw UnauthorizedException('Unauthorized (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
+        throw UnauthorizedException(
+            'Unauthorized (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
 
       case 403:
-        throw ApiException('Forbidden (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
+        throw ApiException(
+            'Forbidden (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
 
       case 404:
-        throw ApiException('Not found (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
+        throw ApiException(
+            'Not found (${response.statusCode})${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
 
       case 500:
       default:
-        throw ApiException('HTTP ${response.statusCode}${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
+        throw ApiException(
+            'HTTP ${response.statusCode}${uri != null ? ' for $uri' : ''}: ${_extractServerMessage(response)}');
     }
   }
 
@@ -260,8 +276,15 @@ class ApiService {
   // ============================================
 
   /// Get all accompaniment groups for a specific product
-  Future<List<AccompanimentGroup>> getProductAccompaniments(String productId) async {
-    final response = await get('/accompaniments/product/$productId');
+  Future<List<AccompanimentGroup>> getProductAccompaniments(
+      String productId) async {
+    final response = await get(
+      '/accompaniments/product/$productId',
+      queryParams: const {
+        'page': '1',
+        'pageSize': '100',
+      },
+    );
     if (response == null) return [];
     final List<dynamic> list = response as List;
     return list.map((json) => AccompanimentGroup.fromJson(json)).toList();
@@ -274,13 +297,15 @@ class ApiService {
   }
 
   /// Create new accompaniment group (Admin only)
-  Future<AccompanimentGroup> createAccompanimentGroup(Map<String, dynamic> data) async {
+  Future<AccompanimentGroup> createAccompanimentGroup(
+      Map<String, dynamic> data) async {
     final response = await post('/accompaniments/groups', body: data);
     return AccompanimentGroup.fromJson(response);
   }
 
   /// Update accompaniment group (Admin only)
-  Future<void> updateAccompanimentGroup(String groupId, Map<String, dynamic> data) async {
+  Future<void> updateAccompanimentGroup(
+      String groupId, Map<String, dynamic> data) async {
     await put('/accompaniments/groups/$groupId', body: data);
   }
 
@@ -290,8 +315,11 @@ class ApiService {
   }
 
   /// Add accompaniment to group (Admin only)
-  Future<Accompaniment> addAccompaniment(String groupId, Map<String, dynamic> data) async {
-    final response = await post('/accompaniments/groups/$groupId/accompaniments', body: data);
+  Future<Accompaniment> addAccompaniment(
+      String groupId, Map<String, dynamic> data) async {
+    final response = await post(
+        '/accompaniments/groups/$groupId/accompaniments',
+        body: data);
     return Accompaniment.fromJson(response);
   }
 
@@ -302,7 +330,8 @@ class ApiService {
   }
 
   /// Update accompaniment (Admin only)
-  Future<void> updateAccompaniment(String accompanimentId, Map<String, dynamic> data) async {
+  Future<void> updateAccompaniment(
+      String accompanimentId, Map<String, dynamic> data) async {
     await put('/accompaniments/$accompanimentId', body: data);
   }
 
@@ -313,7 +342,9 @@ class ApiService {
 
   /// Toggle accompaniment availability (Admin/Waiter)
   Future<bool> toggleAccompanimentAvailability(String accompanimentId) async {
-    final response = await patch('/accompaniments/$accompanimentId/toggle-availability', body: {});
+    final response = await patch(
+        '/accompaniments/$accompanimentId/toggle-availability',
+        body: {});
     return response['isAvailable'] as bool;
   }
 
@@ -330,8 +361,10 @@ class ApiService {
   }
 
   /// Calculate total extra charges for selected accompaniments
-  Future<double> calculateAccompanimentCharges(List<String> accompanimentIds) async {
-    final response = await post('/accompaniments/calculate-charges', body: accompanimentIds);
+  Future<double> calculateAccompanimentCharges(
+      List<String> accompanimentIds) async {
+    final response =
+        await post('/accompaniments/calculate-charges', body: accompanimentIds);
     return (response['totalExtraCharge'] as num).toDouble();
   }
 }

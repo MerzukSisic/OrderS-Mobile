@@ -8,31 +8,33 @@ class ErrorHandlingInterceptor extends Interceptor {
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    debugPrint('🌐 REQUEST: ${options.method} ${options.path}');
-    debugPrint('🌐 HEADERS: ${options.headers}');
-    if (options.data != null) {
-      debugPrint('🌐 DATA: ${options.data}');
+    if (kDebugMode) {
+      debugPrint('REQUEST: ${options.method} ${options.path}');
     }
     super.onRequest(options, handler);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    debugPrint('✅ RESPONSE: ${response.statusCode} ${response.requestOptions.path}');
-    debugPrint('✅ DATA: ${response.data}');
+    if (kDebugMode) {
+      debugPrint(
+          'RESPONSE: ${response.statusCode} ${response.requestOptions.path}');
+    }
     super.onResponse(response, handler);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    debugPrint('❌ ERROR: ${err.requestOptions.path}');
-    
+    if (kDebugMode) {
+      debugPrint('ERROR: ${err.requestOptions.path}');
+    }
+
     // Convert DioException to AppException
     final appException = _errorService.handleDioError(err);
-    
+
     // Log the error
     _errorService.logError(appException);
-    
+
     // Pass the original error to the handler
     // The calling code can catch and handle AppException
     super.onError(err, handler);

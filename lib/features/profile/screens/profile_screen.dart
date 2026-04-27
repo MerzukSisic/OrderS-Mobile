@@ -446,6 +446,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                       
                       // ============================================
+                      // ⚙️ ACCOUNT (ALL ROLES)
+                      // ============================================
+                      _ProfileMenuItem(
+                        icon: Icons.edit_outlined,
+                        title: 'Edit Profile',
+                        subtitle: 'Update your name, email and phone',
+                        onTap: () {
+                          Navigator.pushNamed(context, AppRouter.editProfile);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      _ProfileMenuItem(
+                        icon: Icons.lock_outline,
+                        title: 'Change Password',
+                        subtitle: 'Update your account password',
+                        onTap: () {
+                          Navigator.pushNamed(context, AppRouter.changePassword);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // ============================================
                       // 📖 ABOUT (ALL ROLES)
                       // ============================================
                       _ProfileMenuItem(

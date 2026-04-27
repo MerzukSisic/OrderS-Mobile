@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import 'package:orders_mobile/core/widgets/app_search_bar.dart';
 import 'package:orders_mobile/core/widgets/loading_indicator.dart';
 import 'package:orders_mobile/models/auth/user_model.dart';
 import 'package:orders_mobile/providers/users_accompaniments_providers.dart';
@@ -50,9 +52,14 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((user) {
-        return user.fullName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        return user.fullName
+                .toLowerCase()
+                .contains(_searchQuery.toLowerCase()) ||
             user.email.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            (user.phoneNumber?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
+            (user.phoneNumber
+                    ?.toLowerCase()
+                    .contains(_searchQuery.toLowerCase()) ??
+                false);
       }).toList();
     }
 
@@ -75,19 +82,20 @@ class _UsersListScreenState extends State<UsersListScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              final success = await context.read<UsersProvider>().deleteUser(user.id);
+              final success =
+                  await context.read<UsersProvider>().deleteUser(user.id);
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(success ? 'User deleted' : 'Error deleting user'),
-                    backgroundColor: success ? AppColors.success : AppColors.error,
-                  ),
+                AppNotification.show(
+                  context,
+                  success ? 'User deleted' : 'Error deleting user',
+                  isError: !success,
                 );
                 if (success) _loadData();
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete', style: TextStyle(color: AppColors.white)),
+            child:
+                const Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),
@@ -96,16 +104,15 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
   void _toggleUserStatus(UserModel user) async {
     final success = await context.read<UsersProvider>().updateUser(
-      user.id,
-      isActive: !user.isActive,
-    );
+          user.id,
+          isActive: !user.isActive,
+        );
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(success ? 'Status updated' : 'Error updating status'),
-          backgroundColor: success ? AppColors.success : AppColors.error,
-        ),
+      AppNotification.show(
+        context,
+        success ? 'Status updated' : 'Error updating status',
+        isError: !success,
       );
       if (success) _loadData();
     }
@@ -116,9 +123,17 @@ class _UsersListScreenState extends State<UsersListScreen> {
     return AdminScaffold(
       title: 'Users',
       currentRoute: AppRouter.usersList,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
+          onPressed: _loadData,
+          tooltip: 'Refresh',
+        ),
+      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.pushNamed(context, AppRouter.userCreate).then((_) => _loadData());
+          Navigator.pushNamed(context, AppRouter.userCreate)
+              .then((_) => _loadData());
         },
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
@@ -163,79 +178,57 @@ class _UsersListScreenState extends State<UsersListScreen> {
     );
   }
 
+  Widget _chip({required String label, required String? value}) {
+    final selected = _roleFilter == value;
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) {
+        setState(() => _roleFilter = value);
+        _applyFilters();
+      },
+      backgroundColor: AppColors.surface,
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      checkmarkColor: AppColors.primary,
+      side: BorderSide(
+        color:
+            selected ? AppColors.primary : Colors.grey.withValues(alpha: 0.3),
+      ),
+      labelStyle: TextStyle(
+        color: selected ? AppColors.primary : null,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 13,
+      ),
+    );
+  }
+
   Widget _buildFilters() {
     return Container(
-      padding: const EdgeInsets.all(16),
       color: AppColors.surface,
       child: Column(
         children: [
-          // Search Bar
-          TextField(
+          AppSearchBar(
             controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by name, email...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.textSecondary.withValues(alpha: 0.1)),
-              ),
-              filled: true,
-              fillColor: AppColors.background,
-            ),
-            onChanged: (value) {
-              setState(() => _searchQuery = value);
-            },
+            hintText: 'Search by name, email...',
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            onChanged: (value) => setState(() => _searchQuery = value),
           ),
-          const SizedBox(height: 12),
-          // Role Filter
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
-                  ),
-                  child: DropdownButton<String?>(
-                    value: _roleFilter,
-                    hint: const Text('All roles'),
-                    isExpanded: true,
-                    underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(value: null, child: Text('All roles')),
-                      DropdownMenuItem(value: 'Admin', child: Text('Admin')),
-                      DropdownMenuItem(value: 'Waiter', child: Text('Waiter')),
-                      DropdownMenuItem(value: 'Bartender', child: Text('Bartender')),
-                      DropdownMenuItem(value: 'Kitchen', child: Text('Kitchen')),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _roleFilter = value);
-                      _applyFilters();
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: _loadData,
-                icon: const Icon(Icons.refresh),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.background,
-                  padding: const EdgeInsets.all(12),
-                ),
-              ),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(
+              children: [
+                _chip(label: 'All', value: null),
+                const SizedBox(width: 8),
+                _chip(label: 'Admin', value: 'Admin'),
+                const SizedBox(width: 8),
+                _chip(label: 'Waiter', value: 'Waiter'),
+                const SizedBox(width: 8),
+                _chip(label: 'Bartender', value: 'Bartender'),
+                const SizedBox(width: 8),
+                _chip(label: 'Kitchen', value: 'Kitchen'),
+              ],
+            ),
           ),
         ],
       ),
@@ -248,7 +241,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
@@ -293,7 +287,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     Expanded(
                       child: Text(
                         user.email,
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -303,11 +298,13 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.phone, size: 14, color: AppColors.textSecondary),
+                      Icon(Icons.phone,
+                          size: 14, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(
                         user.phoneNumber!,
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -332,12 +329,16 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   onPressed: () => _toggleUserStatus(user),
                   icon: Icon(
                     user.isActive ? Icons.toggle_on : Icons.toggle_off,
-                    color: user.isActive ? AppColors.success : AppColors.textSecondary,
+                    color: user.isActive
+                        ? AppColors.success
+                        : AppColors.textSecondary,
                   ),
                   label: Text(
                     user.isActive ? 'Active' : 'Inactive',
                     style: TextStyle(
-                      color: user.isActive ? AppColors.success : AppColors.textSecondary,
+                      color: user.isActive
+                          ? AppColors.success
+                          : AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -355,7 +356,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
                 TextButton.icon(
                   onPressed: () => _showDeleteDialog(user),
                   icon: Icon(Icons.delete, color: AppColors.error),
-                  label: Text('Delete', style: TextStyle(color: AppColors.error)),
+                  label:
+                      Text('Delete', style: TextStyle(color: AppColors.error)),
                 ),
               ],
             ),
@@ -366,9 +368,11 @@ class _UsersListScreenState extends State<UsersListScreen> {
   }
 
   Widget _buildRoleBadge(String role) {
-    final roleText = role == 'Waiter' ? 'Waiter' : 
-                     (role == 'Bartender' ? 'Bartender' : 
-                     (role == 'Kitchen' ? 'Kitchen' : role));
+    final roleText = role == 'Waiter'
+        ? 'Waiter'
+        : (role == 'Bartender'
+            ? 'Bartender'
+            : (role == 'Kitchen' ? 'Kitchen' : role));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -398,7 +402,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.success.withValues(alpha: 0.15) : AppColors.error.withValues(alpha: 0.15),
+        color: isActive
+            ? AppColors.success.withValues(alpha: 0.15)
+            : AppColors.error.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -417,7 +423,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline, size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+          Icon(Icons.people_outline,
+              size: 64, color: AppColors.textSecondary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             'No users',
@@ -432,7 +439,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
             _searchQuery.isNotEmpty
                 ? 'Try a different search'
                 : 'Add your first user',
-            style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7)),
+            style: TextStyle(
+                color: AppColors.textSecondary.withValues(alpha: 0.7)),
           ),
         ],
       ),
@@ -446,7 +454,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
         children: [
           Icon(Icons.error_outline, size: 48, color: AppColors.error),
           const SizedBox(height: 16),
-          Text(error, style: TextStyle(color: AppColors.error)),
+          const Text('Failed to load users. Please try again.',
+              style: TextStyle(color: AppColors.error)),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadData,

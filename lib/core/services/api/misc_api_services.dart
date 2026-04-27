@@ -11,12 +11,16 @@ class NotificationsApiService {
   Future<ApiResponse<List<Map<String, dynamic>>>> getNotifications({
     bool? isRead,
     String? type,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/notifications',
       queryParameters: {
         if (isRead != null) 'isRead': isRead,
         if (type != null) 'type': type,
+        'page': page,
+        'pageSize': pageSize,
       },
       fromJson: (json) => (json as List).cast<Map<String, dynamic>>(),
     );
@@ -72,9 +76,8 @@ class RecommendationsApiService {
         if (userId != null) 'userId': userId,
         'count': count,
       },
-      fromJson: (json) => (json as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => ProductModel.fromJson(item)).toList(),
     );
   }
 
@@ -85,9 +88,8 @@ class RecommendationsApiService {
     return await _client.get(
       '/recommendations/popular',
       queryParameters: {'count': count},
-      fromJson: (json) => (json as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => ProductModel.fromJson(item)).toList(),
     );
   }
 
@@ -102,9 +104,8 @@ class RecommendationsApiService {
         'hour': hour,
         'count': count,
       },
-      fromJson: (json) => (json as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => ProductModel.fromJson(item)).toList(),
     );
   }
 }
@@ -115,7 +116,8 @@ class ReceiptsApiService {
   final ApiClient _client = ApiClient();
 
   /// Get customer receipt
-  Future<ApiResponse<Map<String, dynamic>>> getCustomerReceipt(String orderId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getCustomerReceipt(
+      String orderId) async {
     return await _client.get(
       '/Receipts/customer/$orderId',
       fromJson: (json) => json as Map<String, dynamic>,
@@ -123,7 +125,8 @@ class ReceiptsApiService {
   }
 
   /// Get kitchen receipt
-  Future<ApiResponse<Map<String, dynamic>>> getKitchenReceipt(String orderId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getKitchenReceipt(
+      String orderId) async {
     return await _client.get(
       '/Receipts/kitchen/$orderId',
       fromJson: (json) => json as Map<String, dynamic>,
@@ -131,7 +134,8 @@ class ReceiptsApiService {
   }
 
   /// Get bar receipt
-  Future<ApiResponse<Map<String, dynamic>>> getBarReceipt(String orderId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getBarReceipt(
+      String orderId) async {
     return await _client.get(
       '/Receipts/bar/$orderId',
       fromJson: (json) => json as Map<String, dynamic>,
@@ -139,12 +143,14 @@ class ReceiptsApiService {
   }
 
   /// Get receipt by order ID (alias za customer receipt za provider compatibility)
-  Future<ApiResponse<Map<String, dynamic>>> getReceiptByOrderId(String orderId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getReceiptByOrderId(
+      String orderId) async {
     return getCustomerReceipt(orderId);
   }
 
   /// Get receipt by ID (legacy support)
-  Future<ApiResponse<Map<String, dynamic>>> getReceiptById(String receiptId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getReceiptById(
+      String receiptId) async {
     return getCustomerReceipt(receiptId);
   }
 
@@ -165,11 +171,15 @@ class ProcurementApiService {
   /// Get all procurement orders
   Future<ApiResponse<List<ProcurementOrderModel>>> getProcurementOrders({
     String? storeId,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/procurement',
       queryParameters: {
         if (storeId != null) 'storeId': storeId,
+        'page': page,
+        'pageSize': pageSize,
       },
       fromJson: (json) => (json as List)
           .map((item) => ProcurementOrderModel.fromJson(item))
@@ -178,7 +188,8 @@ class ProcurementApiService {
   }
 
   /// Get procurement order by ID
-  Future<ApiResponse<ProcurementOrderModel>> getProcurementOrderById(String id) async {
+  Future<ApiResponse<ProcurementOrderModel>> getProcurementOrderById(
+      String id) async {
     return await _client.get(
       '/procurement/$id',
       fromJson: (json) => ProcurementOrderModel.fromJson(json),
@@ -208,19 +219,21 @@ class ProcurementApiService {
 
   /// Create payment intent for procurement
   /// Create payment intent for procurement
-/// Returns: { clientSecret: "...", paymentIntentId: "pi_..." }
-Future<ApiResponse<Map<String, dynamic>>> createPaymentIntent(String procurementOrderId) async {
-  final response = await _client.post<Map<String, dynamic>>(
-    '/procurement/$procurementOrderId/payment-intent',
-    fromJson: (json) => json as Map<String, dynamic>,
-  );
+  /// Returns: { clientSecret: "...", paymentIntentId: "pi_..." }
+  Future<ApiResponse<Map<String, dynamic>>> createPaymentIntent(
+      String procurementOrderId) async {
+    final response = await _client.post<Map<String, dynamic>>(
+      '/procurement/$procurementOrderId/payment-intent',
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
 
-  if (response.success && response.data != null) {
-    return ApiResponse.success(response.data!);
+    if (response.success && response.data != null) {
+      return ApiResponse.success(response.data!);
+    }
+
+    return ApiResponse.failure(
+        response.error ?? 'Failed to create payment intent');
   }
-
-  return ApiResponse.failure(response.error ?? 'Failed to create payment intent');
-}
 
   /// Confirm payment
   Future<ApiResponse<void>> confirmPayment({
@@ -287,7 +300,8 @@ class PaymentsApiService {
   }
 
   /// Get payment intent
-  Future<ApiResponse<Map<String, dynamic>>> getPaymentIntent(String paymentIntentId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getPaymentIntent(
+      String paymentIntentId) async {
     return await _client.get(
       '/payments/intent/$paymentIntentId',
       fromJson: (json) => json as Map<String, dynamic>,

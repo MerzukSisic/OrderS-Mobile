@@ -5,6 +5,8 @@ import '../../../providers/orders_provider.dart';
 import '../../../providers/products_provider.dart';
 import '../../../routes/app_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/app_notification.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../features/shared/widgets/bottom_nav_bar.dart';
 import '../../../models/tables/table_model.dart';
 import '../../../core/widgets/error_display.dart';
@@ -79,7 +81,8 @@ class _TablesScreenState extends State<TablesScreen> {
                 Expanded(
                   child: GridView.builder(
                     padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       childAspectRatio: 1.3,
                       crossAxisSpacing: 16,
@@ -96,32 +99,54 @@ class _TablesScreenState extends State<TablesScreen> {
                   ),
                 ),
 
-                // New Order Button (bez stola - TakeAway)
+                // New Order Buttons (bez stola)
                 Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: ElevatedButton(
-                    onPressed: () => _handleNewOrder(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_rounded, size: 24),
-                        SizedBox(width: 8),
-                        Text(
-                          'New Order (Take Away)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleNewOrder(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.secondary,
+                            minimumSize: const Size(0, 52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon:
+                              const Icon(Icons.shopping_bag_outlined, size: 20),
+                          label: const Text(
+                            'Take Away',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handlePartnerOrder(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.info,
+                            minimumSize: const Size(0, 52),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          icon: const Icon(Icons.handshake_outlined, size: 20),
+                          label: const Text(
+                            'Partner',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -140,8 +165,26 @@ class _TablesScreenState extends State<TablesScreen> {
     final status = table.status.toLowerCase();
     final hasActiveOrder = table.currentOrderId != null;
 
-    // If table is occupied and has an active order -> ask what to do
+    // If table is occupied and has an active order -> check order status first
     if (status == 'occupied' && hasActiveOrder) {
+      await ordersProvider.fetchOrderById(table.currentOrderId!);
+      if (!mounted) return;
+
+      final currentOrder = ordersProvider.selectedOrder;
+      if (currentOrder == null ||
+          currentOrder.status == AppConstants.orderStatusCancelled ||
+          currentOrder.status == AppConstants.orderStatusCompleted) {
+        ordersProvider.clearCart();
+        ordersProvider.setTable(table.id);
+        ordersProvider.setOrderType(AppConstants.orderTypeDineIn);
+        if (productsProvider.products.isEmpty) {
+          await productsProvider.fetchProducts();
+        }
+        if (!mounted) return;
+        AppRouter.navigateTo(context, AppRouter.products);
+        return;
+      }
+
       final choice = await showDialog<String>(
         context: context,
         builder: (ctx) {
@@ -174,26 +217,18 @@ class _TablesScreenState extends State<TablesScreen> {
       if (choice == 'finish') {
         final ok = await ordersProvider.updateOrderStatus(
           orderId: table.currentOrderId!,
-          status: 'Completed',
+          status: AppConstants.orderStatusCompleted,
         );
 
         if (!mounted) return;
 
         if (ok) {
           await context.read<TablesProvider>().fetchTables();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Order finished successfully.'),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          if (!mounted) return;
+          AppNotification.success(context, 'Order finished successfully.');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(ordersProvider.error ?? 'Failed to finish order'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppNotification.error(
+              context, 'Failed to finish order. Please try again.');
         }
         return;
       }
@@ -201,7 +236,7 @@ class _TablesScreenState extends State<TablesScreen> {
       // Add items to existing order
       ordersProvider.clearCart();
       ordersProvider.setTable(table.id);
-      ordersProvider.setOrderType('DineIn');
+      ordersProvider.setOrderType(AppConstants.orderTypeDineIn);
 
       // Load products if needed
       if (productsProvider.products.isEmpty) {
@@ -210,9 +245,9 @@ class _TablesScreenState extends State<TablesScreen> {
 
       // Load existing order and add to cart
       await ordersProvider.fetchOrderById(table.currentOrderId!);
-      
+
       if (!mounted) return;
-      
+
       if (ordersProvider.selectedOrder != null) {
         for (final item in ordersProvider.selectedOrder!.items) {
           final product = productsProvider.getProductById(item.productId);
@@ -235,7 +270,7 @@ class _TablesScreenState extends State<TablesScreen> {
     // New order on free table
     ordersProvider.clearCart();
     ordersProvider.setTable(table.id);
-    ordersProvider.setOrderType('DineIn');
+    ordersProvider.setOrderType(AppConstants.orderTypeDineIn);
 
     if (!mounted) return;
     AppRouter.navigateTo(context, AppRouter.products);
@@ -245,7 +280,16 @@ class _TablesScreenState extends State<TablesScreen> {
     final ordersProvider = context.read<OrdersProvider>();
     ordersProvider.clearCart();
     ordersProvider.setTable(null);
-    ordersProvider.setOrderType('TakeAway');
+    ordersProvider.setOrderType(AppConstants.orderTypeTakeAway);
+    AppRouter.navigateTo(context, AppRouter.products);
+  }
+
+  void _handlePartnerOrder() {
+    final ordersProvider = context.read<OrdersProvider>();
+    ordersProvider.clearCart();
+    ordersProvider.setTable(null);
+    ordersProvider.setOrderType(AppConstants.orderTypeTakeAway);
+    ordersProvider.togglePartnerOrder();
     AppRouter.navigateTo(context, AppRouter.products);
   }
 }

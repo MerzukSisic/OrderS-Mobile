@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/providers/procurement_payments_providers.dart';
 import 'package:orders_mobile/routes/app_router.dart';
@@ -36,6 +37,13 @@ class _AdminProcurementListScreenState
       title: 'Procurement',
       currentRoute: AppRouter.procurementList,
       backgroundColor: AppColors.background,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
+          onPressed: _loadData,
+          tooltip: 'Refresh',
+        ),
+      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () =>
             Navigator.pushNamed(context, AppRouter.procurementCreate),
@@ -43,53 +51,72 @@ class _AdminProcurementListScreenState
         label: const Text('New Procurement'),
         backgroundColor: AppColors.primary,
       ),
-      body: Consumer<ProcurementProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading && provider.procurementOrders.isEmpty) {
-            return const Center(
-                child: CircularProgressIndicator(color: AppColors.primary));
-          }
-
-          if (provider.error != null && provider.procurementOrders.isEmpty) {
-            return _ErrorState(message: provider.error!, onRetry: _loadData);
-          }
-
-          final orders = _applyFilter(provider.procurementOrders);
-
-          return RefreshIndicator(
-            onRefresh: _loadData,
-            color: AppColors.primary,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _HeaderBlock(provider: provider),
-                const SizedBox(height: 12),
-                _FilterRow(
-                  selected: _selectedFilter,
-                  total: provider.procurementOrders.length,
-                  pending: provider.pendingOrders.length,
-                  paid: provider.paidOrders.length,
-                  received: provider.receivedOrders.length,
-                  onChanged: (v) => setState(() => _selectedFilter = v),
-                ),
-                const SizedBox(height: 12),
-                if (orders.isEmpty)
-                  _EmptyState(
-                    onCreate: () => Navigator.pushNamed(
-                        context, AppRouter.procurementCreate),
-                  )
-                else
-                  ...orders.map((o) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _ProcurementOrderCard(
-                          order: o,
-                          onTap: () => _showOrderDialog(context, o),
-                        ),
-                      )),
-              ],
+      body: Column(
+        children: [
+          // Filter header
+          Consumer<ProcurementProvider>(
+            builder: (ctx, provider, _) => Container(
+              color: AppColors.surface,
+              child: _FilterRow(
+                selected: _selectedFilter,
+                total: provider.procurementOrders.length,
+                pending: provider.pendingOrders.length,
+                paid: provider.paidOrders.length,
+                received: provider.receivedOrders.length,
+                onChanged: (v) => setState(() => _selectedFilter = v),
+              ),
             ),
-          );
-        },
+          ),
+
+          // Content
+          Expanded(
+            child: Consumer<ProcurementProvider>(
+              builder: (context, provider, _) {
+                if (provider.isLoading && provider.procurementOrders.isEmpty) {
+                  return const Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary));
+                }
+
+                if (provider.error != null &&
+                    provider.procurementOrders.isEmpty) {
+                  return _ErrorState(
+                    message:
+                        'Failed to load procurement orders. Please try again.',
+                    onRetry: _loadData,
+                  );
+                }
+
+                final orders = _applyFilter(provider.procurementOrders);
+
+                return RefreshIndicator(
+                  onRefresh: _loadData,
+                  color: AppColors.primary,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _HeaderBlock(provider: provider),
+                      const SizedBox(height: 12),
+                      if (orders.isEmpty)
+                        _EmptyState(
+                          onCreate: () => Navigator.pushNamed(
+                              context, AppRouter.procurementCreate),
+                        )
+                      else
+                        ...orders.map((o) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _ProcurementOrderCard(
+                                order: o,
+                                onTap: () => _showOrderDialog(context, o),
+                              ),
+                            )),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -119,7 +146,8 @@ class _AdminProcurementListScreenState
           children: [
             Text('Status: ${_translateStatus(order.status)}'),
             Text('Store: ${order.storeName ?? 'N/A'}'),
-            Text('Amount: ${(order.totalAmount as double).toStringAsFixed(2)} KM'),
+            Text(
+                'Amount: ${(order.totalAmount as double).toStringAsFixed(2)} KM'),
             Text('Items: ${order.items.length}'),
           ],
         ),
@@ -139,11 +167,13 @@ class _AdminProcurementListScreenState
                     'existingOrderId': order.id,
                     'storeId': order.storeId ?? '',
                     'sourceStoreId': null,
-                    'items': (order.items as List).map((item) => {
-                      'productName': item.storeProductName,
-                      'quantity': item.quantity,
-                      'unitCost': item.unitCost,
-                    }).toList(),
+                    'items': (order.items as List)
+                        .map((item) => {
+                              'productName': item.storeProductName,
+                              'quantity': item.quantity,
+                              'unitCost': item.unitCost,
+                            })
+                        .toList(),
                   },
                 );
               },
@@ -167,30 +197,137 @@ class _AdminProcurementListScreenState
                 foregroundColor: Colors.white,
               ),
             ),
+          if (order.status == 'Paid' &&
+              (order.stripePaymentIntentId as String?)?.isNotEmpty == true)
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _showRefundDialog(context, order);
+              },
+              icon: const Icon(Icons.undo, size: 18),
+              label: const Text('Refund'),
+            ),
         ],
       ),
     );
   }
 
-  Future<void> _receiveOrder(dynamic order) async {
-    final items = (order.items as List).map((item) => {
-      'itemId': item.id,
-      'receivedQuantity': item.quantity,
-    }).toList();
-
-    final success = await context.read<ProcurementProvider>().receiveProcurement(
-      procurementOrderId: order.id,
-      items: items,
+  void _showRefundDialog(BuildContext context, dynamic order) {
+    final reasonController = TextEditingController();
+    final amountController = TextEditingController(
+      text: (order.totalAmount as double).toStringAsFixed(2),
     );
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Refund payment'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: amountController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Amount (KM)',
+                helperText: 'Leave the full paid amount for a full refund.',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: reasonController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Reason',
+                hintText: 'Cancelled procurement, duplicate payment...',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final amount = double.tryParse(
+                amountController.text.trim().replaceAll(',', '.'),
+              );
+              if (amount == null || amount <= 0) {
+                AppNotification.error(context, 'Enter a valid refund amount.');
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+              await _refundOrder(
+                paymentIntentId: order.stripePaymentIntentId as String,
+                amount: amount,
+                reason: reasonController.text.trim(),
+              );
+            },
+            icon: const Icon(Icons.undo, size: 18),
+            label: const Text('Refund'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.warning,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    ).whenComplete(() {
+      reasonController.dispose();
+      amountController.dispose();
+    });
+  }
+
+  Future<void> _refundOrder({
+    required String paymentIntentId,
+    required double amount,
+    required String reason,
+  }) async {
+    final result = await context.read<PaymentsProvider>().createRefund(
+          paymentIntentId: paymentIntentId,
+          amount: amount,
+          reason: reason.isEmpty ? 'Procurement refund' : reason,
+        );
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(success
-          ? 'Order received — inventory updated'
-          : context.read<ProcurementProvider>().error ?? 'Failed to receive'),
-      backgroundColor: success ? AppColors.success : AppColors.error,
-    ));
+    if (result != null) {
+      AppNotification.success(context, 'Refund request created successfully');
+      await _loadData();
+    } else {
+      final error = context.read<PaymentsProvider>().error ??
+          'Failed to create refund. Please try again.';
+      AppNotification.error(context, error);
+    }
+  }
+
+  Future<void> _receiveOrder(dynamic order) async {
+    final items = (order.items as List)
+        .map((item) => {
+              'itemId': item.id,
+              'receivedQuantity': item.quantity,
+            })
+        .toList();
+
+    final success =
+        await context.read<ProcurementProvider>().receiveProcurement(
+              procurementOrderId: order.id,
+              items: items,
+            );
+
+    if (!mounted) return;
+
+    if (success) {
+      AppNotification.success(context, 'Order received — inventory updated');
+    } else {
+      AppNotification.error(
+          context, 'Failed to receive order. Please try again.');
+    }
   }
 
   String _translateStatus(String status) {
@@ -379,6 +516,7 @@ class _FilterRow extends StatelessWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Row(
         children: [
           chip('All', 'all', total),

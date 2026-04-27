@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/services/api/misc_api_services.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/utils/formatters.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/features/orders/widgets/order_status_badge.dart';
@@ -69,20 +70,10 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     Navigator.pop(context); // Close loading
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order status updated to $newStatus'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      AppNotification.success(context, 'Order status updated to $newStatus');
       Navigator.pop(context); // Go back to list
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update: ${ordersProvider.error}'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppNotification.error(context, 'Failed to update order status. Please try again.');
     }
   }
 
@@ -130,26 +121,15 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     Navigator.pop(context); // Close loading
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order archived successfully'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      AppNotification.success(context, 'Order archived successfully');
       Navigator.pop(context); // Go back to list
     } else {
-      final err = context.read<OrdersProvider>().error ?? 'Failed to archive order';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(err),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      AppNotification.error(context, 'Failed to archive order. Please try again.');
     }
   }
 
   double _calculateSubtotal() {
-    return widget.order.items.fold(0, (sum, item) => sum + item.subtotal);
+    return widget.order.totalAmount;
   }
 
   double _calculateTax() {
@@ -167,10 +147,7 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
 
   void _showNotification(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: isError ? AppColors.error : AppColors.success,
-    ));
+    AppNotification.show(context, message, isError: isError);
   }
 
   void _showReceiptsDialog(BuildContext context) {

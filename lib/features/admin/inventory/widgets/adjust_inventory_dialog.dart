@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/models/inventory/store_product_model.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
 
@@ -55,7 +56,6 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
       }
 
       final provider = context.read<InventoryProvider>();
-      final messenger = ScaffoldMessenger.of(context);
       final success = await provider.adjustInventory(
         storeProductId: widget.product.id,
         quantityChange: quantityChange,
@@ -65,27 +65,15 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
 
       if (!mounted) return;
       if (success) {
-        messenger.showSnackBar(const SnackBar(
-          content: Text('Inventory adjusted successfully'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ));
+        AppNotification.success(context, 'Inventory adjusted successfully');
         Navigator.pop(context, true);
       } else {
-        messenger.showSnackBar(SnackBar(
-          content: Text(provider.error ?? 'Failed to adjust inventory'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ));
+        AppNotification.error(context, 'Failed to adjust inventory. Please try again.');
       }
     } catch (e) {
       debugPrint('❌ Error adjusting inventory: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Failed to adjust inventory. Please try again.'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ));
+        AppNotification.error(context, 'Failed to adjust inventory. Please try again.');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

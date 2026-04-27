@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/services/api/business_api_service.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/models/inventory/store_model.dart';
 import 'package:orders_mobile/models/inventory/store_product_model.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
@@ -66,10 +67,13 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
   void _onSearch(String q) {
     setState(() {
       _search = q;
-      _filtered = _allProducts.where((p) =>
-        p.name.toLowerCase().contains(q.toLowerCase()) ||
-        p.unit.toLowerCase().contains(q.toLowerCase()),
-      ).toList();
+      _filtered = _allProducts
+          .where(
+            (p) =>
+                p.name.toLowerCase().contains(q.toLowerCase()) ||
+                p.unit.toLowerCase().contains(q.toLowerCase()),
+          )
+          .toList();
     });
   }
 
@@ -95,12 +99,8 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
       widget.onAdded();
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(provider.error ?? 'Failed to add product'),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ));
+      AppNotification.error(
+          context, 'Failed to add product. Please try again.');
     }
   }
 
@@ -126,17 +126,22 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
                       color: AppColors.primary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 18),
+                    child: const Icon(Icons.inventory_2_outlined,
+                        color: AppColors.primary, size: 18),
                   ),
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
                       'Add Product to Store',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon:
+                        const Icon(Icons.close, color: AppColors.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -153,12 +158,19 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
                 style: const TextStyle(color: AppColors.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Search products...',
-                  hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5)),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.primary, size: 20),
+                  hintStyle: TextStyle(
+                      color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                  prefixIcon: const Icon(Icons.search,
+                      color: AppColors.primary, size: 20),
                   filled: true,
                   fillColor: AppColors.surfaceVariant,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none),
+                  focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: AppColors.primary, width: 2)),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
@@ -171,12 +183,18 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
             SizedBox(
               height: 220,
               child: _loading
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                  ? const Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary))
                   : _filtered.isEmpty
                       ? Center(
                           child: Text(
-                            _search.isEmpty ? 'No products available' : 'No results',
-                            style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6)),
+                            _search.isEmpty
+                                ? 'No products available'
+                                : 'No results',
+                            style: TextStyle(
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.6)),
                           ),
                         )
                       : ListView.builder(
@@ -187,27 +205,48 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
                             final isSelected = _selected?.id == p.id;
                             return ListTile(
                               selected: isSelected,
-                              selectedTileColor: AppColors.primary.withValues(alpha: 0.1),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              selectedTileColor:
+                                  AppColors.primary.withValues(alpha: 0.1),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               leading: Container(
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: (isSelected ? AppColors.primary : AppColors.textSecondary).withValues(alpha: 0.15),
+                                  color: (isSelected
+                                          ? AppColors.primary
+                                          : AppColors.textSecondary)
+                                      .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(Icons.inventory_2_outlined, size: 14, color: isSelected ? AppColors.primary : AppColors.textSecondary),
+                                child: Icon(Icons.inventory_2_outlined,
+                                    size: 14,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary),
                               ),
                               title: Text(
                                 p.name,
-                                style: TextStyle(color: AppColors.textPrimary, fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, fontSize: 14),
+                                style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    fontSize: 14),
                               ),
                               subtitle: Text(
                                 '${p.unit}  ·  ${p.purchasePrice.toStringAsFixed(2)} KM',
-                                style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7), fontSize: 12),
+                                style: TextStyle(
+                                    color: AppColors.textSecondary
+                                        .withValues(alpha: 0.7),
+                                    fontSize: 12),
                               ),
-                              trailing: isSelected ? const Icon(Icons.check_circle, color: AppColors.primary, size: 18) : null,
+                              trailing: isSelected
+                                  ? const Icon(Icons.check_circle,
+                                      color: AppColors.primary, size: 18)
+                                  : null,
                               onTap: () => setState(() => _selected = p),
                             );
                           },
@@ -224,14 +263,21 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
                   children: [
                     Text(
                       'Set stock for "${_selected!.name}"',
-                      style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary, fontSize: 13),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                          fontSize: 13),
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(child: _stockField(_currentStockCtrl, 'Current Stock')),
+                        Expanded(
+                            child: _stockField(
+                                _currentStockCtrl, 'Current Stock')),
                         const SizedBox(width: 12),
-                        Expanded(child: _stockField(_minimumStockCtrl, 'Minimum Stock')),
+                        Expanded(
+                            child: _stockField(
+                                _minimumStockCtrl, 'Minimum Stock')),
                       ],
                     ),
                   ],
@@ -247,20 +293,27 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                    child: const Text('Cancel',
+                        style: TextStyle(color: AppColors.textSecondary)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: _selected == null || _saving ? null : _handleAdd,
                     icon: _saving
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.add, size: 16),
                     label: Text(_saving ? 'Adding...' : 'Add to Store'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                       elevation: 0,
                     ),
                   ),
@@ -277,7 +330,9 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        Text(label,
+            style:
+                const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         const SizedBox(height: 4),
         TextField(
           controller: ctrl,
@@ -287,10 +342,16 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.surfaceVariant,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 2)),
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           ),
         ),
       ],

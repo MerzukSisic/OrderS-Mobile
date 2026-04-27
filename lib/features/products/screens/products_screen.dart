@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/widgets/app_search_bar.dart';
+import '../../../core/widgets/product_image.dart';
 import '../../../providers/products_provider.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../providers/orders_provider.dart';
@@ -8,6 +10,7 @@ import '../../../providers/notification_recommendation_providers.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/app_notification.dart';
 import '../../../routes/app_router.dart';
 import '../../shared/widgets/bottom_nav_bar.dart';
 
@@ -20,7 +23,6 @@ class ProductsScreen extends StatefulWidget {
 
 class _ProductsScreenState extends State<ProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   String? _selectedCategory;
   String _sortMode = 'name';
 
@@ -35,26 +37,22 @@ class _ProductsScreenState extends State<ProductsScreen> {
       final isAdmin = context.read<AuthProvider>().isAdmin;
       final ordersProvider = context.read<OrdersProvider>();
       final isTakeAway = ordersProvider.orderType == 'TakeAway';
+      final isPartnerOrder = ordersProvider.isPartnerOrder;
       final hasTable = ordersProvider.selectedTableId != null;
 
-      if (!isAdmin && !isTakeAway && !hasTable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select a table first.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (!isAdmin && !isTakeAway && !isPartnerOrder && !hasTable) {
+        AppNotification.error(context, 'Please select a table first.');
         Navigator.of(context).pushReplacementNamed(AppRouter.tables);
         return;
       }
 
+      context.read<ProductsProvider>().clearFilters();
       context.read<ProductsProvider>().fetchProducts();
       context.read<CategoriesProvider>().fetchCategories();
       final rec = context.read<RecommendationsProvider>();
       rec.fetchPopularProducts(count: 5);
       rec.fetchTimeBasedRecommendations(count: 4);
       rec.fetchRecommendedProducts(count: 4);
-
     });
   }
 
@@ -113,10 +111,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(name),
-                        trailing: selected ? const Icon(Icons.check_rounded) : null,
+                        trailing:
+                            selected ? const Icon(Icons.check_rounded) : null,
                         onTap: () {
                           setState(() => _selectedCategory = id);
-                          context.read<ProductsProvider>().fetchProducts(categoryId: id);
+                          context
+                              .read<ProductsProvider>()
+                              .fetchProducts(categoryId: id);
                           Navigator.pop(ctx);
                         },
                       );
@@ -212,7 +213,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         child: _PillButton(
                           icon: Icons.tune_rounded,
                           label: 'Filters',
-                          onTap: () => _openFiltersSheet(categoriesProvider.categories),
+                          onTap: () =>
+                              _openFiltersSheet(categoriesProvider.categories),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -223,8 +225,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           },
                           itemBuilder: (context) => const [
                             PopupMenuItem(value: 'name', child: Text('Name')),
-                            PopupMenuItem(value: 'price_low', child: Text('Price: Low to High')),
-                            PopupMenuItem(value: 'price_high', child: Text('Price: High to Low')),
+                            PopupMenuItem(
+                                value: 'price_low',
+                                child: Text('Price: Low to High')),
+                            PopupMenuItem(
+                                value: 'price_high',
+                                child: Text('Price: High to Low')),
                           ],
                           child: const _PillButton(
                             icon: Icons.sort_rounded,
@@ -240,55 +246,18 @@ class _ProductsScreenState extends State<ProductsScreen> {
             ),
 
             // ✅ SEARCH - Fixed at top
-            Padding(
+            AppSearchBar(
+              controller: _searchController,
+              hintText: 'Search products...',
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                            context.read<ProductsProvider>().searchProducts('');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: AppColors.textSecondary.withValues(alpha: 0.15),
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: AppColors.textSecondary.withValues(alpha: 0.15),
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() => _searchQuery = value);
-                  if (value.isNotEmpty) {
-                    context.read<ProductsProvider>().searchProducts(value);
-                  } else {
-                    context.read<ProductsProvider>().fetchProducts();
-                  }
-                },
-              ),
+              onChanged: (value) {
+                if (value.isNotEmpty) {
+                  context.read<ProductsProvider>().searchProducts(value);
+                } else {
+                  context.read<ProductsProvider>().clearFilters();
+                  context.read<ProductsProvider>().fetchProducts();
+                }
+              },
             ),
 
             // ✅ SCROLLABLE CONTENT - Carousel + Products together!
@@ -312,7 +281,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           const SizedBox(height: 16),
                           Text(
                             productsProvider.error!,
-                            style: const TextStyle(color: AppColors.textSecondary),
+                            style:
+                                const TextStyle(color: AppColors.textSecondary),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 16),
@@ -335,7 +305,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           Icon(
                             Icons.inventory_2_outlined,
                             size: 64,
-                            color: AppColors.textSecondary.withValues(alpha: 0.5),
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.5),
                           ),
                           const SizedBox(height: 16),
                           const Text(
@@ -363,9 +334,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                             child: _RecommendationsSection(
                               popularProducts: recProvider.popularProducts,
                               timeBasedProducts: recProvider.timeBasedProducts,
-                              recommendedProducts: recProvider.recommendedProducts,
+                              recommendedProducts:
+                                  recProvider.recommendedProducts,
                               selectedTab: _recTabIndex,
-                              onTabChanged: (i) => setState(() => _recTabIndex = i),
+                              onTabChanged: (i) =>
+                                  setState(() => _recTabIndex = i),
                             ),
                           ),
 
@@ -424,24 +397,30 @@ class _RecommendationsSection extends StatelessWidget {
   });
 
   static const _tabs = [
-    (icon: Icons.local_fire_department_rounded, label: 'Popular',   color: AppColors.primary),
-    (icon: Icons.access_time_rounded,           label: 'Right Now', color: Colors.teal),
-    (icon: Icons.recommend_rounded,             label: 'For You',   color: Colors.deepPurple),
+    (
+      icon: Icons.local_fire_department_rounded,
+      label: 'Popular',
+      color: AppColors.primary
+    ),
+    (icon: Icons.access_time_rounded, label: 'Right Now', color: Colors.teal),
+    (icon: Icons.recommend_rounded, label: 'For You', color: Colors.deepPurple),
   ];
 
   List _productsForTab(int i) => switch (i) {
-    0 => popularProducts,
-    1 => timeBasedProducts,
-    _ => recommendedProducts,
-  };
+        0 => popularProducts,
+        1 => timeBasedProducts,
+        _ => recommendedProducts,
+      };
 
   @override
   Widget build(BuildContext context) {
     // Determine first tab with data
-    final visibleTabs = [0, 1, 2].where((i) => _productsForTab(i).isNotEmpty).toList();
+    final visibleTabs =
+        [0, 1, 2].where((i) => _productsForTab(i).isNotEmpty).toList();
     if (visibleTabs.isEmpty) return const SizedBox.shrink();
 
-    final activeTab = visibleTabs.contains(selectedTab) ? selectedTab : visibleTabs.first;
+    final activeTab =
+        visibleTabs.contains(selectedTab) ? selectedTab : visibleTabs.first;
     final products = _productsForTab(activeTab);
     final accent = _tabs[activeTab].color;
 
@@ -462,7 +441,8 @@ class _RecommendationsSection extends StatelessWidget {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                     decoration: BoxDecoration(
                       color: selected
                           ? tab.color.withValues(alpha: 0.15)
@@ -480,14 +460,17 @@ class _RecommendationsSection extends StatelessWidget {
                       children: [
                         Icon(tab.icon,
                             size: 14,
-                            color: selected ? tab.color : AppColors.textSecondary),
+                            color:
+                                selected ? tab.color : AppColors.textSecondary),
                         const SizedBox(width: 6),
                         Text(
                           tab.label,
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                            color: selected ? tab.color : AppColors.textSecondary,
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w500,
+                            color:
+                                selected ? tab.color : AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -509,9 +492,10 @@ class _RecommendationsSection extends StatelessWidget {
                 final p = products[index];
                 return GestureDetector(
                   onTap: () => Navigator.pushNamed(
-                      context, AppRouter.productDetail, arguments: p),
+                      context, AppRouter.productDetail,
+                      arguments: p),
                   child: Container(
-                    width: 130,
+                    width: 145,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
@@ -526,9 +510,28 @@ class _RecommendationsSection extends StatelessWidget {
                           p.name,
                           style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 13),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        if ((p.reason as String?)?.isNotEmpty == true)
+                          Container(
+                            margin: const EdgeInsets.only(top: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              p.reason as String,
+                              style: TextStyle(
+                                  color: accent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         Text(
                           '${(p.price as num).toStringAsFixed(2)} KM',
                           style: TextStyle(
@@ -668,21 +671,11 @@ class _ProductRow extends StatelessWidget {
                     width: 72,
                     height: 72,
                     color: AppColors.surfaceVariant,
-                    child: (product.imageUrl != null)
-                        ? Image.network(
-                            product.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.restaurant,
-                              color: AppColors.textDisabled,
-                              size: 34,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.restaurant,
-                            color: AppColors.textDisabled,
-                            size: 34,
-                          ),
+                    child: ProductImage(
+                      imageUrl: product.imageUrl,
+                      width: 72,
+                      height: 72,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -727,7 +720,8 @@ class _ProductRow extends StatelessWidget {
                         Text(
                           'Out of stock',
                           style: TextStyle(
-                            color: AppColors.textSecondary.withValues(alpha: 0.85),
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.85),
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),

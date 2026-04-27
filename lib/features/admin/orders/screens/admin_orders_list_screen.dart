@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/utils/formatters.dart';
+import 'package:orders_mobile/core/utils/user_message.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import 'package:orders_mobile/core/widgets/app_search_bar.dart';
 import 'package:orders_mobile/features/orders/widgets/order_status_badge.dart';
 import 'package:orders_mobile/models/orders/order_model.dart';
 import 'package:orders_mobile/providers/orders_provider.dart';
 import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
-
 
 class AdminOrdersScreen extends StatefulWidget {
   const AdminOrdersScreen({super.key});
@@ -60,24 +61,29 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
     // Status filter
     if (_selectedStatus != 'All') {
-      filtered = filtered.where((order) => order.status == _selectedStatus).toList();
+      filtered =
+          filtered.where((order) => order.status == _selectedStatus).toList();
     }
 
     // Type filter
     if (_selectedType != 'All') {
-      filtered = filtered.where((order) => order.type == _selectedType).toList();
+      filtered =
+          filtered.where((order) => order.type == _selectedType).toList();
     }
 
     // ✅ Waiter filter
     if (_selectedWaiter != 'All') {
-      filtered = filtered.where((order) => order.waiterName == _selectedWaiter).toList();
+      filtered = filtered
+          .where((order) => order.waiterName == _selectedWaiter)
+          .toList();
     }
 
     // Date range filter
     if (_dateRange != null) {
       filtered = filtered.where((order) {
         return order.createdAt.isAfter(_dateRange!.start) &&
-            order.createdAt.isBefore(_dateRange!.end.add(const Duration(days: 1)));
+            order.createdAt
+                .isBefore(_dateRange!.end.add(const Duration(days: 1)));
       }).toList();
     }
 
@@ -114,69 +120,31 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     return AdminScaffold(
       title: 'Orders Management',
       currentRoute: AppRouter.adminOrders,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with stats and actions
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Consumer<OrdersProvider>(
-                  builder: (context, provider, _) {
-                    final filtered = _filterOrders(provider.orders);
-                    return Text(
-                      '${filtered.length} ${filtered.length == 1 ? 'order' : 'orders'} found',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  },
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
-                        color: _showFilters ? AppColors.primary : AppColors.textSecondary,
-                      ),
-                      onPressed: () => setState(() => _showFilters = !_showFilters),
-                      tooltip: 'Toggle Filters',
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
-                      onPressed: () => context.read<OrdersProvider>().fetchOrders(),
-                      tooltip: 'Refresh',
-                    ),
-                  ],
-                ),
-              ],
-            ),
+      actions: [
+        IconButton(
+          icon: Icon(
+            _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
+            color: _showFilters ? AppColors.primary : AppColors.textSecondary,
           ),
-
+          onPressed: () => setState(() => _showFilters = !_showFilters),
+          tooltip: 'Filters',
+        ),
+        IconButton(
+          icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
+          onPressed: () => context.read<OrdersProvider>().fetchOrders(),
+          tooltip: 'Refresh',
+        ),
+      ],
+      body: Column(
+        children: [
           // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: TextField(
+          Container(
+            color: AppColors.surface,
+            child: AppSearchBar(
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by Order ID, Waiter, or Table...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                      )
-                    : null,
-              ),
-              onChanged: (value) => setState(() {}),
+              hintText: 'Search by Order ID, Waiter, or Table...',
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              onChanged: (_) => setState(() {}),
             ),
           ),
 
@@ -220,23 +188,31 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                     ],
                   ),
                   const SizedBox(height: 12), // ✅ Reduced from 16
-                  
+
                   // ✅ Use Consumer to get waiters list dynamically
                   Consumer<OrdersProvider>(
                     builder: (context, provider, _) {
                       final waiters = _getUniqueWaiters(provider.orders);
-                      
+
                       return Column(
                         children: [
                           // Status Filter - FULL WIDTH
                           DropdownButtonFormField<String>(
-                            value: _selectedStatus,
+                            initialValue: _selectedStatus,
                             decoration: const InputDecoration(
                               labelText: 'Status',
                               prefixIcon: Icon(Icons.analytics_outlined),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12), // ✅ Compact
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12), // ✅ Compact
                             ),
-                            items: ['All', 'Pending', 'Preparing', 'Ready', 'Completed', 'Cancelled']
+                            items: [
+                              'All',
+                              'Pending',
+                              'Preparing',
+                              'Ready',
+                              'Completed',
+                              'Cancelled'
+                            ]
                                 .map((status) => DropdownMenuItem(
                                       value: status,
                                       child: Text(status),
@@ -251,11 +227,12 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
                           // Type Filter - FULL WIDTH
                           DropdownButtonFormField<String>(
-                            value: _selectedType,
+                            initialValue: _selectedType,
                             decoration: const InputDecoration(
                               labelText: 'Order Type',
                               prefixIcon: Icon(Icons.restaurant),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12), // ✅ Compact
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12), // ✅ Compact
                             ),
                             items: ['All', 'DineIn', 'TakeAway']
                                 .map((type) => DropdownMenuItem(
@@ -276,11 +253,12 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
 
                           // Waiter Filter - FULL WIDTH
                           DropdownButtonFormField<String>(
-                            value: _selectedWaiter,
+                            initialValue: _selectedWaiter,
                             decoration: const InputDecoration(
                               labelText: 'Waiter',
                               prefixIcon: Icon(Icons.person),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12), // ✅ Compact
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 12), // ✅ Compact
                             ),
                             items: [
                               const DropdownMenuItem(
@@ -307,12 +285,15 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                               _dateRange == null
                                   ? 'Select Date Range'
                                   : '${Formatters.date(_dateRange!.start)} - ${Formatters.date(_dateRange!.end)}',
-                              style: const TextStyle(fontSize: 13), // ✅ Smaller text
+                              style: const TextStyle(
+                                  fontSize: 13), // ✅ Smaller text
                             ),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16), // ✅ Reduced
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 16), // ✅ Reduced
                               alignment: Alignment.centerLeft,
-                              minimumSize: const Size(double.infinity, 48), // ✅ Reduced from 56
+                              minimumSize: const Size(
+                                  double.infinity, 48), // ✅ Reduced from 56
                             ),
                           ),
                         ],
@@ -346,8 +327,9 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          provider.error!,
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          UserMessage.friendly(provider.error!),
+                          style:
+                              const TextStyle(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
@@ -403,7 +385,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.all(24),
                     itemCount: filteredOrders.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 16),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 16),
                     itemBuilder: (context, index) {
                       final order = filteredOrders[index];
                       return _AdminOrderCard(
@@ -551,7 +534,8 @@ class _AdminOrderCard extends StatelessWidget {
             if (order.isPartnerOrder) ...[
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.info.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -674,7 +658,7 @@ class _DateRangeBottomSheet extends StatefulWidget {
 class _DateRangeBottomSheetState extends State<_DateRangeBottomSheet> {
   DateTime? _startDate;
   DateTime? _endDate;
-  DateTime _focusedDay = DateTime.now();
+  final DateTime _focusedDay = DateTime.now();
   bool _selectingStart = true;
 
   @override
@@ -729,7 +713,7 @@ class _DateRangeBottomSheetState extends State<_DateRangeBottomSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               const SizedBox(height: 20),
 
               // Title
@@ -813,7 +797,8 @@ class _DateRangeBottomSheetState extends State<_DateRangeBottomSheet> {
                     flex: 2,
                     child: ElevatedButton(
                       onPressed: _startDate != null && _endDate != null
-                          ? () => Navigator.pop(context, DateTimeRange(start: _startDate!, end: _endDate!))
+                          ? () => Navigator.pop(context,
+                              DateTimeRange(start: _startDate!, end: _endDate!))
                           : null,
                       child: const Text('Apply'),
                     ),
@@ -834,7 +819,11 @@ class _DateBox extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
 
-  const _DateBox({required this.label, required this.date, required this.isActive, required this.onTap});
+  const _DateBox(
+      {required this.label,
+      required this.date,
+      required this.isActive,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -846,15 +835,25 @@ class _DateBox extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive ? AppColors.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isActive ? AppColors.primary : AppColors.textSecondary.withValues(alpha: 0.3)),
+          border: Border.all(
+              color: isActive
+                  ? AppColors.primary
+                  : AppColors.textSecondary.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
-            Text(label, style: TextStyle(fontSize: 12, color: isActive ? AppColors.white : AppColors.textSecondary)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 12,
+                    color:
+                        isActive ? AppColors.white : AppColors.textSecondary)),
             const SizedBox(height: 4),
             Text(
               date != null ? Formatters.date(date!) : 'Select',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isActive ? AppColors.white : AppColors.textPrimary),
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isActive ? AppColors.white : AppColors.textPrimary),
             ),
           ],
         ),
@@ -888,11 +887,25 @@ class _SimpleCalendar extends StatelessWidget {
 
     return Column(
       children: [
-        Text('${_monthName(now.month)} ${now.year}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text('${_monthName(now.month)} ${now.year}',
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => SizedBox(width: 40, child: Text(d, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary.withValues(alpha: 0.7))))).toList(),
+          children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+              .map((d) => SizedBox(
+                  width: 40,
+                  child: Text(d,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              AppColors.textSecondary.withValues(alpha: 0.7)))))
+              .toList(),
         ),
         const SizedBox(height: 8),
         ...List.generate((daysInMonth + firstWeekday) ~/ 7 + 1, (week) {
@@ -902,13 +915,23 @@ class _SimpleCalendar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(7, (dayIdx) {
                 final dayNum = week * 7 + dayIdx - firstWeekday + 1;
-                if (dayNum < 1 || dayNum > daysInMonth) return const SizedBox(width: 40, height: 40);
-                
+                if (dayNum < 1 || dayNum > daysInMonth) {
+                  return const SizedBox(width: 40, height: 40);
+                }
+
                 final day = DateTime(now.year, now.month, dayNum);
-                final isStart = startDate != null && day.year == startDate!.year && day.month == startDate!.month && day.day == startDate!.day;
-                final isEnd = endDate != null && day.year == endDate!.year && day.month == endDate!.month && day.day == endDate!.day;
+                final isStart = startDate != null &&
+                    day.year == startDate!.year &&
+                    day.month == startDate!.month &&
+                    day.day == startDate!.day;
+                final isEnd = endDate != null &&
+                    day.year == endDate!.year &&
+                    day.month == endDate!.month &&
+                    day.day == endDate!.day;
                 final inRange = isDayInRange(day);
-                final isToday = day.year == now.year && day.month == now.month && day.day == now.day;
+                final isToday = day.year == now.year &&
+                    day.month == now.month &&
+                    day.day == now.day;
 
                 return InkWell(
                   onTap: () => onDaySelected(day),
@@ -917,12 +940,26 @@ class _SimpleCalendar extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isStart || isEnd ? AppColors.primary : inRange ? AppColors.primary.withValues(alpha: 0.2) : Colors.transparent,
+                      color: isStart || isEnd
+                          ? AppColors.primary
+                          : inRange
+                              ? AppColors.primary.withValues(alpha: 0.2)
+                              : Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
-                      border: isToday ? Border.all(color: AppColors.primary, width: 2) : null,
+                      border: isToday
+                          ? Border.all(color: AppColors.primary, width: 2)
+                          : null,
                     ),
                     alignment: Alignment.center,
-                    child: Text('$dayNum', style: TextStyle(fontSize: 14, fontWeight: isStart || isEnd ? FontWeight.bold : FontWeight.normal, color: isStart || isEnd ? AppColors.white : AppColors.textPrimary)),
+                    child: Text('$dayNum',
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isStart || isEnd
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isStart || isEnd
+                                ? AppColors.white
+                                : AppColors.textPrimary)),
                   ),
                 );
               }),
@@ -933,5 +970,18 @@ class _SimpleCalendar extends StatelessWidget {
     );
   }
 
-  String _monthName(int m) => const ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m - 1];
+  String _monthName(int m) => const [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December'
+      ][m - 1];
 }

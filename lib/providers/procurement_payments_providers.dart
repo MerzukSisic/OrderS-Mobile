@@ -106,32 +106,36 @@ class ProcurementProvider with ChangeNotifier {
 
   /// 🆕 MOBILE: Create Payment Intent & Initialize Payment Sheet
   /// Returns client secret for Stripe Payment Sheet
- Future<Map<String, dynamic>?> createPaymentIntent(String procurementOrderId) async {
-  _setLoading(true);
-  _clearError();
+  Future<Map<String, dynamic>?> createPaymentIntent(
+      String procurementOrderId) async {
+    _setLoading(true);
+    _clearError();
 
-  try {
-    debugPrint('🔵 Creating payment intent for order: $procurementOrderId');
+    try {
+      if (kDebugMode) {
+        debugPrint('Creating payment intent for order: $procurementOrderId');
+      }
 
-    final response = await _apiService.createPaymentIntent(procurementOrderId);
+      final response =
+          await _apiService.createPaymentIntent(procurementOrderId);
 
-    if (response.success && response.data != null) {
-      final data = response.data!;
-      debugPrint('✅ Payment intent received');
-      debugPrint('🟣 clientSecret=${data['clientSecret']}');
-      debugPrint('🟣 paymentIntentId=${data['paymentIntentId']}');
-      return data;
-    } else {
-      _setError(response.error ?? 'Failed to create payment intent');
+      if (response.success && response.data != null) {
+        final data = response.data!;
+        if (kDebugMode) {
+          debugPrint('Payment intent received');
+        }
+        return data;
+      } else {
+        _setError(response.error ?? 'Failed to create payment intent');
+        return null;
+      }
+    } catch (e) {
+      _setError('Error creating payment intent: $e');
       return null;
+    } finally {
+      _setLoading(false);
     }
-  } catch (e) {
-    _setError('Error creating payment intent: $e');
-    return null;
-  } finally {
-    _setLoading(false);
   }
-}
 
   /// 🆕 MOBILE: Confirm Payment (opciono - Stripe automatski potvrđuje)
   /// Webhook će update-ovati status, ali možemo i ručno provjeriti
@@ -285,7 +289,9 @@ class PaymentsProvider with ChangeNotifier {
 
       if (response.success && response.data != null) {
         _currentPaymentIntent = response.data;
-        debugPrint('✅ Payment Intent Created: ${response.data}');
+        if (kDebugMode) {
+          debugPrint('Payment intent created');
+        }
         return response.data;
       } else {
         _setError(response.error ?? 'Failed to create payment intent');
@@ -330,7 +336,9 @@ class PaymentsProvider with ChangeNotifier {
       final response = await _apiService.confirmPayment(paymentIntentId);
 
       if (response.success && response.data == true) {
-        debugPrint('✅ Payment Confirmed: $paymentIntentId');
+        if (kDebugMode) {
+          debugPrint('Payment confirmed');
+        }
         return true;
       } else {
         _setError(response.error ?? 'Payment confirmation failed');
@@ -355,7 +363,9 @@ class PaymentsProvider with ChangeNotifier {
       if (response.success && response.data == true) {
         _currentPaymentIntent = null;
         notifyListeners();
-        debugPrint('✅ Payment Intent Cancelled: $paymentIntentId');
+        if (kDebugMode) {
+          debugPrint('Payment intent cancelled');
+        }
         return true;
       } else {
         _setError(response.error ?? 'Payment cancellation failed');
@@ -385,7 +395,9 @@ class PaymentsProvider with ChangeNotifier {
       );
 
       if (response.success && response.data != null) {
-        debugPrint('✅ Refund Created: ${response.data}');
+        if (kDebugMode) {
+          debugPrint('Refund created');
+        }
         return response.data;
       } else {
         _setError(response.error ?? 'Failed to create refund');

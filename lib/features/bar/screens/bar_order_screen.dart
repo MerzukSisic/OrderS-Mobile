@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/services/api/orders_api_service.dart';
-import 'package:orders_mobile/core/utils/top_notification.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
+import 'package:orders_mobile/core/utils/user_message.dart';
+import 'package:orders_mobile/core/constants/app_constants.dart';
 import 'package:orders_mobile/features/shared/widgets/bottom_nav_bar.dart';
 import 'package:orders_mobile/models/orders/order_model.dart';
 
@@ -38,14 +40,11 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
   }
 
   void _showNotification(String message, {bool isError = false}) {
-    TopNotification.show(
-      context,
-      message: message,
-      isError: isError,
-    );
+    AppNotification.show(context, message, isError: isError);
   }
 
   Future<void> _loadOrders() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -56,17 +55,17 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
 
       final pendingResponse = await _apiService.getOrderItemsByLocation(
         location: 'Bar',
-        status: 'Pending',
+        status: AppConstants.orderStatusPending,
       );
 
       final preparingResponse = await _apiService.getOrderItemsByLocation(
         location: 'Bar',
-        status: 'Preparing',
+        status: AppConstants.orderStatusPreparing,
       );
 
       final readyResponse = await _apiService.getOrderItemsByLocation(
         location: 'Bar',
-        status: 'Ready',
+        status: AppConstants.orderStatusReady,
       );
 
       if (mounted) {
@@ -107,7 +106,10 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
 
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = UserMessage.friendly(
+            e,
+            fallback: 'We could not load bar orders. Please try again.',
+          );
           _isLoading = false;
         });
       }
@@ -146,8 +148,8 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
       } else {
         if (mounted) {
           _showNotification(
-            // ✅ NOVO
-            'Failed: ${response.error ?? "Unknown error"}',
+            response.error ??
+                'We could not update the order. Please try again.',
             isError: true,
           );
         }
@@ -160,7 +162,7 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
 
         _showNotification(
           // ✅ NOVO
-          'Failed to update: $e',
+          'Failed to update order. Please try again.',
           isError: true,
         );
       }
@@ -215,7 +217,7 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
     );
 
     if (result == true) {
-      await _updateItemStatus(itemId, 'Cancelled');
+      await _updateItemStatus(itemId, AppConstants.orderStatusCancelled);
     }
   }
 
@@ -255,15 +257,15 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
           tabs: [
             Tab(
               child: _buildTabLabel(
-                  'Pending', _pendingOrders.length, AppColors.error),
+                  AppConstants.orderStatusPending, _pendingOrders.length, AppColors.error),
             ),
             Tab(
               child: _buildTabLabel(
-                  'Preparing', _preparingOrders.length, AppColors.warning),
+                  AppConstants.orderStatusPreparing, _preparingOrders.length, AppColors.warning),
             ),
             Tab(
               child: _buildTabLabel(
-                  'Ready', _readyOrders.length, AppColors.success),
+                  AppConstants.orderStatusReady, _readyOrders.length, AppColors.success),
             ),
           ],
         ),
@@ -301,9 +303,9 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildOrdersList(_pendingOrders, 'Pending'),
-                      _buildOrdersList(_preparingOrders, 'Preparing'),
-                      _buildOrdersList(_readyOrders, 'Ready'),
+                      _buildOrdersList(_pendingOrders, AppConstants.orderStatusPending),
+                      _buildOrdersList(_preparingOrders, AppConstants.orderStatusPreparing),
+                      _buildOrdersList(_readyOrders, AppConstants.orderStatusReady),
                     ],
                   ),
                 ),
@@ -380,13 +382,13 @@ class _BarOrdersScreenState extends State<BarOrdersScreen>
         final item = orders[index];
         return _BarOrderCard(
           item: item,
-          onAccept: status == 'Pending'
-              ? () => _updateItemStatus(item.id, 'Preparing')
+          onAccept: status == AppConstants.orderStatusPending
+              ? () => _updateItemStatus(item.id, AppConstants.orderStatusPreparing)
               : null,
-          onReady: status == 'Preparing'
-              ? () => _updateItemStatus(item.id, 'Ready')
+          onReady: status == AppConstants.orderStatusPreparing
+              ? () => _updateItemStatus(item.id, AppConstants.orderStatusReady)
               : null,
-          onReject: status == 'Pending' || status == 'Preparing'
+          onReject: status == AppConstants.orderStatusPending || status == AppConstants.orderStatusPreparing
               ? () => _showRejectDialog(item.id, item.productName)
               : null,
         );
@@ -750,13 +752,13 @@ class _BarOrderCard extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'Pending':
+      case AppConstants.orderStatusPending:
         return AppColors.warning;
-      case 'Preparing':
+      case AppConstants.orderStatusPreparing:
         return AppColors.info;
-      case 'Ready':
+      case AppConstants.orderStatusReady:
         return AppColors.success;
-      case 'Cancelled':
+      case AppConstants.orderStatusCancelled:
         return AppColors.error;
       default:
         return AppColors.textSecondary;
@@ -765,13 +767,13 @@ class _BarOrderCard extends StatelessWidget {
 
   IconData _getStatusIcon(String status) {
     switch (status) {
-      case 'Pending':
+      case AppConstants.orderStatusPending:
         return Icons.schedule;
-      case 'Preparing':
+      case AppConstants.orderStatusPreparing:
         return Icons.refresh;
-      case 'Ready':
+      case AppConstants.orderStatusReady:
         return Icons.check_circle;
-      case 'Cancelled':
+      case AppConstants.orderStatusCancelled:
         return Icons.cancel;
       default:
         return Icons.info;

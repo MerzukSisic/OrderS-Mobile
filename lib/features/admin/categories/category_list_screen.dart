@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
+import 'package:orders_mobile/core/utils/user_message.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import 'package:orders_mobile/core/widgets/app_search_bar.dart';
 import 'package:orders_mobile/core/widgets/loading_indicator.dart';
 import 'package:orders_mobile/models/products/category_model.dart';
 import 'package:orders_mobile/providers/categories_provider.dart';
@@ -59,7 +62,8 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete', style: TextStyle(color: AppColors.white)),
+            child:
+                const Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),
@@ -69,22 +73,13 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
       try {
         await context.read<CategoriesProvider>().deleteCategory(category.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${category.name} deleted'),
-              backgroundColor: AppColors.success,
-            ),
-          );
+          AppNotification.success(context, '${category.name} deleted');
         }
       } catch (e) {
         debugPrint('❌ Error deleting category: $e');
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Failed to delete category. Please try again.'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppNotification.error(
+              context, 'Failed to delete category. Please try again.');
         }
       }
     }
@@ -95,11 +90,18 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
     return AdminScaffold(
       title: 'Categories',
       currentRoute: AppRouter.categoriesList,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
+          onPressed: () => context.read<CategoriesProvider>().fetchCategories(),
+          tooltip: 'Refresh',
+        ),
+      ],
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, AppRouter.categoryCreate).then((_) {
-            context.read<CategoriesProvider>().fetchCategories();
-          });
+        onPressed: () async {
+          await Navigator.pushNamed(context, AppRouter.categoryCreate);
+          if (!context.mounted) return;
+          context.read<CategoriesProvider>().fetchCategories();
         },
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
@@ -109,51 +111,12 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
         children: [
           // Search Bar
           Container(
-            padding: const EdgeInsets.all(16),
             color: AppColors.surface,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(
-                      hintText: 'Search categories...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {});
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: AppColors.background,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () {
-                    context.read<CategoriesProvider>().fetchCategories();
-                  },
-                  style: IconButton.styleFrom(
-                    backgroundColor: AppColors.background,
-                    padding: const EdgeInsets.all(12),
-                  ),
-                ),
-              ],
+            child: AppSearchBar(
+              controller: _searchController,
+              hintText: 'Search categories...',
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              onChanged: (_) => setState(() {}),
             ),
           ),
 
@@ -170,9 +133,11 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                        Icon(Icons.error_outline,
+                            size: 48, color: AppColors.error),
                         const SizedBox(height: 16),
-                        Text(provider.error!, style: TextStyle(color: AppColors.error)),
+                        Text(UserMessage.friendly(provider.error!),
+                            style: TextStyle(color: AppColors.error)),
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => provider.fetchCategories(),
@@ -183,7 +148,8 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                   );
                 }
 
-                final filteredCategories = _getFilteredCategories(provider.categories);
+                final filteredCategories =
+                    _getFilteredCategories(provider.categories);
 
                 if (filteredCategories.isEmpty) {
                   return Center(
@@ -213,9 +179,11 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                   onRefresh: () => provider.fetchCategories(),
                   child: GridView.builder(
                     padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      childAspectRatio: 0.75, // ✅ Increased card height (0.85 → 0.75)
+                      childAspectRatio:
+                          0.75, // ✅ Increased card height (0.85 → 0.75)
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                     ),
@@ -242,6 +210,7 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
           AppRouter.categoryEdit,
           arguments: category.id,
         ).then((_) {
+          if (!mounted) return;
           context.read<CategoriesProvider>().fetchCategories();
         });
       },
@@ -271,7 +240,8 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                       AppColors.primary.withValues(alpha: 0.05),
                     ],
                   ),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(16)),
                 ),
                 child: Center(
                   child: Icon(
@@ -313,7 +283,8 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                               category.description!,
                               style: TextStyle(
                                 fontSize: 10, // ✅ Reduced from 11 to 10
-                                color: AppColors.textSecondary.withValues(alpha: 0.7),
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.7),
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -331,14 +302,16 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                             Icon(
                               Icons.inventory_2_outlined,
                               size: 13, // ✅ Reduced from 14 to 13
-                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                              color: AppColors.textSecondary
+                                  .withValues(alpha: 0.7),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               '${category.productCount} products',
                               style: TextStyle(
                                 fontSize: 10, // ✅ Reduced from 11 to 10
-                                color: AppColors.textSecondary.withValues(alpha: 0.7),
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -354,34 +327,46 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
                                     AppRouter.categoryEdit,
                                     arguments: category.id,
                                   ).then((_) {
-                                    context.read<CategoriesProvider>().fetchCategories();
+                                    if (!mounted) return;
+                                    context
+                                        .read<CategoriesProvider>()
+                                        .fetchCategories();
                                   });
                                 },
-                                icon: const Icon(Icons.edit, size: 13), // ✅ Reduced from 14 to 13
-                                label: const Text('Edit', style: TextStyle(fontSize: 10)), // ✅ Reduced from 11 to 10
+                                icon: const Icon(Icons.edit,
+                                    size: 13), // ✅ Reduced from 14 to 13
+                                label: const Text('Edit',
+                                    style: TextStyle(
+                                        fontSize:
+                                            10)), // ✅ Reduced from 11 to 10
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.primary,
                                   side: BorderSide(
-                                    color: AppColors.primary.withValues(alpha: 0.5),
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.5),
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  padding: const EdgeInsets.symmetric(vertical: 4), // ✅ Reduced from 6 to 4
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 4), // ✅ Reduced from 6 to 4
                                 ),
                               ),
                             ),
                             const SizedBox(width: 6),
                             IconButton(
                               onPressed: () => _deleteCategory(category),
-                              icon: const Icon(Icons.delete, size: 16), // ✅ Reduced from 18 to 16
+                              icon: const Icon(Icons.delete,
+                                  size: 16), // ✅ Reduced from 18 to 16
                               color: AppColors.error,
                               style: IconButton.styleFrom(
-                                backgroundColor: AppColors.error.withValues(alpha: 0.1),
+                                backgroundColor:
+                                    AppColors.error.withValues(alpha: 0.1),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                padding: const EdgeInsets.all(4), // ✅ Reduced from 6 to 4
+                                padding: const EdgeInsets.all(
+                                    4), // ✅ Reduced from 6 to 4
                               ),
                             ),
                           ],
@@ -408,11 +393,14 @@ class _CategoriesListScreenState extends State<CategoriesListScreen> {
         lowercaseName.contains('piće') ||
         lowercaseName.contains('pice')) {
       return Icons.local_bar;
-    } else if (lowercaseName.contains('coffee') || lowercaseName.contains('kafa')) {
+    } else if (lowercaseName.contains('coffee') ||
+        lowercaseName.contains('kafa')) {
       return Icons.coffee;
-    } else if (lowercaseName.contains('dessert') || lowercaseName.contains('desert')) {
+    } else if (lowercaseName.contains('dessert') ||
+        lowercaseName.contains('desert')) {
       return Icons.cake;
-    } else if (lowercaseName.contains('breakfast') || lowercaseName.contains('doručak')) {
+    } else if (lowercaseName.contains('breakfast') ||
+        lowercaseName.contains('doručak')) {
       return Icons.free_breakfast;
     }
     return Icons.category;

@@ -4,6 +4,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/api/api_service.dart';
 import '../../../../routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/user_message.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -62,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_selectedCategory == null) {
       return _topProducts;
     }
-    
+
     // Filter products by category name
     return _topProducts.where((product) {
       final catName = (product as Map)['categoryName']?.toString() ?? '';
@@ -106,8 +107,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Expanded(
                               child: _StatCard(
                                 title: 'Weekly earnings',
-                                value: _formatMoney(_stats?['weekRevenue'] ?? 0),
-                                subtitle: null, // ✅ Uklonjen hardcoded percentage
+                                value:
+                                    _formatMoney(_stats?['weekRevenue'] ?? 0),
+                                subtitle:
+                                    null, // ✅ Uklonjen hardcoded percentage
                                 valueColor: AppColors.primary,
                               ),
                             ),
@@ -116,7 +119,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: _StatCard(
                                 title: 'Weekly earnings',
                                 value: '${_stats?['todayOrders'] ?? 0}',
-                                subtitle: null, // ✅ Uklonjen hardcoded percentage
+                                subtitle:
+                                    null, // ✅ Uklonjen hardcoded percentage
                                 valueColor: const Color(0xFF4ECDC4),
                               ),
                             ),
@@ -150,7 +154,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: _MiniStatCard(
                                 icon: Icons.trending_up,
                                 label: 'Today',
-                                value: _formatMoney(_stats?['todayRevenue'] ?? 0),
+                                value:
+                                    _formatMoney(_stats?['todayRevenue'] ?? 0),
                                 color: const Color(0xFFFFD93D),
                               ),
                             ),
@@ -168,7 +173,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.black.withValues(alpha: 0.04),
+                                  color:
+                                      AppColors.black.withValues(alpha: 0.04),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -178,7 +184,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _selectedCategory == null
@@ -192,7 +199,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     if (_selectedCategory != null)
                                       TextButton(
-                                        onPressed: () => _filterByCategory(null),
+                                        onPressed: () =>
+                                            _filterByCategory(null),
                                         child: const Text(
                                           'See all',
                                           style: TextStyle(
@@ -231,7 +239,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Revenue',
@@ -245,7 +254,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     'Last 7 days',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: AppColors.textSecondary.withValues(alpha: 0.6),
+                                      color: AppColors.textSecondary
+                                          .withValues(alpha: 0.6),
                                     ),
                                   ),
                                 ],
@@ -259,14 +269,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       Icon(
                                         Icons.show_chart,
                                         size: 48,
-                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.3),
                                       ),
                                       const SizedBox(height: 12),
                                       Text(
                                         'Revenue chart',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: AppColors.textSecondary.withValues(alpha: 0.6),
+                                          color: AppColors.textSecondary
+                                              .withValues(alpha: 0.6),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -274,7 +286,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         '(Comming soon)',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: AppColors.textSecondary.withValues(alpha: 0.4),
+                                          color: AppColors.textSecondary
+                                              .withValues(alpha: 0.4),
                                         ),
                                       ),
                                     ],
@@ -305,7 +318,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Waiters',
@@ -387,7 +401,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Widget> _buildTopProducts() {
     final filteredProducts = _getFilteredProducts();
-    
+
     if (filteredProducts.isEmpty) {
       return [
         Padding(
@@ -488,7 +502,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _error ?? 'Unknown error',
+              UserMessage.friendly(_error),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -502,7 +516,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               label: const Text('Try again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               ),
             ),
           ],

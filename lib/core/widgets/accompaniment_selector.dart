@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 
@@ -59,13 +60,7 @@ class _AccompanimentSelectorState extends State<AccompanimentSelector> {
       if (selected) {
         if (group.maxSelections != null &&
             _selectedAccompaniments[group.id]!.length >= group.maxSelections!) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Maksimum ${group.maxSelections} izbora za ${group.name}'),
-              duration: const Duration(seconds: 2),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          AppNotification.error(context, 'Maksimum ${group.maxSelections} izbora za ${group.name}');
           return;
         }
         _selectedAccompaniments[group.id]!.add(accompanimentId);
@@ -384,12 +379,7 @@ class _AccompanimentSelectorState extends State<AccompanimentSelector> {
     for (var group in widget.groups) {
       final selectedIds = _selectedAccompaniments[group.id] ?? [];
       if (group.isRequired && selectedIds.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Morate izabrati ${group.name}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppNotification.error(context, 'Morate izabrati ${group.name}');
         return false;
       }
     }

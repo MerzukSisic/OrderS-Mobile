@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
 
+import 'package:orders_mobile/config/env_config.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/providers/procurement_payments_providers.dart';
 import 'package:orders_mobile/routes/app_router.dart';
@@ -11,12 +13,13 @@ class ProcurementCheckoutScreen extends StatefulWidget {
   final Map<String, dynamic> arguments;
 
   const ProcurementCheckoutScreen({
-    Key? key,
+    super.key,
     required this.arguments,
-  }) : super(key: key);
+  });
 
   @override
-  State<ProcurementCheckoutScreen> createState() => _ProcurementCheckoutScreenState();
+  State<ProcurementCheckoutScreen> createState() =>
+      _ProcurementCheckoutScreenState();
 }
 
 class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
@@ -73,7 +76,9 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
         storeId: _storeId!,
         sourceStoreId: _sourceStoreId,
         supplier: _supplierController.text.trim(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         items: _items.map((x) {
           return {
             'storeProductId': x['storeProductId'],
@@ -101,15 +106,23 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
 
   Future<void> _initiatePayment() async {
     if (_procurementOrderId == null) return;
+    if (EnvConfig.stripePublishableKey.trim().isEmpty) {
+      _showError(
+        'Stripe publishable key is not configured. Start the app with STRIPE_PUBLISHABLE_KEY.',
+      );
+      return;
+    }
 
     setState(() => _isProcessing = true);
 
     try {
       final procurementProvider = context.read<ProcurementProvider>();
 
-      final intentData = await procurementProvider.createPaymentIntent(_procurementOrderId!);
+      final intentData =
+          await procurementProvider.createPaymentIntent(_procurementOrderId!);
       if (intentData == null) {
-        _showError(procurementProvider.error ?? 'Failed to create payment intent');
+        _showError(
+            procurementProvider.error ?? 'Failed to create payment intent');
         return;
       }
 
@@ -138,10 +151,20 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
       await stripe.Stripe.instance.presentPaymentSheet();
 
       if (paymentIntentId != null && paymentIntentId.isNotEmpty) {
-        await procurementProvider.confirmPayment(
+        final confirmed = await procurementProvider.confirmPayment(
           procurementOrderId: _procurementOrderId!,
           paymentIntentId: paymentIntentId,
         );
+        if (!confirmed) {
+          _showError(
+            procurementProvider.error ??
+                'Payment was processed, but the server could not confirm it.',
+          );
+          return;
+        }
+      } else {
+        _showError('Payment intent ID missing from API response');
+        return;
       }
 
       await _confirmPayment();
@@ -149,7 +172,8 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
       if (e.error.code == stripe.FailureCode.Canceled) {
         _showError('Payment canceled');
       } else {
-        _showError(e.error.localizedMessage ?? e.error.message ?? 'Payment failed');
+        _showError(
+            e.error.localizedMessage ?? e.error.message ?? 'Payment failed');
       }
     } catch (e) {
       debugPrint('❌ Error during payment: $e');
@@ -171,12 +195,7 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
-    );
+    AppNotification.error(context, message);
   }
 
   @override
@@ -222,7 +241,9 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: isCompleted || isActive ? AppColors.primary : AppColors.surface,
+              color: isCompleted || isActive
+                  ? AppColors.primary
+                  : AppColors.surface,
               border: Border.all(
                 color: isCompleted || isActive
                     ? AppColors.primary
@@ -262,7 +283,9 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
       child: Container(
         height: 2,
         margin: const EdgeInsets.only(bottom: 20),
-        color: isCompleted ? AppColors.primary : AppColors.textSecondary.withValues(alpha: 0.2),
+        color: isCompleted
+            ? AppColors.primary
+            : AppColors.textSecondary.withValues(alpha: 0.2),
       ),
     );
   }
@@ -289,7 +312,8 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Supplier', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Text('Supplier',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _supplierController,
@@ -301,13 +325,15 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required field' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Required field' : null,
             ),
             const SizedBox(height: 20),
-
-            const Text('Notes (optional)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Text('Notes (optional)',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _notesController,
@@ -324,10 +350,8 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
             _buildOrderSummary(),
             const SizedBox(height: 18),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -335,8 +359,10 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  disabledBackgroundColor:
+                      AppColors.primary.withValues(alpha: 0.5),
                 ),
                 child: _isProcessing
                     ? const SizedBox(
@@ -344,12 +370,16 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.white),
                         ),
                       )
                     : const Text(
                         'Continue to payment',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.white),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.white),
                       ),
               ),
             ),
@@ -377,13 +407,17 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.payment, size: 40, color: AppColors.primary),
+                  child: const Icon(Icons.payment,
+                      size: 40, color: AppColors.primary),
                 ),
                 const SizedBox(height: 24),
-                const Text('Ready for payment', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const Text('Ready for payment',
+                    style:
+                        TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 Text('Total amount: ${total.toStringAsFixed(2)} KM',
-                    style: const TextStyle(fontSize: 18, color: AppColors.textSecondary)),
+                    style: const TextStyle(
+                        fontSize: 18, color: AppColors.textSecondary)),
                 const SizedBox(height: 24),
                 _buildOrderSummary(),
               ],
@@ -396,8 +430,10 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                disabledBackgroundColor:
+                    AppColors.primary.withValues(alpha: 0.5),
               ),
               child: _isProcessing
                   ? const SizedBox(
@@ -405,10 +441,15 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
                       width: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(AppColors.white),
                       ),
                     )
-                  : const Text('Pay now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.white)),
+                  : const Text('Pay now',
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.white)),
             ),
           ),
         ],
@@ -429,15 +470,20 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
               color: AppColors.success.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle, size: 60, color: AppColors.success),
+            child: const Icon(Icons.check_circle,
+                size: 60, color: AppColors.success),
           ),
           const SizedBox(height: 24),
-          const Text('Payment successful!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          const Text('Payment successful!',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           Text('Your procurement has been created and paid.',
-              textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.9))),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: AppColors.textSecondary.withValues(alpha: 0.9))),
           const SizedBox(height: 32),
-          const CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2),
+          const CircularProgressIndicator(
+              color: AppColors.primary, strokeWidth: 2),
         ],
       ),
     );
@@ -451,7 +497,8 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,12 +506,14 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Order summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              Text('${_items.length} product(s)', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+              const Text('Order summary',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              Text('${_items.length} product(s)',
+                  style: const TextStyle(
+                      fontSize: 14, color: AppColors.textSecondary)),
             ],
           ),
           const Divider(height: 24),
-
           ..._items.map((x) {
             final name = (x['productName'] ?? 'Item') as String;
             final qty = (x['quantity'] as num).toInt();
@@ -476,20 +525,27 @@ class _ProcurementCheckoutScreenState extends State<ProcurementCheckoutScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(child: Text('$name × $qty', style: const TextStyle(fontSize: 14))),
-                  Text('${subtotal.toStringAsFixed(2)} KM', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  Expanded(
+                      child: Text('$name × $qty',
+                          style: const TextStyle(fontSize: 14))),
+                  Text('${subtotal.toStringAsFixed(2)} KM',
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w700)),
                 ],
               ),
             );
           }),
-
           const Divider(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('TOTAL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text('TOTAL',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               Text('${total.toStringAsFixed(2)} KM',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary)),
             ],
           ),
         ],

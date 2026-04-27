@@ -15,7 +15,8 @@ class ProductModel {
   final DateTime? createdAt; 
   final DateTime? updatedAt; 
   final List<ProductIngredient> ingredients;
-  final List<AccompanimentGroup> accompanimentGroups; // ✅ DODANO
+  final List<AccompanimentGroup> accompanimentGroups;
+  final String? reason;
 
   ProductModel({
     required this.id,
@@ -32,7 +33,8 @@ class ProductModel {
     this.createdAt,
     this.updatedAt,
     this.ingredients = const [],
-    this.accompanimentGroups = const [], // ✅ DODANO
+    this.accompanimentGroups = const [],
+    this.reason,
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
@@ -63,6 +65,7 @@ class ProductModel {
               ?.map((e) => AccompanimentGroup.fromJson(e))
               .toList() ??
           [],
+      reason: json['reason'] as String?,
     );
   }
 
@@ -102,7 +105,8 @@ class ProductModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     List<ProductIngredient>? ingredients,
-    List<AccompanimentGroup>? accompanimentGroups, // ✅ DODANO
+    List<AccompanimentGroup>? accompanimentGroups,
+    String? reason,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -119,7 +123,8 @@ class ProductModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       ingredients: ingredients ?? this.ingredients,
-      accompanimentGroups: accompanimentGroups ?? this.accompanimentGroups, // ✅ DODANO
+      accompanimentGroups: accompanimentGroups ?? this.accompanimentGroups,
+      reason: reason ?? this.reason,
     );
   }
 

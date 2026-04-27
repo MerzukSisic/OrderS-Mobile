@@ -16,7 +16,8 @@ class AccompanimentGroupManager extends StatefulWidget {
   });
 
   @override
-  State<AccompanimentGroupManager> createState() => _AccompanimentGroupManagerState();
+  State<AccompanimentGroupManager> createState() =>
+      _AccompanimentGroupManagerState();
 }
 
 class _AccompanimentGroupManagerState extends State<AccompanimentGroupManager> {
@@ -161,7 +162,8 @@ class _AccompanimentGroupCard extends StatefulWidget {
   });
 
   @override
-  State<_AccompanimentGroupCard> createState() => _AccompanimentGroupCardState();
+  State<_AccompanimentGroupCard> createState() =>
+      _AccompanimentGroupCardState();
 }
 
 class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
@@ -277,7 +279,8 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                   ),
                   if (_accompaniments.isNotEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -340,7 +343,7 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                   // Selection type
                   _buildLabel('Selection Type'),
                   DropdownButtonFormField<String>(
-                    value: _selectionType,
+                    initialValue: _selectionType,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppColors.background,
@@ -496,7 +499,8 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                           'No accompaniments',
                           style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary.withValues(alpha: 0.5),
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
@@ -510,7 +514,8 @@ class _AccompanimentGroupCardState extends State<_AccompanimentGroupCard> {
                       itemBuilder: (context, index) {
                         return _AccompanimentItem(
                           accompaniment: _accompaniments[index],
-                          onUpdate: (updated) => _updateAccompaniment(index, updated),
+                          onUpdate: (updated) =>
+                              _updateAccompaniment(index, updated),
                           onRemove: () => _removeAccompaniment(index),
                         );
                       },
@@ -628,7 +633,8 @@ class _AccompanimentItemState extends State<_AccompanimentItem> {
             width: 80,
             child: TextFormField(
               controller: _priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 hintText: '0.00',
                 hintStyle: TextStyle(
@@ -636,7 +642,8 @@ class _AccompanimentItemState extends State<_AccompanimentItem> {
                   color: AppColors.textSecondary.withValues(alpha: 0.5),
                 ),
                 suffixText: 'KM',
-                suffixStyle: const TextStyle(fontSize: 11, color: AppColors.textPrimary),
+                suffixStyle:
+                    const TextStyle(fontSize: 11, color: AppColors.textPrimary),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 8),
               ),

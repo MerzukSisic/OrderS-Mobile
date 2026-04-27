@@ -8,16 +8,19 @@ class ProductsApiService {
   Future<ApiResponse<List<ProductModel>>> getProducts({
     String? categoryId,
     bool? isAvailable,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/products',
       queryParameters: {
         if (categoryId != null) 'categoryId': categoryId,
         if (isAvailable != null) 'isAvailable': isAvailable,
+        'page': page,
+        'pageSize': pageSize,
       },
-      fromJson: (json) => (json as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => ProductModel.fromJson(item)).toList(),
     );
   }
 
@@ -33,10 +36,13 @@ class ProductsApiService {
   Future<ApiResponse<List<ProductModel>>> searchProducts(String term) async {
     return await _client.get(
       '/products/search',
-      queryParameters: {'term': term},
-      fromJson: (json) => (json as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList(),
+      queryParameters: {
+        'term': term,
+        'page': 1,
+        'pageSize': 100,
+      },
+      fromJson: (json) =>
+          (json as List).map((item) => ProductModel.fromJson(item)).toList(),
     );
   }
 
@@ -44,21 +50,25 @@ class ProductsApiService {
   Future<ApiResponse<List<ProductModel>>> getProductsByLocation({
     required String location,
     bool? isAvailable,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/products/by-location',
       queryParameters: {
         'location': location,
         if (isAvailable != null) 'isAvailable': isAvailable,
+        'page': page,
+        'pageSize': pageSize,
       },
-      fromJson: (json) => (json as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => ProductModel.fromJson(item)).toList(),
     );
   }
 
   /// Create product (Admin only)
-  Future<ApiResponse<ProductModel>> createProduct(Map<String, dynamic> data) async {
+  Future<ApiResponse<ProductModel>> createProduct(
+      Map<String, dynamic> data) async {
     return await _client.post(
       '/products',
       data: data,
@@ -79,7 +89,8 @@ class ProductsApiService {
   }
 
   /// Toggle product availability (Admin only)
-  Future<ApiResponse<Map<String, dynamic>>> toggleAvailability(String id) async {
+  Future<ApiResponse<Map<String, dynamic>>> toggleAvailability(
+      String id) async {
     return await _client.put(
       '/products/$id/toggle-availability',
       fromJson: (json) => json as Map<String, dynamic>,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/widgets/app_search_bar.dart';
+import '../../../core/utils/user_message.dart';
 import '../../../providers/orders_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../routes/app_router.dart';
@@ -48,17 +50,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
       body: Column(
         children: [
           // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
+          Container(
+            color: AppColors.surface,
+            child: AppSearchBar(
               controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search orders...',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (value) {
-                setState(() => _searchQuery = value.toLowerCase().trim());
-              },
+              hintText: 'Search orders...',
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              onChanged: (value) =>
+                  setState(() => _searchQuery = value.toLowerCase().trim()),
             ),
           ),
 
@@ -84,7 +83,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          provider.error!,
+                          UserMessage.friendly(provider.error!),
                           style:
                               const TextStyle(color: AppColors.textSecondary),
                           textAlign: TextAlign.center,

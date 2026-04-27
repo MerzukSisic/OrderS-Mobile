@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/models/tables/table_model.dart';
 import 'package:orders_mobile/providers/tables_provider.dart';
@@ -30,7 +31,8 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
   void initState() {
     super.initState();
     _tableNumberCtrl = TextEditingController(text: widget.table.tableNumber);
-    _capacityCtrl = TextEditingController(text: widget.table.capacity.toString());
+    _capacityCtrl =
+        TextEditingController(text: widget.table.capacity.toString());
     final loc = widget.table.location;
     _selectedLocation = (loc != null && _locations.contains(loc)) ? loc : null;
     _selectedStatus = widget.table.status;
@@ -45,9 +47,12 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'Available': return AppColors.success;
-      case 'Occupied': return AppColors.error;
-      default: return AppColors.warning;
+      case 'Available':
+        return AppColors.success;
+      case 'Occupied':
+        return AppColors.error;
+      default:
+        return AppColors.warning;
     }
   }
 
@@ -64,25 +69,11 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
           );
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Row(children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 12),
-            Text('Table updated successfully'),
-          ]),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ));
+        AppNotification.success(context, 'Table updated successfully');
         Navigator.pop(context, true);
       } else {
-        final error = context.read<TablesProvider>().error;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(error ?? 'Failed to update table'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ));
+        AppNotification.error(
+            context, 'Failed to update table. Please try again.');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -103,14 +94,16 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildCard(children: [
-                _buildSectionTitle('Table Information', Icons.table_restaurant_outlined),
+                _buildSectionTitle(
+                    'Table Information', Icons.table_restaurant_outlined),
                 const SizedBox(height: 20),
                 _buildTextField(
                   controller: _tableNumberCtrl,
                   label: 'Table Number *',
                   hint: 'e.g. T1, A3',
                   icon: Icons.tag,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -122,7 +115,9 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Required';
-                    if ((int.tryParse(v) ?? 0) <= 0) return 'Must be greater than 0';
+                    if ((int.tryParse(v) ?? 0) <= 0) {
+                      return 'Must be greater than 0';
+                    }
                     return null;
                   },
                 ),
@@ -134,23 +129,45 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
                 _buildStatusDropdown(),
               ]),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _isSaving ? null : _handleSave,
-                icon: _isSaving
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.save),
-                label: Text(_isSaving ? 'Saving...' : 'Save Changes'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed:
+                          _isSaving ? null : () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _isSaving ? null : _handleSave,
+                      icon: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.save),
+                      label: Text(_isSaving ? 'Saving...' : 'Update'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -167,7 +184,8 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
   }
 
@@ -183,9 +201,14 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
           child: Icon(icon, color: AppColors.primary, size: 18),
         ),
         const SizedBox(width: 10),
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
         const SizedBox(width: 8),
-        Expanded(child: Divider(color: AppColors.primary.withValues(alpha: 0.2))),
+        Expanded(
+            child: Divider(color: AppColors.primary.withValues(alpha: 0.2))),
       ],
     );
   }
@@ -202,7 +225,11 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -212,15 +239,24 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+            hintStyle: TextStyle(
+                color: AppColors.textSecondary.withValues(alpha: 0.5)),
             prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
             filled: true,
             fillColor: AppColors.surfaceVariant,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.error)),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 2)),
+            errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.error)),
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           ),
         ),
       ],
@@ -231,7 +267,11 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Location', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        const Text('Location',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -243,19 +283,27 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
             child: DropdownButton<String?>(
               value: _selectedLocation,
               isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+              icon: const Icon(Icons.arrow_drop_down,
+                  color: AppColors.textSecondary),
               dropdownColor: AppColors.surface,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
-              hint: Text('None', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6))),
+              style:
+                  const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+              hint: Text('None',
+                  style: TextStyle(
+                      color: AppColors.textSecondary.withValues(alpha: 0.6))),
               items: [
                 DropdownMenuItem<String?>(
                   value: null,
-                  child: Text('None', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6))),
+                  child: Text('None',
+                      style: TextStyle(
+                          color:
+                              AppColors.textSecondary.withValues(alpha: 0.6))),
                 ),
                 ..._locations.map((loc) => DropdownMenuItem<String?>(
                       value: loc,
                       child: Row(children: [
-                        const Icon(Icons.location_on_outlined, size: 16, color: AppColors.primary),
+                        const Icon(Icons.location_on_outlined,
+                            size: 16, color: AppColors.primary),
                         const SizedBox(width: 8),
                         Text(loc),
                       ]),
@@ -273,7 +321,11 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Status', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        const Text('Status',
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -285,9 +337,11 @@ class _AdminTableEditScreenState extends State<AdminTableEditScreen> {
             child: DropdownButton<String>(
               value: _selectedStatus,
               isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+              icon: const Icon(Icons.arrow_drop_down,
+                  color: AppColors.textSecondary),
               dropdownColor: AppColors.surface,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 15),
+              style:
+                  const TextStyle(color: AppColors.textPrimary, fontSize: 15),
               items: _statuses.map((s) {
                 final color = _statusColor(s);
                 return DropdownMenuItem<String>(

@@ -3,18 +3,15 @@ import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/utils/formatters.dart';
 import 'package:orders_mobile/models/inventory/store_product_model.dart';
 
-
 class InventoryCard extends StatelessWidget {
   final StoreProductModel product;
   final VoidCallback onTap;
-
 
   const InventoryCard({
     super.key,
     required this.product,
     required this.onTap,
   });
-
 
   Color _getStatusColor() {
     if (product.currentStock == 0) {
@@ -26,7 +23,6 @@ class InventoryCard extends StatelessWidget {
     }
   }
 
-
   String _getStatusText() {
     if (product.currentStock == 0) {
       return 'Out of stock';
@@ -36,7 +32,6 @@ class InventoryCard extends StatelessWidget {
       return 'In stock';
     }
   }
-
 
   IconData _getStatusIcon() {
     if (product.currentStock == 0) {
@@ -48,18 +43,15 @@ class InventoryCard extends StatelessWidget {
     }
   }
 
-
   // ✅ ADDED: Calculate stockPercentage
   double _getStockPercentage() {
     if (product.minimumStock == 0) return 1.0;
     return (product.currentStock / product.minimumStock).clamp(0.0, 2.0);
   }
 
-
   @override
   Widget build(BuildContext context) {
     final stockPercentage = _getStockPercentage(); // ✅ CHANGE: Use method
-
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -84,18 +76,20 @@ class InventoryCard extends StatelessWidget {
                       children: [
                         Text(
                           product.name,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                         ),
                         if (product.description != null &&
                             product.description!.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
                             product.description!,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey[600],
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.grey[600],
+                                    ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -111,7 +105,7 @@ class InventoryCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor().withOpacity(0.1),
+                      color: _getStatusColor().withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: _getStatusColor(),
@@ -141,9 +135,7 @@ class InventoryCard extends StatelessWidget {
                 ],
               ),
 
-
               const SizedBox(height: 16),
-
 
               // Stock Information
               Row(
@@ -170,9 +162,7 @@ class InventoryCard extends StatelessWidget {
                 ],
               ),
 
-
               const SizedBox(height: 12),
-
 
               // Progress Bar
               Column(
@@ -199,9 +189,7 @@ class InventoryCard extends StatelessWidget {
                 ],
               ),
 
-
               const SizedBox(height: 16),
-
 
               // Footer: Price and Last Restocked
               Row(
@@ -213,7 +201,7 @@ class InventoryCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -237,9 +225,7 @@ class InventoryCard extends StatelessWidget {
                     ),
                   ),
 
-
                   const Spacer(),
-
 
                   // Last Restocked
                   Row(
@@ -261,7 +247,6 @@ class InventoryCard extends StatelessWidget {
                   ),
                 ],
               ),
-
 
               // Store Name (if available)
               if (product.storeName.isNotEmpty) ...[

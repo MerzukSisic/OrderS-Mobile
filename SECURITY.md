@@ -1,21 +1,20 @@
 # Security Policy
 
-## Supported Versions
+OrderS is a student project for Razvoj softvera II. Do not commit `.env`
+files, private keys, connection strings, JWT secrets, Stripe secret keys, or
+other credentials to the repository.
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+## Supported Version
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+Only the current academic-year submission is maintained.
 
-## Reporting a Vulnerability
+## Sensitive Configuration
 
-Use this section to tell people how to report a vulnerability.
+Runtime configuration is supplied through `--dart-define` values or an ignored
+local `.env` file. For submission, sensitive configuration should be packed in
+the password-protected environment ZIP archive described in `README.md`.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+## Reporting
+
+Security issues should be reported directly to the project author before public
+disclosure.

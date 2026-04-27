@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
 import 'package:orders_mobile/features/admin/stores/widgets/add_store_product_dialog.dart';
 import 'package:orders_mobile/models/inventory/store_model.dart';
@@ -32,7 +33,9 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
     _isExternal = widget.store.isExternal;
     SchedulerBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<InventoryProvider>().fetchStoreProducts(storeId: widget.store.id);
+        context
+            .read<InventoryProvider>()
+            .fetchStoreProducts(storeId: widget.store.id);
       }
     });
   }
@@ -51,27 +54,20 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
       final success = await context.read<StoresProvider>().updateStore(
             widget.store.id,
             name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
-            address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+            address: _addressCtrl.text.trim().isEmpty
+                ? null
+                : _addressCtrl.text.trim(),
             isExternal: _isExternal,
           );
       if (!mounted) return;
-      _showSnackBar(
-        success ? 'Store updated successfully' : (context.read<StoresProvider>().error ?? 'Failed to update store'),
-        success ? AppColors.success : AppColors.error,
-      );
+      final message = success
+          ? 'Store updated successfully'
+          : (context.read<StoresProvider>().error ?? 'Failed to update store');
+      AppNotification.show(context, message, isError: !success);
       if (success) Navigator.pop(context, true);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
-  }
-
-  void _showSnackBar(String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: color,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ));
   }
 
   void _showDeleteProductDialog(StoreProductModel product) {
@@ -80,13 +76,15 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Product', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text('Delete Product',
+            style: TextStyle(color: AppColors.textPrimary)),
         content: Text(
           'Delete "${product.name}"? This cannot be undone.',
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -94,13 +92,16 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                   .read<InventoryProvider>()
                   .deleteStoreProduct(product.id, storeId: widget.store.id);
               if (mounted) {
-                _showSnackBar(
+                AppNotification.show(
+                  context,
                   success ? 'Product deleted' : 'Failed to delete product',
-                  success ? AppColors.success : AppColors.error,
+                  isError: !success,
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
         ],
@@ -130,7 +131,8 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                   label: 'Store Name *',
                   hint: 'e.g. Main Warehouse',
                   icon: Icons.store_outlined,
-                  validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                  validator: (v) =>
+                      (v == null || v.isEmpty) ? 'Required' : null,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
@@ -141,25 +143,34 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.business_outlined, color: AppColors.primary, size: 20),
+                      Icon(Icons.business_outlined,
+                          color: AppColors.primary, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('External supplier', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                            const Text('External supplier',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary)),
                             Text(
                               _isExternal
                                   ? 'External supplier (products ordered from here)'
                                   : 'Internal store/warehouse',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary.withValues(alpha: 0.7)),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary
+                                      .withValues(alpha: 0.7)),
                             ),
                           ],
                         ),
@@ -173,23 +184,45 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _handleSave,
-                  icon: _isSaving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.save, size: 18),
-                  label: Text(_isSaving ? 'Saving...' : 'Save Changes'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed:
+                            _isSaving ? null : () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isSaving ? null : _handleSave,
+                        icon: _isSaving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.save, size: 18),
+                        label: Text(_isSaving ? 'Saving...' : 'Update'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ]),
             ),
@@ -200,7 +233,9 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
             _buildCard(children: [
               Row(
                 children: [
-                  Expanded(child: _buildSectionTitle('Store Products', Icons.inventory_2_outlined)),
+                  Expanded(
+                      child: _buildSectionTitle(
+                          'Store Products', Icons.inventory_2_outlined)),
                   ElevatedButton.icon(
                     onPressed: () async {
                       final invProvider = context.read<InventoryProvider>();
@@ -212,7 +247,8 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                               .where((p) => p.storeId == widget.store.id)
                               .map((p) => p.name.toLowerCase())
                               .toSet(),
-                          onAdded: () => invProvider.fetchStoreProducts(storeId: widget.store.id),
+                          onAdded: () => invProvider.fetchStoreProducts(
+                              storeId: widget.store.id),
                         ),
                       );
                     },
@@ -221,8 +257,10 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                       elevation: 0,
                       textStyle: const TextStyle(fontSize: 13),
                     ),
@@ -236,7 +274,8 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                     return const Center(
                       child: Padding(
                         padding: EdgeInsets.all(24),
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child:
+                            CircularProgressIndicator(color: AppColors.primary),
                       ),
                     );
                   }
@@ -253,9 +292,15 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                       child: Center(
                         child: Column(
                           children: [
-                            Icon(Icons.inventory_2_outlined, size: 40, color: AppColors.textSecondary.withValues(alpha: 0.3)),
+                            Icon(Icons.inventory_2_outlined,
+                                size: 40,
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.3)),
                             const SizedBox(height: 8),
-                            Text('No products yet. Add the first one.', style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.6))),
+                            Text('No products yet. Add the first one.',
+                                style: TextStyle(
+                                    color: AppColors.textSecondary
+                                        .withValues(alpha: 0.6))),
                           ],
                         ),
                       ),
@@ -284,7 +329,9 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
         color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isLow ? AppColors.warning.withValues(alpha: 0.4) : Colors.transparent,
+          color: isLow
+              ? AppColors.warning.withValues(alpha: 0.4)
+              : Colors.transparent,
         ),
       ),
       child: Row(
@@ -293,7 +340,8 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: (isLow ? AppColors.warning : AppColors.primary).withValues(alpha: 0.15),
+              color: (isLow ? AppColors.warning : AppColors.primary)
+                  .withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -312,19 +360,27 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                     Flexible(
                       child: Text(
                         product.name,
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary, fontSize: 14),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                            fontSize: 14),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (isLow) ...[
                       const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
                         decoration: BoxDecoration(
                           color: AppColors.warning.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text('Low Stock', style: TextStyle(color: AppColors.warning, fontSize: 10, fontWeight: FontWeight.w600)),
+                        child: Text('Low Stock',
+                            style: TextStyle(
+                                color: AppColors.warning,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ],
@@ -332,7 +388,9 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
                 const SizedBox(height: 2),
                 Text(
                   '${product.currentStock} / min ${product.minimumStock} ${product.unit}  ·  ${product.purchasePrice.toStringAsFixed(2)} KM',
-                  style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7), fontSize: 11),
+                  style: TextStyle(
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                      fontSize: 11),
                 ),
               ],
             ),
@@ -358,7 +416,8 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
   }
 
@@ -374,9 +433,14 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
           child: Icon(icon, color: AppColors.primary, size: 18),
         ),
         const SizedBox(width: 10),
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary)),
         const SizedBox(width: 8),
-        Expanded(child: Divider(color: AppColors.primary.withValues(alpha: 0.2))),
+        Expanded(
+            child: Divider(color: AppColors.primary.withValues(alpha: 0.2))),
       ],
     );
   }
@@ -391,7 +455,11 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
@@ -399,15 +467,24 @@ class _AdminStoreEditScreenState extends State<AdminStoreEditScreen> {
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+            hintStyle: TextStyle(
+                color: AppColors.textSecondary.withValues(alpha: 0.5)),
             prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
             filled: true,
             fillColor: AppColors.surfaceVariant,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.error)),
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: AppColors.primary, width: 2)),
+            errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.error)),
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           ),
         ),
       ],

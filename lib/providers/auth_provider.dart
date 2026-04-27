@@ -10,7 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthProvider with ChangeNotifier {
   final AuthApiService _apiService = AuthApiService();
   final ApiClient _apiClient = ApiClient();
-  final ErrorHandlingService _errorService = ErrorHandlingService(); // ✅ ADD THIS
+  final ErrorHandlingService _errorService =
+      ErrorHandlingService(); // ✅ ADD THIS
 
   // State
   UserModel? _currentUser;
@@ -28,7 +29,7 @@ class AuthProvider with ChangeNotifier {
   bool get isAdmin => _currentUser?.role == 'Admin';
   bool get isWaiter => _currentUser?.role == 'Waiter';
   bool get isBartender => _currentUser?.role == 'Bartender';
-  bool get isKitchen => _currentUser?.role == 'Kitchen';  
+  bool get isKitchen => _currentUser?.role == 'Kitchen';
   // Storage keys
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
@@ -65,7 +66,8 @@ class AuthProvider with ChangeNotifier {
           // Access token expired — try silent refresh
           final savedRefreshToken = prefs.getString(_refreshTokenKey);
           if (savedRefreshToken != null) {
-            final refreshResponse = await _apiService.refreshToken(savedRefreshToken);
+            final refreshResponse =
+                await _apiService.refreshToken(savedRefreshToken);
             if (refreshResponse.success && refreshResponse.data != null) {
               await _handleAuthSuccess(refreshResponse.data!);
             } else {
@@ -166,6 +168,39 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// Update profile
+  Future<bool> updateProfile({
+    required String fullName,
+    required String email,
+    String? phoneNumber,
+  }) async {
+    if (_currentUser == null) return false;
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.updateProfile(
+        fullName: fullName,
+        email: email,
+        phoneNumber: phoneNumber,
+      );
+
+      if (response.success) {
+        await refreshUser();
+        return true;
+      } else {
+        _setError(response.error ?? 'Profile update failed');
+        return false;
+      }
+    } catch (e) {
+      final appError = _errorService.handleError(e);
+      _setError(_errorService.getUserMessage(appError));
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Change password
   Future<bool> changePassword({
     required String currentPassword,
@@ -186,17 +221,14 @@ class AuthProvider with ChangeNotifier {
         _setError(response.error ?? 'Password change failed');
         return false;
       }
-   } catch (e) {
-  // ✅ CONVERT TO AppException AND GET USER MESSAGE
-  final appError = _errorService.handleError(e);
-  final userMessage = _errorService.getUserMessage(appError);
-  
-  debugPrint('🐛 DEBUG: appError = $appError');
-  debugPrint('🐛 DEBUG: userMessage = $userMessage');
-  
-  _setError(userMessage);
-  return false;
-}
+    } catch (e) {
+      // ✅ CONVERT TO AppException AND GET USER MESSAGE
+      final appError = _errorService.handleError(e);
+      final userMessage = _errorService.getUserMessage(appError);
+
+      _setError(userMessage);
+      return false;
+    }
   }
 
   /// Refresh current user data
@@ -205,14 +237,14 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final response = await _apiService.getCurrentUser();
-      
+
       if (response.success && response.data != null) {
         _currentUser = response.data;
 
         // Save updated user
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_userKey, response.data!.toJson().toString());
-        
+
         notifyListeners();
       }
     } catch (e) {
@@ -227,7 +259,7 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final response = await _apiService.forgotPassword(email);
-      
+
       if (response.success) {
         return true;
       } else {
@@ -292,7 +324,7 @@ class AuthProvider with ChangeNotifier {
 
     // Set token in API client (Dio)
     _apiClient.setToken(_token);
-    
+
     // Set token in ApiService (http) as well
     await ApiService().saveToken(_token!);
 
@@ -312,7 +344,7 @@ class AuthProvider with ChangeNotifier {
     _currentUser = null;
     _isAuthenticated = false;
     _apiClient.clearToken();
-    
+
     // Clear token in ApiService (http)
     await ApiService().clearToken();
 

@@ -3,7 +3,9 @@ import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import 'package:orders_mobile/core/widgets/app_search_bar.dart';
 import 'package:orders_mobile/models/tables/table_model.dart';
 import 'package:orders_mobile/providers/tables_provider.dart';
 import 'package:orders_mobile/routes/app_router.dart';
@@ -16,6 +18,10 @@ class AdminTablesScreen extends StatefulWidget {
 }
 
 class _AdminTablesScreenState extends State<AdminTablesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _statusFilter = 'all';
+
   @override
   void initState() {
     super.initState();
@@ -24,12 +30,43 @@ class _AdminTablesScreenState extends State<AdminTablesScreen> {
     );
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<TableModel> _filterTables(List<TableModel> tables) {
+    var filtered = tables;
+
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filtered = filtered
+          .where((t) =>
+              t.tableNumber.toLowerCase().contains(q) ||
+              (t.location?.toLowerCase().contains(q) ?? false))
+          .toList();
+    }
+
+    if (_statusFilter != 'all') {
+      filtered = filtered
+          .where((t) => t.status.toLowerCase() == _statusFilter)
+          .toList();
+    }
+
+    return filtered;
+  }
+
   Color _statusColor(String status) {
     switch (status) {
-      case 'Available': return AppColors.success;
-      case 'Occupied': return AppColors.error;
-      case 'Reserved': return AppColors.warning;
-      default: return AppColors.textSecondary;
+      case 'Available':
+        return AppColors.success;
+      case 'Occupied':
+        return AppColors.error;
+      case 'Reserved':
+        return AppColors.warning;
+      default:
+        return AppColors.textSecondary;
     }
   }
 
@@ -39,7 +76,8 @@ class _AdminTablesScreenState extends State<AdminTablesScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Text('Delete Table'),
-        content: Text('Delete table ${table.tableNumber}? This cannot be undone.'),
+        content:
+            Text('Delete table ${table.tableNumber}? This cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -49,19 +87,46 @@ class _AdminTablesScreenState extends State<AdminTablesScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               final provider = context.read<TablesProvider>();
-              final messenger = ScaffoldMessenger.of(context);
               final success = await provider.deleteTable(table.id);
-              messenger.showSnackBar(SnackBar(
-                content: Text(success ? 'Table deleted' : 'Failed to delete'),
-                backgroundColor: success ? AppColors.success : AppColors.error,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ));
+              if (!mounted) return;
+              AppNotification.show(
+                context,
+                success
+                    ? 'Table deleted'
+                    : 'Failed to delete table. Please try again.',
+                isError: !success,
+              );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white),
             child: const Text('Delete'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _chip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      backgroundColor: AppColors.surface,
+      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+      checkmarkColor: AppColors.primary,
+      side: BorderSide(
+        color:
+            selected ? AppColors.primary : Colors.grey.withValues(alpha: 0.3),
+      ),
+      labelStyle: TextStyle(
+        color: selected ? AppColors.primary : null,
+        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 13,
       ),
     );
   }
@@ -72,10 +137,18 @@ class _AdminTablesScreenState extends State<AdminTablesScreen> {
       title: 'Tables',
       currentRoute: AppRouter.adminTables,
       backgroundColor: AppColors.background,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
+          onPressed: () => context.read<TablesProvider>().fetchTables(),
+          tooltip: 'Refresh',
+        ),
+      ],
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final provider = context.read<TablesProvider>();
-          final result = await Navigator.pushNamed(context, AppRouter.adminTableCreate);
+          final result =
+              await Navigator.pushNamed(context, AppRouter.adminTableCreate);
           if (result == true && mounted) {
             provider.fetchTables();
           }
@@ -84,39 +157,121 @@ class _AdminTablesScreenState extends State<AdminTablesScreen> {
         label: const Text('New Table'),
         backgroundColor: AppColors.primary,
       ),
-      body: Consumer<TablesProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading && provider.tables.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-          }
-          if (provider.error != null && provider.tables.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(provider.error!, style: TextStyle(color: AppColors.error)),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => provider.fetchTables(),
-                    child: const Text('Retry'),
+      body: Column(
+        children: [
+          // Search + Status filter header
+          Container(
+            color: AppColors.surface,
+            child: Column(
+              children: [
+                AppSearchBar(
+                  controller: _searchController,
+                  hintText: 'Search tables...',
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  onChanged: (v) =>
+                      setState(() => _searchQuery = v.toLowerCase()),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Row(
+                    children: [
+                      _chip(
+                        label: 'All',
+                        selected: _statusFilter == 'all',
+                        onTap: () => setState(() => _statusFilter = 'all'),
+                      ),
+                      const SizedBox(width: 8),
+                      _chip(
+                        label: 'Available',
+                        selected: _statusFilter == 'available',
+                        onTap: () =>
+                            setState(() => _statusFilter = 'available'),
+                      ),
+                      const SizedBox(width: 8),
+                      _chip(
+                        label: 'Occupied',
+                        selected: _statusFilter == 'occupied',
+                        onTap: () => setState(() => _statusFilter = 'occupied'),
+                      ),
+                      const SizedBox(width: 8),
+                      _chip(
+                        label: 'Reserved',
+                        selected: _statusFilter == 'reserved',
+                        onTap: () => setState(() => _statusFilter = 'reserved'),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }
-          if (provider.tables.isEmpty) {
-            return const Center(child: Text('No tables yet'));
-          }
-          return RefreshIndicator(
-            onRefresh: provider.fetchTables,
-            color: AppColors.primary,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: provider.tables.length,
-              itemBuilder: (context, i) => _buildTableCard(provider.tables[i]),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+
+          // List
+          Expanded(
+            child: Consumer<TablesProvider>(
+              builder: (context, provider, _) {
+                if (provider.isLoading && provider.tables.isEmpty) {
+                  return const Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary));
+                }
+                if (provider.error != null && provider.tables.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'Failed to load tables. Please try again.',
+                          style: TextStyle(color: AppColors.error),
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () => provider.fetchTables(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final filtered = _filterTables(provider.tables);
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.table_restaurant_outlined,
+                            size: 64,
+                            color:
+                                AppColors.textSecondary.withValues(alpha: 0.4)),
+                        const SizedBox(height: 16),
+                        Text(
+                          provider.tables.isEmpty
+                              ? 'No tables yet'
+                              : 'No tables match your filters',
+                          style: const TextStyle(
+                              color: AppColors.textSecondary, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: provider.fetchTables,
+                  color: AppColors.primary,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, i) => _buildTableCard(filtered[i]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -137,13 +292,17 @@ class _AdminTablesScreenState extends State<AdminTablesScreen> {
           child: Center(
             child: Text(
               table.tableNumber,
-              style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 13),
+              style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13),
             ),
           ),
         ),
         title: Row(
           children: [
-            Text('Table ${table.tableNumber}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Table ${table.tableNumber}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(width: 8),
             _Badge(label: table.status, color: statusColor),
           ],
@@ -155,14 +314,16 @@ class _AdminTablesScreenState extends State<AdminTablesScreen> {
             Row(children: [
               const Icon(Icons.people_outline, size: 14),
               const SizedBox(width: 4),
-              Text('Capacity: ${table.capacity}', style: TextStyle(color: AppColors.textSecondary)),
+              Text('Capacity: ${table.capacity}',
+                  style: TextStyle(color: AppColors.textSecondary)),
             ]),
             if (table.location != null && table.location!.isNotEmpty) ...[
               const SizedBox(height: 2),
               Row(children: [
                 const Icon(Icons.location_on_outlined, size: 14),
                 const SizedBox(width: 4),
-                Text(table.location!, style: TextStyle(color: AppColors.textSecondary)),
+                Text(table.location!,
+                    style: TextStyle(color: AppColors.textSecondary)),
               ]),
             ],
           ],
@@ -210,7 +371,9 @@ class _Badge extends StatelessWidget {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.bold, color: color)),
     );
   }
 }

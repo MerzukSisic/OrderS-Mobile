@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/loading_indicator.dart';
 import 'package:orders_mobile/models/auth/user_model.dart';
 import 'package:orders_mobile/providers/users_accompaniments_providers.dart';
@@ -73,7 +74,9 @@ class _UserEditScreenState extends State<UserEditScreen> {
           widget.userId,
           fullName: _fullNameController.text.trim(),
           email: _emailController.text.trim(),
-          phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+          phoneNumber: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
           role: _selectedRole,
           isActive: _isActive,
         );
@@ -82,21 +85,11 @@ class _UserEditScreenState extends State<UserEditScreen> {
       setState(() => _isSubmitting = false);
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User successfully updated'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        AppNotification.success(context, 'User successfully updated');
         Navigator.pop(context);
       } else {
-        final error = context.read<UsersProvider>().error;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error ?? 'Error updating user'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        AppNotification.error(
+            context, 'Failed to update user. Please try again.');
       }
     }
   }
@@ -108,7 +101,8 @@ class _UserEditScreenState extends State<UserEditScreen> {
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete User'),
-        content: Text('Are you sure you want to delete ${_user?.fullName}? This action cannot be undone.'),
+        content: Text(
+            'Are you sure you want to delete ${_user?.fullName}? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -118,29 +112,21 @@ class _UserEditScreenState extends State<UserEditScreen> {
             onPressed: () async {
               Navigator.pop(dialogContext);
 
-              final success = await context.read<UsersProvider>().deleteUser(widget.userId);
+              final success =
+                  await context.read<UsersProvider>().deleteUser(widget.userId);
 
               if (mounted) {
                 if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('User deleted'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
+                  AppNotification.success(context, 'User deleted');
                   Navigator.pop(context);
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Error deleting user'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
+                  AppNotification.error(context, 'Error deleting user');
                 }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete', style: TextStyle(color: AppColors.white)),
+            child:
+                const Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),
@@ -238,7 +224,8 @@ class _UserEditScreenState extends State<UserEditScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
+        border:
+            Border.all(color: AppColors.textSecondary.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,14 +241,15 @@ class _UserEditScreenState extends State<UserEditScreen> {
                 children: [
                   Text(
                     'Status: ',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                   Switch(
                     value: _isActive,
                     onChanged: (value) {
                       setState(() => _isActive = value);
                     },
-                    activeColor: AppColors.success,
+                    activeThumbColor: AppColors.success,
                   ),
                   Text(
                     _isActive ? 'Active' : 'Inactive',
@@ -341,7 +329,7 @@ class _UserEditScreenState extends State<UserEditScreen> {
 
           // Role
           DropdownButtonFormField<String>(
-            value: _selectedRole,
+            initialValue: _selectedRole,
             decoration: InputDecoration(
               labelText: 'Role *',
               prefixIcon: const Icon(Icons.badge),
@@ -382,14 +370,6 @@ class _UserEditScreenState extends State<UserEditScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'ID: ${_user!.id}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
                 Text(
                   'Created: ${_formatDate(_user!.createdAt)}',
                   style: TextStyle(

@@ -27,7 +27,7 @@ class ProcurementOrderTile extends StatelessWidget {
                 width: 46,
                 height: 46,
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(_getStatusIcon(order.status), color: statusColor),
@@ -42,7 +42,8 @@ class ProcurementOrderTile extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
-                    Text(order.supplier, style: const TextStyle(color: Colors.grey)),
+                    Text(order.supplier,
+                        style: const TextStyle(color: Colors.grey)),
                     const SizedBox(height: 4),
                     Text(
                       '${order.storeName} • ${DateFormat('MMM dd, yyyy').format(order.orderDate)} • ${order.items.length} items',
@@ -56,19 +57,24 @@ class ProcurementOrderTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    NumberFormat.currency(symbol: 'KM ', decimalDigits: 2).format(order.totalAmount),
+                    NumberFormat.currency(symbol: 'KM ', decimalDigits: 2)
+                        .format(order.totalAmount),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       order.status,
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor),
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor),
                     ),
                   ),
                 ],

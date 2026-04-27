@@ -39,6 +39,8 @@ class OrdersApiService {
     DateTime? fromDate,
     DateTime? toDate,
     String? status,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/orders',
@@ -47,10 +49,11 @@ class OrdersApiService {
         if (fromDate != null) 'fromDate': fromDate.toIso8601String(),
         if (toDate != null) 'toDate': toDate.toIso8601String(),
         if (status != null) 'status': status,
+        'page': page,
+        'pageSize': pageSize,
       },
-      fromJson: (json) => (json as List)
-          .map((item) => OrderModel.fromJson(item))
-          .toList(),
+      fromJson: (json) =>
+          (json as List).map((item) => OrderModel.fromJson(item)).toList(),
     );
   }
 
@@ -58,9 +61,12 @@ class OrdersApiService {
   Future<ApiResponse<List<OrderModel>>> getActiveOrders() async {
     return await _client.get(
       '/orders/active',
-      fromJson: (json) => (json as List)
-          .map((item) => OrderModel.fromJson(item))
-          .toList(),
+      queryParameters: const {
+        'page': 1,
+        'pageSize': 100,
+      },
+      fromJson: (json) =>
+          (json as List).map((item) => OrderModel.fromJson(item)).toList(),
     );
   }
 
@@ -68,9 +74,12 @@ class OrdersApiService {
   Future<ApiResponse<List<OrderModel>>> getOrdersByTable(String tableId) async {
     return await _client.get(
       '/orders/table/$tableId',
-      fromJson: (json) => (json as List)
-          .map((item) => OrderModel.fromJson(item))
-          .toList(),
+      queryParameters: const {
+        'page': 1,
+        'pageSize': 100,
+      },
+      fromJson: (json) =>
+          (json as List).map((item) => OrderModel.fromJson(item)).toList(),
     );
   }
 
@@ -78,12 +87,16 @@ class OrdersApiService {
   Future<ApiResponse<List<Map<String, dynamic>>>> getOrderItemsByLocation({
     required String location, // "Kitchen" or "Bar"
     String? status,
+    int page = 1,
+    int pageSize = 100,
   }) async {
     return await _client.get(
       '/orders/items/by-location',
       queryParameters: {
         'location': location,
         if (status != null) 'status': status,
+        'page': page,
+        'pageSize': pageSize,
       },
       fromJson: (json) => (json as List).cast<Map<String, dynamic>>(),
     );
@@ -92,7 +105,8 @@ class OrdersApiService {
   /// Update order status
   Future<ApiResponse<void>> updateOrderStatus({
     required String orderId,
-    required String status, // "Pending", "Preparing", "Ready", "Completed", "Cancelled"
+    required String
+        status, // "Pending", "Preparing", "Ready", "Completed", "Cancelled"
   }) async {
     return await _client.put(
       '/orders/$orderId/status',
@@ -139,7 +153,8 @@ class OrdersApiService {
   /// Update order item status (for Kitchen/Bar)
   Future<ApiResponse<void>> updateOrderItemStatus({
     required String itemId,
-    required String status, // "Pending", "Preparing", "Ready", "Completed", "Cancelled"
+    required String
+        status, // "Pending", "Preparing", "Ready", "Completed", "Cancelled"
   }) async {
     return await _client.put(
       '/orders/items/$itemId/status',

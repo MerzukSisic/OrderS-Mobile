@@ -3,8 +3,10 @@ import 'package:orders_mobile/core/constants/api_constants.dart';
 import 'package:orders_mobile/core/services/api/api_service.dart';
 import 'package:orders_mobile/core/services/api/common_api_services.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
+import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/accompaniment_group_manager.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
+import 'package:orders_mobile/core/widgets/product_image.dart';
 import 'package:orders_mobile/models/products/accompaniment_group.dart';
 import 'package:orders_mobile/models/products/product_model.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
@@ -12,6 +14,7 @@ import 'package:orders_mobile/providers/products_provider.dart';
 import 'package:orders_mobile/routes/app_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import 'dart:io';
 
 class EditProductScreen extends StatefulWidget {
@@ -27,6 +30,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _priceController;
+  late TextEditingController _purchasePriceController;
   late TextEditingController _quantityController;
   late TextEditingController _descriptionController;
   late TextEditingController _prepTimeController;
@@ -42,7 +46,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
   bool _isLoadingData = true;
 
   File? _selectedImage;
+  String? _selectedImageDataUrl;
+  bool _removeExistingImage = false;
   bool _isSaving = false;
+
+  void _showNotification(String message, {bool isError = false}) {
+    AppNotification.show(context, message, isError: isError);
+  }
 
   @override
   void initState() {
@@ -51,17 +61,21 @@ class _EditProductScreenState extends State<EditProductScreen> {
     // Initialize empty controllers - will be populated after loading
     _nameController = TextEditingController();
     _priceController = TextEditingController();
+    _purchasePriceController = TextEditingController();
     _quantityController = TextEditingController();
     _descriptionController = TextEditingController();
     _prepTimeController = TextEditingController();
 
-    _loadFormData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadFormData();
+    });
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
+    _purchasePriceController.dispose();
     _quantityController.dispose();
     _descriptionController.dispose();
     _prepTimeController.dispose();
@@ -73,40 +87,45 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     try {
       final api = ApiService();
+      final inventoryProvider =
+          Provider.of<InventoryProvider>(context, listen: false);
 
-      // Load product details
-      final productResponse =
-          await api.get('${ApiConstants.products}/${widget.productId}');
-      _product = ProductModel.fromJson(productResponse);
+      // Start all independent fetches in parallel
+      final productFuture =
+          api.get('${ApiConstants.products}/${widget.productId}');
+      final categoriesFuture = api.get(ApiConstants.categories);
+      final storeProductsFuture = inventoryProvider.fetchStoreProducts();
+      final accFuture =
+          AccompanimentsApiService().getByProductId(widget.productId);
 
-      // Populate controllers with loaded product data
+      final productData = await productFuture;
+      final categoriesData = await categoriesFuture;
+      await storeProductsFuture;
+      final accResponse = await accFuture;
+
+      if (!mounted) return;
+
+      _product = ProductModel.fromJson(productData);
       _nameController.text = _product!.name;
       _priceController.text = _product!.price.toStringAsFixed(2);
+      final purchasePrice = productData['purchasePrice'];
+      _purchasePriceController.text =
+          purchasePrice is num ? purchasePrice.toStringAsFixed(2) : '';
       _quantityController.text = _product!.stock.toString();
       _descriptionController.text = _product!.description ?? '';
       _prepTimeController.text = _product!.preparationTimeMinutes.toString();
       _selectedCategoryId = _product!.categoryId;
       _selectedLocation = _product!.preparationLocation;
+      if (_product!.ingredients.isNotEmpty) {
+        _selectedIngredientId = _product!.ingredients.first.storeProductId;
+      }
 
-      // Load categories
-      final categoriesResponse = await api.get(ApiConstants.categories);
-
-      // Load store products
-      final inventoryProvider =
-          Provider.of<InventoryProvider>(context, listen: false);
-      await inventoryProvider.fetchStoreProducts();
-
-      // Load existing accompaniment groups
-      final accResponse = await AccompanimentsApiService()
-          .getByProductId(widget.productId);
       final existingGroups = accResponse.success && accResponse.data != null
           ? accResponse.data!
           : <AccompanimentGroup>[];
 
-      if (!mounted) return;
-
       setState(() {
-        _categories = (categoriesResponse as List)
+        _categories = (categoriesData as List)
             .map((c) => {
                   'id': c['id'],
                   'name': c['name'],
@@ -127,13 +146,25 @@ class _EditProductScreenState extends State<EditProductScreen> {
       debugPrint('❌ Error loading product form data: $e');
       if (!mounted) return;
       setState(() => _isLoadingData = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to load product data. Please try again.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showNotification('Failed to load product data. Please try again.',
+          isError: true);
     }
+  }
+
+  Future<void> _setSelectedImage(XFile image) async {
+    final bytes = await image.readAsBytes();
+    final extension = image.path.split('.').last.toLowerCase();
+    final mimeType = switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+
+    setState(() {
+      _selectedImage = File(image.path);
+      _selectedImageDataUrl = 'data:$mimeType;base64,${base64Encode(bytes)}';
+      _removeExistingImage = false;
+    });
   }
 
   Future<void> _pickImage() async {
@@ -157,10 +188,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 title: const Text('Take a photo'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? image =
-                      await picker.pickImage(source: ImageSource.camera);
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.camera,
+                    maxWidth: 1200,
+                    imageQuality: 85,
+                  );
                   if (image != null) {
-                    setState(() => _selectedImage = File(image.path));
+                    await _setSelectedImage(image);
                   }
                 },
               ),
@@ -170,21 +204,29 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 title: const Text('Choose from gallery'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final XFile? image =
-                      await picker.pickImage(source: ImageSource.gallery);
+                  final XFile? image = await picker.pickImage(
+                    source: ImageSource.gallery,
+                    maxWidth: 1200,
+                    imageQuality: 85,
+                  );
                   if (image != null) {
-                    setState(() => _selectedImage = File(image.path));
+                    await _setSelectedImage(image);
                   }
                 },
               ),
-              if (_selectedImage != null)
+              if (_selectedImage != null ||
+                  ProductImage.normalize(_product?.imageUrl) != null)
                 ListTile(
                   leading:
                       const Icon(Icons.delete_outline, color: AppColors.error),
                   title: const Text('Remove image'),
                   onTap: () {
                     Navigator.pop(context);
-                    setState(() => _selectedImage = null);
+                    setState(() {
+                      _selectedImage = null;
+                      _selectedImageDataUrl = null;
+                      _removeExistingImage = true;
+                    });
                   },
                 ),
             ],
@@ -199,22 +241,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     if (_selectedCategoryId == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a category'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showNotification('Please select a category', isError: true);
       return;
     }
 
     if (_product == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product is not loaded'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showNotification('Product is not loaded', isError: true);
       return;
     }
 
@@ -228,11 +260,25 @@ class _EditProductScreenState extends State<EditProductScreen> {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
+        if (_purchasePriceController.text.trim().isNotEmpty)
+          'purchasePrice': double.parse(_purchasePriceController.text.trim()),
         'stock': int.parse(_quantityController.text.trim()),
         'categoryId': _selectedCategoryId,
         'preparationLocation': _selectedLocation,
         'preparationTimeMinutes': int.parse(_prepTimeController.text.trim()),
         'isAvailable': _product!.isAvailable,
+        if (_selectedImageDataUrl != null)
+          'imageUrl': _selectedImageDataUrl
+        else if (_removeExistingImage)
+          'imageUrl': '',
+        'ingredients': _selectedIngredientId == null
+            ? []
+            : [
+                {
+                  'storeProductId': _selectedIngredientId,
+                  'quantity': 1,
+                }
+              ],
       };
 
       await api.put('${ApiConstants.products}/${widget.productId}',
@@ -242,8 +288,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
       // Step 2: Update accompaniment groups
       // First, load existing groups to compare
-      final accResp = await AccompanimentsApiService()
-          .getByProductId(widget.productId);
+      final accResp =
+          await AccompanimentsApiService().getByProductId(widget.productId);
       final existingGroups = accResp.success && accResp.data != null
           ? accResp.data!
           : <AccompanimentGroup>[];
@@ -296,22 +342,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product successfully updated'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      _showNotification('Product successfully updated');
       Navigator.pop(context);
     } catch (e) {
       debugPrint('❌ Error updating product: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to update product. Please try again.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      _showNotification('Failed to update product. Please try again.',
+          isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -369,8 +406,33 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Enter price';
                         }
-                        if (double.tryParse(value) == null) {
-                          return 'Enter a valid price';
+                        final parsed = double.tryParse(value);
+                        if (parsed == null) return 'Enter a valid price';
+                        if (parsed < 0) return 'Price cannot be negative';
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Purchase Price Field
+                    _buildLabel('Purchase price'),
+                    _buildTextField(
+                      controller: _purchasePriceController,
+                      hint: 'e.g. 8.20',
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      suffixText: 'KM',
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return null;
+                        }
+                        final parsed = double.tryParse(value);
+                        if (parsed == null) {
+                          return 'Enter a valid purchase price';
+                        }
+                        if (parsed < 0) {
+                          return 'Purchase price cannot be negative';
                         }
                         return null;
                       },
@@ -389,9 +451,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                         if (value == null || value.trim().isEmpty) {
                           return 'Enter quantity';
                         }
-                        if (int.tryParse(value) == null) {
-                          return 'Enter a valid number';
-                        }
+                        final parsed = int.tryParse(value);
+                        if (parsed == null) return 'Enter a valid number';
+                        if (parsed < 0) return 'Quantity cannot be negative';
                         return null;
                       },
                     ),
@@ -411,6 +473,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       hint: 'e.g. 15',
                       keyboardType: TextInputType.number,
                       suffixText: 'min',
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return null;
+                        final parsed = int.tryParse(value);
+                        if (parsed == null) return 'Enter a valid number';
+                        if (parsed < 0) {
+                          return 'Preparation time cannot be negative';
+                        }
+                        return null;
+                      },
                     ),
 
                     const SizedBox(height: 20),
@@ -446,17 +517,19 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.file(
                                   _selectedImage!,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                 ),
                               )
-                            : _product?.imageUrl != null
+                            : !_removeExistingImage &&
+                                    ProductImage.normalize(
+                                            _product?.imageUrl) !=
+                                        null
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: Image.network(
-                                      _product!.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _buildImagePlaceholder(),
+                                    child: ProductImage(
+                                      imageUrl: _product!.imageUrl,
+                                      fit: BoxFit.contain,
+                                      placeholder: _buildImagePlaceholder(),
                                     ),
                                   )
                                 : _buildImagePlaceholder(),
@@ -482,39 +555,55 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
                     const SizedBox(height: 32),
 
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _saveProduct,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
-                          disabledBackgroundColor:
-                              AppColors.textSecondary.withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isSaving
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: AppColors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'Save changes',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed:
+                                _isSaving ? null : () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                      ),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveProduct,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.white,
+                              disabledBackgroundColor: AppColors.textSecondary
+                                  .withValues(alpha: 0.3),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Update',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 32),
@@ -690,6 +779,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
       ),
       items: const [
         DropdownMenuItem(
+          value: 'Both',
+          child: Row(
+            children: [
+              Icon(Icons.restaurant_menu, size: 18, color: AppColors.primary),
+              SizedBox(width: 12),
+              Text('Both'),
+            ],
+          ),
+        ),
+        DropdownMenuItem(
           value: 'Kitchen',
           child: Row(
             children: [
@@ -716,10 +815,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Widget _buildIngredientsDropdown() {
     return DropdownButtonFormField<String>(
+      key: ValueKey(_selectedIngredientId ?? 'no-ingredient'),
       initialValue: _selectedIngredientId,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
+        suffixIcon: _selectedIngredientId == null
+            ? null
+            : IconButton(
+                tooltip: 'Remove ingredient',
+                icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                onPressed: () => setState(() => _selectedIngredientId = null),
+              ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(

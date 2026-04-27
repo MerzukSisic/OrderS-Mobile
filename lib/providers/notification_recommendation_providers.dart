@@ -34,8 +34,11 @@ class NotificationsProvider with ChangeNotifier {
   Future<void> fetchNotifications({
     bool? isRead,
     String? type,
+    bool silent = false,
   }) async {
-    _setLoading(true);
+    if (!silent) {
+      _setLoading(true);
+    }
     _clearError();
 
     try {
@@ -53,7 +56,9 @@ class NotificationsProvider with ChangeNotifier {
     } catch (e) {
       _setError('Error fetching notifications: $e');
     } finally {
-      _setLoading(false);
+      if (!silent) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -80,7 +85,8 @@ class NotificationsProvider with ChangeNotifier {
 
       if (response.success) {
         // Update local state
-        final index = _notifications.indexWhere((n) => n['id'] == notificationId);
+        final index =
+            _notifications.indexWhere((n) => n['id'] == notificationId);
         if (index != -1) {
           _notifications[index]['isRead'] = true;
           _unreadCount = (_unreadCount - 1).clamp(0, double.infinity).toInt();
@@ -166,7 +172,7 @@ class NotificationsProvider with ChangeNotifier {
 
   /// Refresh notifications and unread count
   Future<void> refresh() async {
-    await fetchNotifications();
+    await fetchNotifications(silent: true);
   }
 
   // ========== PRIVATE HELPERS ==========
@@ -273,7 +279,8 @@ class RecommendationsProvider with ChangeNotifier {
       if (response.success && response.data != null) {
         _timeBasedProducts = response.data!;
       } else {
-        _setError(response.error ?? 'Failed to fetch time-based recommendations');
+        _setError(
+            response.error ?? 'Failed to fetch time-based recommendations');
       }
     } catch (e) {
       _setError('Error fetching time-based recommendations: $e');
