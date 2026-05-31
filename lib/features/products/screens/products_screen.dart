@@ -6,7 +6,7 @@ import '../../../core/widgets/product_image.dart';
 import '../../../providers/products_provider.dart';
 import '../../../providers/categories_provider.dart';
 import '../../../providers/orders_provider.dart';
-import '../../../providers/notification_recommendation_providers.dart';
+import '../../../providers/recommendations_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/formatters.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../providers/notification_recommendation_providers.dart';
+import '../../../providers/notifications_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../routes/app_router.dart';
 

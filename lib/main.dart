@@ -6,7 +6,9 @@ import 'package:orders_mobile/config/env_config.dart';
 import 'package:orders_mobile/providers/business_providers.dart';
 import 'package:orders_mobile/providers/procurement_payments_providers.dart';
 import 'package:orders_mobile/providers/users_accompaniments_providers.dart';
-import 'package:orders_mobile/providers/notification_recommendation_providers.dart'; // ✅ ADD THIS
+import 'package:orders_mobile/providers/notifications_provider.dart';
+import 'package:orders_mobile/providers/recommendations_provider.dart';
+import 'package:orders_mobile/providers/receipts_provider.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/storage_service.dart';
