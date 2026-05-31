@@ -213,7 +213,7 @@ class _AdminProcurementCreateScreenState
     required String productId,
     required String productName,
     required double defaultUnitCost,
-    required int currentStock,
+    required double currentStock,
   }) async {
     final existing = _cart[productId];
 
@@ -376,8 +376,8 @@ class _PickStoreHint extends StatelessWidget {
 class _ProductCard extends StatelessWidget {
   final String name;
   final double price;
-  final int stock;
-  final int minStock;
+  final double stock;
+  final double minStock;
   final bool selected;
   final int selectedQty;
   final VoidCallback? onTap;
@@ -503,7 +503,7 @@ class _AddItemSheet extends StatefulWidget {
   final String productName;
   final int initialQty;
   final double initialUnitCost;
-  final int maxStock;
+  final double maxStock;
   final VoidCallback? onRemove;
 
   const _AddItemSheet({

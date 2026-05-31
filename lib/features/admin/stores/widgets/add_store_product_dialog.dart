@@ -79,8 +79,8 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
 
   Future<void> _handleAdd() async {
     if (_selected == null) return;
-    final currentStock = int.tryParse(_currentStockCtrl.text.trim()) ?? 0;
-    final minimumStock = int.tryParse(_minimumStockCtrl.text.trim()) ?? 0;
+    final currentStock = double.tryParse(_currentStockCtrl.text.trim()) ?? 0;
+    final minimumStock = double.tryParse(_minimumStockCtrl.text.trim()) ?? 0;
 
     setState(() => _saving = true);
     final provider = context.read<InventoryProvider>();
@@ -336,8 +336,10 @@ class _AddStoreProductDialogState extends State<AddStoreProductDialog> {
         const SizedBox(height: 4),
         TextField(
           controller: ctrl,
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,3}')),
+          ],
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             filled: true,

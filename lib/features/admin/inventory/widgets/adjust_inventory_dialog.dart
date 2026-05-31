@@ -35,8 +35,8 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
     setState(() => _isLoading = true);
 
     try {
-      final quantity = int.parse(_quantityController.text);
-      int quantityChange;
+      final quantity = double.parse(_quantityController.text);
+      double quantityChange;
       String type;
 
       switch (_adjustmentType) {
@@ -68,12 +68,14 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
         AppNotification.success(context, 'Inventory adjusted successfully');
         Navigator.pop(context, true);
       } else {
-        AppNotification.error(context, 'Failed to adjust inventory. Please try again.');
+        AppNotification.error(
+            context, 'Failed to adjust inventory. Please try again.');
       }
     } catch (e) {
       debugPrint('❌ Error adjusting inventory: $e');
       if (mounted) {
-        AppNotification.error(context, 'Failed to adjust inventory. Please try again.');
+        AppNotification.error(
+            context, 'Failed to adjust inventory. Please try again.');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -102,25 +104,35 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
                       color: AppColors.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+                    child: const Icon(Icons.edit,
+                        color: AppColors.primary, size: 20),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Adjust Inventory', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                        const Text('Adjust Inventory',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
                         Text(widget.product.name,
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary.withValues(alpha: 0.8)),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.8)),
                             overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon:
+                        const Icon(Icons.close, color: AppColors.textSecondary),
                     onPressed: () => Navigator.pop(context),
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                   ),
                 ],
               ),
@@ -128,7 +140,8 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
 
               // Current stock info
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(10),
@@ -139,19 +152,35 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Current Stock', style: TextStyle(fontSize: 11, color: AppColors.textSecondary.withValues(alpha: 0.8))),
+                        Text('Current Stock',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.8))),
                         const SizedBox(height: 2),
-                        Text('${widget.product.currentStock} ${widget.product.unit}',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                        Text(
+                            '${widget.product.currentStock} ${widget.product.unit}',
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
                       ],
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text('Min Stock', style: TextStyle(fontSize: 11, color: AppColors.textSecondary.withValues(alpha: 0.8))),
+                        Text('Min Stock',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary
+                                    .withValues(alpha: 0.8))),
                         const SizedBox(height: 2),
-                        Text('${widget.product.minimumStock} ${widget.product.unit}',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                        Text(
+                            '${widget.product.minimumStock} ${widget.product.unit}',
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
                       ],
                     ),
                   ],
@@ -165,48 +194,103 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Adjustment Type', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary.withValues(alpha: 0.9))),
+                    Text('Adjustment Type',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary
+                                .withValues(alpha: 0.9))),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _TypeButton(label: 'Add', type: 'addition', icon: Icons.add_circle_outline, color: AppColors.success, selected: _adjustmentType, onTap: (t) => setState(() => _adjustmentType = t))),
+                        Expanded(
+                            child: _TypeButton(
+                                label: 'Add',
+                                type: 'addition',
+                                icon: Icons.add_circle_outline,
+                                color: AppColors.success,
+                                selected: _adjustmentType,
+                                onTap: (t) =>
+                                    setState(() => _adjustmentType = t))),
                         const SizedBox(width: 8),
-                        Expanded(child: _TypeButton(label: 'Remove', type: 'subtraction', icon: Icons.remove_circle_outline, color: AppColors.error, selected: _adjustmentType, onTap: (t) => setState(() => _adjustmentType = t))),
+                        Expanded(
+                            child: _TypeButton(
+                                label: 'Remove',
+                                type: 'subtraction',
+                                icon: Icons.remove_circle_outline,
+                                color: AppColors.error,
+                                selected: _adjustmentType,
+                                onTap: (t) =>
+                                    setState(() => _adjustmentType = t))),
                         const SizedBox(width: 8),
-                        Expanded(child: _TypeButton(label: 'Set To', type: 'adjustment', icon: Icons.tune, color: AppColors.primary, selected: _adjustmentType, onTap: (t) => setState(() => _adjustmentType = t))),
+                        Expanded(
+                            child: _TypeButton(
+                                label: 'Set To',
+                                type: 'adjustment',
+                                icon: Icons.tune,
+                                color: AppColors.primary,
+                                selected: _adjustmentType,
+                                onTap: (t) =>
+                                    setState(() => _adjustmentType = t))),
                       ],
                     ),
                     const SizedBox(height: 14),
-                    Text('Quantity', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary.withValues(alpha: 0.9))),
+                    Text('Quantity',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary
+                                .withValues(alpha: 0.9))),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _quantityController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,3}')),
+                      ],
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'Enter quantity',
                         suffixText: widget.product.unit,
                         filled: true,
                         fillColor: AppColors.surfaceVariant,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-                        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.error)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: AppColors.primary, width: 2)),
+                        errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: AppColors.error)),
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
                       ),
                       validator: (v) {
                         if (v == null || v.isEmpty) return 'Required';
-                        final q = int.tryParse(v);
-                        if (q == null || q <= 0) return 'Enter a valid quantity';
-                        if (_adjustmentType == 'subtraction' && q > widget.product.currentStock) {
+                        final q = double.tryParse(v);
+                        if (q == null || q <= 0) {
+                          return 'Enter a valid quantity';
+                        }
+                        if (_adjustmentType == 'subtraction' &&
+                            q > widget.product.currentStock) {
                           return 'Cannot subtract more than current stock (${widget.product.currentStock})';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 14),
-                    Text('Reason', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary.withValues(alpha: 0.9))),
+                    Text('Reason',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary
+                                .withValues(alpha: 0.9))),
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _reasonController,
@@ -216,13 +300,23 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
                         hintText: 'Enter reason for adjustment',
                         filled: true,
                         fillColor: AppColors.surfaceVariant,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.primary, width: 2)),
-                        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.error)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: AppColors.primary, width: 2)),
+                        errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                const BorderSide(color: AppColors.error)),
                         isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
                       ),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? 'Required' : null,
                     ),
                   ],
                 ),
@@ -235,7 +329,8 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
                 children: [
                   TextButton(
                     onPressed: _isLoading ? null : () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                    child: const Text('Cancel',
+                        style: TextStyle(color: AppColors.textSecondary)),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
@@ -243,12 +338,18 @@ class _AdjustInventoryDialogState extends State<AdjustInventoryDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
                       elevation: 0,
                     ),
                     child: _isLoading
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Text('Apply'),
                   ),
                 ],
@@ -269,7 +370,13 @@ class _TypeButton extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onTap;
 
-  const _TypeButton({required this.label, required this.type, required this.icon, required this.color, required this.selected, required this.onTap});
+  const _TypeButton(
+      {required this.label,
+      required this.type,
+      required this.icon,
+      required this.color,
+      required this.selected,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -280,15 +387,25 @@ class _TypeButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.12) : AppColors.surfaceVariant,
+          color: isSelected
+              ? color.withValues(alpha: 0.12)
+              : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? color : AppColors.surfaceVariant, width: isSelected ? 1.5 : 1),
+          border: Border.all(
+              color: isSelected ? color : AppColors.surfaceVariant,
+              width: isSelected ? 1.5 : 1),
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? color : AppColors.textSecondary, size: 20),
+            Icon(icon,
+                color: isSelected ? color : AppColors.textSecondary, size: 20),
             const SizedBox(height: 3),
-            Text(label, style: TextStyle(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? color : AppColors.textSecondary)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected ? color : AppColors.textSecondary)),
           ],
         ),
       ),

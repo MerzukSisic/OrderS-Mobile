@@ -83,7 +83,7 @@ class CategoriesProvider with ChangeNotifier {
   Future<bool> createCategory({
     required String name,
     String? description,
-    String? imageUrl,
+    String? iconName,
   }) async {
     _setLoading(true);
     _clearError();
@@ -92,7 +92,7 @@ class CategoriesProvider with ChangeNotifier {
       final response = await _apiService.createCategory(
         name: name,
         description: description,
-        imageUrl: imageUrl,
+        iconName: iconName,
       );
 
       if (response.success && response.data != null) {
@@ -115,7 +115,7 @@ class CategoriesProvider with ChangeNotifier {
     String id, {
     String? name,
     String? description,
-    String? imageUrl,
+    String? iconName,
   }) async {
     _setLoading(true);
     _clearError();
@@ -125,7 +125,7 @@ class CategoriesProvider with ChangeNotifier {
         id,
         name: name,
         description: description,
-        imageUrl: imageUrl,
+        iconName: iconName,
       );
 
       if (response.success) {

@@ -2,7 +2,7 @@ class InventoryLogModel {
   final String id;
   final String storeProductId;
   final String storeProductName;
-  final int quantityChange;
+  final double quantityChange;
   final String type;
   final String? reason;
   final DateTime createdAt;
@@ -22,7 +22,7 @@ class InventoryLogModel {
       id: json['id'],
       storeProductId: json['storeProductId'],
       storeProductName: json['storeProductName'],
-      quantityChange: json['quantityChange'],
+      quantityChange: (json['quantityChange'] as num).toDouble(),
       type: json['type'],
       reason: json['reason'],
       createdAt: DateTime.parse(json['createdAt']),

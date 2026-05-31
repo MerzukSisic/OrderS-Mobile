@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:orders_mobile/core/constants/api_constants.dart';
-import 'package:orders_mobile/core/services/api/api_service.dart';
+import 'package:orders_mobile/core/services/api/common_api_services.dart';
+import 'package:orders_mobile/core/services/api/products_api_service.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/accompaniment_group_manager.dart';
@@ -71,10 +71,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isLoadingData = true);
 
     try {
-      final api = ApiService();
+      final categoriesApi = CategoriesApiService();
 
       // Load categories from backend
-      final categoriesResponse = await api.get(ApiConstants.categories);
+      final categoriesResponse = await categoriesApi.getCategories();
+      if (!categoriesResponse.success || categoriesResponse.data == null) {
+        throw categoriesResponse.error ?? 'Failed to load categories';
+      }
 
       if (!mounted) return;
 
@@ -86,10 +89,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (!mounted) return;
 
       setState(() {
-        _categories = (categoriesResponse as List)
+        _categories = categoriesResponse.data!
             .map((c) => {
-                  'id': c['id'],
-                  'name': c['name'],
+                  'id': c.id,
+                  'name': c.name,
                 })
             .toList();
 
@@ -205,7 +208,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final api = ApiService();
+      final productsApi = ProductsApiService();
+      final accompanimentsApi = AccompanimentsApiService();
 
       // Step 1: Create product
       final productData = {
@@ -230,9 +234,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ],
       };
 
-      final createdProduct =
-          await api.post(ApiConstants.products, body: productData);
-      final productId = createdProduct['id'] as String;
+      final createResponse = await productsApi.createProduct(productData);
+      if (!createResponse.success || createResponse.data == null) {
+        throw createResponse.error ?? 'Failed to create product';
+      }
+      final productId = createResponse.data!.id;
 
       if (!mounted) return;
 
@@ -258,7 +264,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
               .toList(),
         };
 
-        await api.createAccompanimentGroup(groupData);
+        final groupResponse =
+            await accompanimentsApi.createGroupFromPayload(groupData);
+        if (!groupResponse.success) {
+          throw groupResponse.error ?? 'Failed to create accompaniment group';
+        }
       }
 
       if (!mounted) return;

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:orders_mobile/core/widgets/admin_scaffold.dart';
-import '../../../../core/constants/api_constants.dart';
-import '../../../../core/services/api/api_service.dart';
+import '../../../../core/services/api/business_api_service.dart';
 import '../../../../routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/user_message.dart';
+import '../../../../models/statistics/dashboard_stats.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,9 +16,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   bool _isLoading = true;
   String? _error;
-  Map<String, dynamic>? _stats;
+  DashboardStats? _stats;
   String? _selectedCategory;
-  List<dynamic> _topProducts = [];
+  List<TopProduct> _topProducts = [];
 
   @override
   void initState() {
@@ -35,13 +35,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final ApiService api = ApiService();
-      final stats = await api.get(ApiConstants.statistics);
+      final response = await StatisticsApiService().getDashboardStats();
+      if (!response.success || response.data == null) {
+        throw response.error ?? 'Failed to load dashboard';
+      }
 
       if (!mounted) return;
       setState(() {
-        _stats = (stats is Map<String, dynamic>) ? stats : null;
-        _topProducts = (_stats?['topProducts'] as List?) ?? [];
+        _stats = response.data;
+        _topProducts = response.data!.topProducts;
         _isLoading = false;
       });
     } catch (e) {
@@ -59,14 +61,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  List<dynamic> _getFilteredProducts() {
+  List<TopProduct> _getFilteredProducts() {
     if (_selectedCategory == null) {
       return _topProducts;
     }
 
     // Filter products by category name
     return _topProducts.where((product) {
-      final catName = (product as Map)['categoryName']?.toString() ?? '';
+      final catName = product.categoryName ?? '';
       return catName.toLowerCase() == _selectedCategory!.toLowerCase();
     }).toList();
   }
@@ -107,8 +109,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Expanded(
                               child: _StatCard(
                                 title: 'Weekly earnings',
-                                value:
-                                    _formatMoney(_stats?['weekRevenue'] ?? 0),
+                                value: _formatMoney(_stats?.weekRevenue ?? 0),
                                 subtitle:
                                     null, // ✅ Uklonjen hardcoded percentage
                                 valueColor: AppColors.primary,
@@ -118,7 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Expanded(
                               child: _StatCard(
                                 title: 'Weekly earnings',
-                                value: '${_stats?['todayOrders'] ?? 0}',
+                                value: '${_stats?.todayOrders ?? 0}',
                                 subtitle:
                                     null, // ✅ Uklonjen hardcoded percentage
                                 valueColor: const Color(0xFF4ECDC4),
@@ -136,7 +137,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: _MiniStatCard(
                                 icon: Icons.table_restaurant,
                                 label: 'Active Tables',
-                                value: '${_stats?['activeTables'] ?? 0}',
+                                value: '${_stats?.activeTables ?? 0}',
                                 color: const Color(0xFF95E1D3),
                               ),
                             ),
@@ -145,7 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: _MiniStatCard(
                                 icon: Icons.inventory_2_outlined,
                                 label: 'Low Stock',
-                                value: '${_stats?['lowStockItems'] ?? 0}',
+                                value: '${_stats?.lowStockItems ?? 0}',
                                 color: const Color(0xFFFF6B6B),
                               ),
                             ),
@@ -154,8 +155,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               child: _MiniStatCard(
                                 icon: Icons.trending_up,
                                 label: 'Today',
-                                value:
-                                    _formatMoney(_stats?['todayRevenue'] ?? 0),
+                                value: _formatMoney(_stats?.todayRevenue ?? 0),
                                 color: const Color(0xFFFFD93D),
                               ),
                             ),
@@ -366,7 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Extract unique categories from topProducts
     final categories = <String>{};
     for (var product in _topProducts) {
-      final catName = (product as Map)['categoryName']?.toString();
+      final catName = product.categoryName;
       if (catName != null && catName.isNotEmpty) {
         categories.add(catName);
       }
@@ -420,10 +420,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return filteredProducts.take(5).map<Widget>((p) {
-      final product = (p is Map) ? p : <String, dynamic>{};
-      final name = product['productName']?.toString() ?? 'Proizvod';
-      final quantity = product['quantitySold']?.toString() ?? '0';
-      final revenue = product['revenue'] ?? 0;
+      final name = p.productName;
+      final quantity = p.quantitySold.toString();
+      final revenue = p.revenue;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -527,8 +526,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<Widget> _buildWaiters() {
-    final list = _stats?['topWaiters'];
-    if (list is! List || list.isEmpty) {
+    final list = _stats?.topWaiters ?? const <WaiterPerformance>[];
+    if (list.isEmpty) {
       return [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -546,11 +545,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return list.take(5).map<Widget>((w) {
-      final waiter = (w is Map) ? w : <String, dynamic>{};
-      final name = waiter['waiterName']?.toString() ?? 'Konobar';
-      final totalOrders = waiter['totalOrders']?.toString() ?? '0';
-      final totalRevenue = waiter['totalRevenue'] ?? 0;
-      final avgOrder = waiter['averageOrderValue'] ?? 0;
+      final name = w.waiterName;
+      final totalOrders = w.totalOrders.toString();
+      final totalRevenue = w.totalRevenue;
+      final avgOrder = w.averageOrderValue;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),

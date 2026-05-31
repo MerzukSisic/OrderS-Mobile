@@ -41,7 +41,8 @@ class DashboardStats extends Equatable {
                 .toList() ??
             [],
         topWaiters: (json['topWaiters'] as List?)
-                ?.map((e) => WaiterPerformance.fromJson(e as Map<String, dynamic>))
+                ?.map((e) =>
+                    WaiterPerformance.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             [],
         lowStockProducts: (json['lowStockProducts'] as List?)
@@ -73,12 +74,14 @@ class DashboardStats extends Equatable {
 class TopProduct extends Equatable {
   final String productId;
   final String productName;
+  final String? categoryName;
   final int quantitySold;
   final double revenue;
 
   const TopProduct({
     required this.productId,
     required this.productName,
+    this.categoryName,
     required this.quantitySold,
     required this.revenue,
   });
@@ -86,12 +89,14 @@ class TopProduct extends Equatable {
   factory TopProduct.fromJson(Map<String, dynamic> json) => TopProduct(
         productId: json['productId'] as String,
         productName: json['productName'] as String,
+        categoryName: json['categoryName'] as String?,
         quantitySold: json['quantitySold'] as int,
         revenue: (json['revenue'] as num).toDouble(),
       );
 
   @override
-  List<Object?> get props => [productId, productName, quantitySold, revenue];
+  List<Object?> get props =>
+      [productId, productName, categoryName, quantitySold, revenue];
 }
 
 class WaiterPerformance extends Equatable {
@@ -109,7 +114,8 @@ class WaiterPerformance extends Equatable {
     required this.averageOrderValue,
   });
 
-  factory WaiterPerformance.fromJson(Map<String, dynamic> json) => WaiterPerformance(
+  factory WaiterPerformance.fromJson(Map<String, dynamic> json) =>
+      WaiterPerformance(
         waiterId: json['waiterId'] as String,
         waiterName: json['waiterName'] as String,
         totalOrders: json['totalOrders'] as int,
@@ -118,7 +124,8 @@ class WaiterPerformance extends Equatable {
       );
 
   @override
-  List<Object?> get props => [waiterId, waiterName, totalOrders, totalRevenue, averageOrderValue];
+  List<Object?> get props =>
+      [waiterId, waiterName, totalOrders, totalRevenue, averageOrderValue];
 }
 
 class StoreProduct extends Equatable {
@@ -128,8 +135,8 @@ class StoreProduct extends Equatable {
   final String name;
   final String? description;
   final double purchasePrice;
-  final int currentStock;
-  final int minimumStock;
+  final double currentStock;
+  final double minimumStock;
   final String unit;
   final bool isLowStock;
   final DateTime lastRestocked;
@@ -155,8 +162,8 @@ class StoreProduct extends Equatable {
         name: json['name'] as String,
         description: json['description'] as String?,
         purchasePrice: (json['purchasePrice'] as num).toDouble(),
-        currentStock: json['currentStock'] as int,
-        minimumStock: json['minimumStock'] as int,
+        currentStock: (json['currentStock'] as num).toDouble(),
+        minimumStock: (json['minimumStock'] as num).toDouble(),
         unit: json['unit'] as String,
         isLowStock: json['isLowStock'] as bool,
         lastRestocked: DateTime.parse(json['lastRestocked'] as String),

@@ -52,7 +52,7 @@ class _CategoryCreateScreenState extends State<CategoryCreateScreen> {
             description: _descriptionController.text.trim().isEmpty
                 ? null
                 : _descriptionController.text.trim(),
-            imageUrl: null,
+            iconName: null,
           );
 
       if (!mounted) return;

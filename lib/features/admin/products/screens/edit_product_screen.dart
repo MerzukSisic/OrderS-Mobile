@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:orders_mobile/core/constants/api_constants.dart';
-import 'package:orders_mobile/core/services/api/api_service.dart';
 import 'package:orders_mobile/core/services/api/common_api_services.dart';
+import 'package:orders_mobile/core/services/api/products_api_service.dart';
 import 'package:orders_mobile/core/theme/app_colors.dart';
 import 'package:orders_mobile/core/utils/app_notification.dart';
 import 'package:orders_mobile/core/widgets/accompaniment_group_manager.dart';
@@ -86,31 +85,35 @@ class _EditProductScreenState extends State<EditProductScreen> {
     setState(() => _isLoadingData = true);
 
     try {
-      final api = ApiService();
+      final categoriesApi = CategoriesApiService();
+      final productsApi = ProductsApiService();
       final inventoryProvider =
           Provider.of<InventoryProvider>(context, listen: false);
 
       // Start all independent fetches in parallel
-      final productFuture =
-          api.get('${ApiConstants.products}/${widget.productId}');
-      final categoriesFuture = api.get(ApiConstants.categories);
+      final productFuture = productsApi.getProductById(widget.productId);
+      final categoriesFuture = categoriesApi.getCategories();
       final storeProductsFuture = inventoryProvider.fetchStoreProducts();
       final accFuture =
           AccompanimentsApiService().getByProductId(widget.productId);
 
-      final productData = await productFuture;
-      final categoriesData = await categoriesFuture;
+      final productResponse = await productFuture;
+      final categoriesResponse = await categoriesFuture;
       await storeProductsFuture;
       final accResponse = await accFuture;
 
+      if (!productResponse.success || productResponse.data == null) {
+        throw productResponse.error ?? 'Failed to load product';
+      }
+      if (!categoriesResponse.success || categoriesResponse.data == null) {
+        throw categoriesResponse.error ?? 'Failed to load categories';
+      }
+
       if (!mounted) return;
 
-      _product = ProductModel.fromJson(productData);
+      _product = productResponse.data;
       _nameController.text = _product!.name;
       _priceController.text = _product!.price.toStringAsFixed(2);
-      final purchasePrice = productData['purchasePrice'];
-      _purchasePriceController.text =
-          purchasePrice is num ? purchasePrice.toStringAsFixed(2) : '';
       _quantityController.text = _product!.stock.toString();
       _descriptionController.text = _product!.description ?? '';
       _prepTimeController.text = _product!.preparationTimeMinutes.toString();
@@ -125,10 +128,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
           : <AccompanimentGroup>[];
 
       setState(() {
-        _categories = (categoriesData as List)
+        _categories = categoriesResponse.data!
             .map((c) => {
-                  'id': c['id'],
-                  'name': c['name'],
+                  'id': c.id,
+                  'name': c.name,
                 })
             .toList();
 
@@ -253,7 +256,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final api = ApiService();
+      final productsApi = ProductsApiService();
+      final accompanimentsApi = AccompanimentsApiService();
 
       // Step 1: Update product
       final productData = {
@@ -281,15 +285,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
               ],
       };
 
-      await api.put('${ApiConstants.products}/${widget.productId}',
-          body: productData);
+      final updateResponse =
+          await productsApi.updateProduct(widget.productId, productData);
+      if (!updateResponse.success) {
+        throw updateResponse.error ?? 'Failed to update product';
+      }
 
       if (!mounted) return;
 
       // Step 2: Update accompaniment groups
       // First, load existing groups to compare
-      final accResp =
-          await AccompanimentsApiService().getByProductId(widget.productId);
+      final accResp = await accompanimentsApi.getByProductId(widget.productId);
       final existingGroups = accResp.success && accResp.data != null
           ? accResp.data!
           : <AccompanimentGroup>[];
@@ -299,7 +305,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
         final stillExists =
             _accompanimentGroups.any((g) => g.id == existing.id);
         if (!stillExists) {
-          await api.deleteAccompanimentGroup(existing.id);
+          final deleteResponse =
+              await accompanimentsApi.deleteGroup(existing.id);
+          if (!deleteResponse.success) {
+            throw deleteResponse.error ??
+                'Failed to delete accompaniment group';
+          }
         }
       }
 
@@ -328,10 +339,19 @@ class _EditProductScreenState extends State<EditProductScreen> {
         // Check if group is new (has temp ID) or existing
         if (group.id.startsWith('temp-')) {
           // Create new group
-          await api.createAccompanimentGroup(groupData);
+          final createResponse =
+              await accompanimentsApi.createGroupFromPayload(groupData);
+          if (!createResponse.success) {
+            throw createResponse.error ??
+                'Failed to create accompaniment group';
+          }
         } else {
           // Update existing group
-          await api.updateAccompanimentGroup(group.id, groupData);
+          final groupResponse = await accompanimentsApi.updateGroupFromPayload(
+              group.id, groupData);
+          if (!groupResponse.success) {
+            throw groupResponse.error ?? 'Failed to update accompaniment group';
+          }
         }
       }
 

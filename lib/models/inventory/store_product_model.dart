@@ -5,8 +5,8 @@ class StoreProductModel {
   final String name;
   final String? description;
   final double purchasePrice;
-  final int currentStock;
-  final int minimumStock;
+  final double currentStock;
+  final double minimumStock;
   final String unit;
   final bool isLowStock;
   final DateTime lastRestocked;
@@ -35,8 +35,8 @@ class StoreProductModel {
       name: json['name'],
       description: json['description'],
       purchasePrice: (json['purchasePrice'] as num).toDouble(),
-      currentStock: json['currentStock'],
-      minimumStock: json['minimumStock'],
+      currentStock: (json['currentStock'] as num).toDouble(),
+      minimumStock: (json['minimumStock'] as num).toDouble(),
       unit: json['unit'],
       isLowStock: json['isLowStock'],
       lastRestocked: DateTime.parse(json['lastRestocked']),
@@ -68,8 +68,8 @@ class StoreProductModel {
     String? name,
     String? description,
     double? purchasePrice,
-    int? currentStock,
-    int? minimumStock,
+    double? currentStock,
+    double? minimumStock,
     String? unit,
     bool? isLowStock,
     DateTime? lastRestocked,

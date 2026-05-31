@@ -222,6 +222,42 @@ class ApiClient {
   }
 
   /// DELETE request
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        if (response.statusCode == 204 || response.data == null) {
+          return ApiResponse.success(null as T,
+              statusCode: response.statusCode);
+        }
+        final responseData =
+            fromJson != null ? fromJson(response.data) : response.data as T;
+        return ApiResponse.success(responseData,
+            statusCode: response.statusCode);
+      }
+
+      return ApiResponse.failure(
+        'Request failed with status: ${response.statusCode}',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      return _handleDioError(e);
+    } catch (e) {
+      return ApiResponse.failure(UserMessage.friendly(e));
+    }
+  }
+
+  /// DELETE request
   Future<ApiResponse<void>> delete(
     String path, {
     Map<String, dynamic>? queryParameters,

@@ -43,14 +43,14 @@ class CategoriesApiService {
   Future<ApiResponse<CategoryModel>> createCategory({
     required String name,
     String? description,
-    String? imageUrl,
+    String? iconName,
   }) async {
     return await _client.post(
       '/categories',
       data: {
         'name': name,
         'description': description,
-        'imageUrl': imageUrl,
+        'iconName': iconName,
       },
       fromJson: (json) => CategoryModel.fromJson(json),
     );
@@ -61,14 +61,14 @@ class CategoriesApiService {
     String id, {
     String? name,
     String? description,
-    String? imageUrl,
+    String? iconName,
   }) async {
     return await _client.put(
       '/categories/$id',
       data: {
         if (name != null) 'name': name,
         if (description != null) 'description': description,
-        if (imageUrl != null) 'imageUrl': imageUrl,
+        if (iconName != null) 'iconName': iconName,
       },
     );
   }
@@ -109,13 +109,15 @@ class TablesApiService {
   /// Get available tables
   Future<ApiResponse<List<TableModel>>> getAvailableTables() async {
     return await _client.get(
-      '/tables/available',
+      '/tables',
       queryParameters: const {
         'page': 1,
         'pageSize': 100,
       },
-      fromJson: (json) =>
-          (json as List).map((item) => TableModel.fromJson(item)).toList(),
+      fromJson: (json) => (json as List)
+          .map((item) => TableModel.fromJson(item))
+          .where((table) => table.status == 'Available')
+          .toList(),
     );
   }
 
@@ -162,7 +164,7 @@ class TablesApiService {
   }) async {
     return await _client.put(
       '/tables/$tableId/status',
-      data: {'status': status},
+      queryParameters: {'status': status},
     );
   }
 
@@ -328,6 +330,16 @@ class AccompanimentsApiService {
     );
   }
 
+  Future<ApiResponse<AccompanimentGroup>> createGroupFromPayload(
+    Map<String, dynamic> data,
+  ) async {
+    return await _client.post(
+      '/accompaniments/groups',
+      data: data,
+      fromJson: (json) => AccompanimentGroup.fromJson(json),
+    );
+  }
+
   /// Update accompaniment group (Admin only)
   Future<ApiResponse<void>> updateGroup(
     String id, {
@@ -348,6 +360,16 @@ class AccompanimentsApiService {
         'maxSelections': maxSelections,
         'displayOrder': displayOrder,
       },
+    );
+  }
+
+  Future<ApiResponse<void>> updateGroupFromPayload(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    return await _client.put(
+      '/accompaniments/groups/$id',
+      data: data,
     );
   }
 
@@ -407,7 +429,7 @@ class AccompanimentsApiService {
   /// Toggle accompaniment availability (Admin only)
   Future<ApiResponse<Map<String, dynamic>>> toggleAvailability(
       String id) async {
-    return await _client.put(
+    return await _client.patch(
       '/accompaniments/$id/toggle-availability',
       fromJson: (json) => json as Map<String, dynamic>,
     );

@@ -169,15 +169,17 @@ class InventoryApiService {
 
   /// Get total stock value
   Future<ApiResponse<double>> getTotalStockValue({String? storeId}) async {
-    final response = await _client.get<double>(
-      '/inventory/stock-value',
+    final response = await _client.get<Map<String, dynamic>>(
+      '/inventory/total-value',
       queryParameters: {
         if (storeId != null) 'storeId': storeId,
       },
+      fromJson: (json) => json as Map<String, dynamic>,
     );
 
-    if (response.success && response.data != null) {
-      return ApiResponse.success(response.data!);
+    final totalValue = response.data?['totalValue'];
+    if (response.success && totalValue is num) {
+      return ApiResponse.success(totalValue.toDouble());
     }
     return ApiResponse.failure(response.error ?? 'Failed to get stock value');
   }
@@ -207,8 +209,8 @@ class InventoryApiService {
     required String name,
     String? description,
     required double purchasePrice,
-    required int currentStock,
-    required int minimumStock,
+    required double currentStock,
+    required double minimumStock,
     required String unit,
   }) async {
     return await _client.post(
@@ -232,8 +234,8 @@ class InventoryApiService {
     String? name,
     String? description,
     double? purchasePrice,
-    int? currentStock,
-    int? minimumStock,
+    double? currentStock,
+    double? minimumStock,
     String? unit,
   }) async {
     return await _client.put(
@@ -252,7 +254,7 @@ class InventoryApiService {
   /// Adjust inventory
   Future<ApiResponse<void>> adjustInventory({
     required String storeProductId,
-    required int quantityChange,
+    required double quantityChange,
     required String type, // "Restock", "Sale", "Damage", "Adjustment"
     required String reason,
   }) async {
@@ -301,15 +303,15 @@ class StoresApiService {
   Future<ApiResponse<Store>> createStore({
     required String name,
     String? address,
-    String? phoneNumber,
+    String? description,
     bool isExternal = false,
   }) async {
     return await _client.post(
       '/stores',
       data: {
         'name': name,
+        'description': description,
         'address': address,
-        'phoneNumber': phoneNumber,
         'isExternal': isExternal,
       },
       fromJson: (json) => Store.fromJson(json),
@@ -321,15 +323,15 @@ class StoresApiService {
     String id, {
     String? name,
     String? address,
-    String? phoneNumber,
+    String? description,
     bool? isExternal,
   }) async {
     return await _client.put(
       '/stores/$id',
       data: {
         if (name != null) 'name': name,
+        if (description != null) 'description': description,
         if (address != null) 'address': address,
-        if (phoneNumber != null) 'phoneNumber': phoneNumber,
         if (isExternal != null) 'isExternal': isExternal,
       },
     );

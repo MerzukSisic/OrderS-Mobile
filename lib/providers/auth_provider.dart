@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:orders_mobile/core/api/api_client.dart';
+import 'package:orders_mobile/core/constants/app_constants.dart';
 import 'package:orders_mobile/core/services/api/auth_api_service.dart';
-import 'package:orders_mobile/core/services/api/api_service.dart';
 import 'package:orders_mobile/core/services/error_handling_service.dart'; // ✅ ADD THIS
 import 'package:orders_mobile/models/auth/auth_response.dart';
 import 'package:orders_mobile/models/auth/user_model.dart';
@@ -31,7 +31,8 @@ class AuthProvider with ChangeNotifier {
   bool get isBartender => _currentUser?.role == 'Bartender';
   bool get isKitchen => _currentUser?.role == 'Kitchen';
   // Storage keys
-  static const String _tokenKey = 'auth_token';
+  static const String _tokenKey = AppConstants.keyAccessToken;
+  static const String _legacyTokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userKey = 'current_user';
 
@@ -41,13 +42,15 @@ class AuthProvider with ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedToken = prefs.getString(_tokenKey);
+      final savedToken =
+          prefs.getString(_tokenKey) ?? prefs.getString(_legacyTokenKey);
       final savedUserJson = prefs.getString(_userKey);
 
       if (savedToken != null && savedUserJson != null) {
         _token = savedToken;
         _apiClient.setToken(savedToken);
-        await ApiService().saveToken(savedToken);
+        await prefs.setString(_tokenKey, savedToken);
+        await prefs.remove(_legacyTokenKey);
 
         // Verify token is still valid
         final response = await _apiService.validateToken(savedToken);
@@ -325,9 +328,6 @@ class AuthProvider with ChangeNotifier {
     // Set token in API client (Dio)
     _apiClient.setToken(_token);
 
-    // Set token in ApiService (http) as well
-    await ApiService().saveToken(_token!);
-
     // Save to storage
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, _token!);
@@ -345,11 +345,9 @@ class AuthProvider with ChangeNotifier {
     _isAuthenticated = false;
     _apiClient.clearToken();
 
-    // Clear token in ApiService (http)
-    await ApiService().clearToken();
-
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
+    await prefs.remove(_legacyTokenKey);
     await prefs.remove(_refreshTokenKey);
     await prefs.remove(_userKey);
 

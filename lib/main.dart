@@ -11,7 +11,6 @@ import 'package:orders_mobile/providers/recommendations_provider.dart';
 import 'package:orders_mobile/providers/receipts_provider.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
-import 'core/services/storage_service.dart';
 import 'core/services/navigation_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/orders_provider.dart';
@@ -54,7 +53,6 @@ class OrdersApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         // Services
-        Provider(create: (_) => StorageService()),
         Provider(create: (_) => NavigationService()),
 
         // Auth & Core Providers

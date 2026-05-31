@@ -17,7 +17,7 @@ class NotificationsApiService {
     return await _client.get(
       '/notifications',
       queryParameters: {
-        if (isRead != null) 'isRead': isRead,
+        if (isRead != null) 'unreadOnly': !isRead,
         if (type != null) 'type': type,
         'page': page,
         'pageSize': pageSize,
@@ -56,7 +56,7 @@ class NotificationsApiService {
 
   /// Delete all read notifications
   Future<ApiResponse<void>> deleteAllRead() async {
-    return await _client.delete('/notifications/delete-all-read');
+    return await _client.delete('/notifications/read');
   }
 }
 
@@ -95,13 +95,12 @@ class RecommendationsApiService {
 
   /// Get time-based recommendations
   Future<ApiResponse<List<ProductModel>>> getTimeBasedRecommendations({
-    required int hour,
+    int? hour,
     int count = 5,
   }) async {
     return await _client.get(
       '/recommendations/time-based',
       queryParameters: {
-        'hour': hour,
         'count': count,
       },
       fromJson: (json) =>
@@ -315,7 +314,7 @@ class PaymentsApiService {
     );
 
     if (response.success && response.data != null) {
-      return ApiResponse.success(response.data!['success'] as bool);
+      return ApiResponse.success(response.data!['confirmed'] as bool);
     }
 
     return ApiResponse.failure(response.error ?? 'Payment confirmation failed');
@@ -328,7 +327,7 @@ class PaymentsApiService {
     );
 
     if (response.success && response.data != null) {
-      return ApiResponse.success(response.data!['success'] as bool);
+      return ApiResponse.success(response.data!['cancelled'] as bool);
     }
 
     return ApiResponse.failure(response.error ?? 'Payment cancellation failed');
