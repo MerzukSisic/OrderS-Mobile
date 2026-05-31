@@ -106,27 +106,14 @@ class AuthApiService {
     );
   }
 
-  /// Forgot password
-  Future<ApiResponse<void>> forgotPassword(String email) async {
-    return await _client.post(
-      '/auth/forgot-password',
-      data: {'email': email},
-    );
-  }
-
-  /// Reset password
+  /// Reset password directly (no email token required)
   Future<ApiResponse<void>> resetPassword({
     required String email,
-    required String token,
     required String newPassword,
   }) async {
     return await _client.post(
       '/auth/reset-password',
-      data: {
-        'email': email,
-        'token': token,
-        'newPassword': newPassword,
-      },
+      data: {'email': email, 'newPassword': newPassword},
     );
   }
 }

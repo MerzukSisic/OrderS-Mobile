@@ -255,34 +255,9 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Forgot password
-  Future<bool> forgotPassword(String email) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final response = await _apiService.forgotPassword(email);
-
-      if (response.success) {
-        return true;
-      } else {
-        _setError(response.error ?? 'Password reset request failed');
-        return false;
-      }
-    } catch (e) {
-      // ✅ CONVERT TO AppException AND GET USER MESSAGE
-      final appError = _errorService.handleError(e);
-      _setError(_errorService.getUserMessage(appError));
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Reset password
+  /// Reset password directly (no email token required)
   Future<bool> resetPassword({
     required String email,
-    required String token,
     required String newPassword,
   }) async {
     _setLoading(true);
@@ -291,18 +266,13 @@ class AuthProvider with ChangeNotifier {
     try {
       final response = await _apiService.resetPassword(
         email: email,
-        token: token,
         newPassword: newPassword,
       );
 
-      if (response.success) {
-        return true;
-      } else {
-        _setError(response.error ?? 'Password reset failed');
-        return false;
-      }
+      if (response.success) return true;
+      _setError(response.error ?? 'Password reset failed');
+      return false;
     } catch (e) {
-      // ✅ CONVERT TO AppException AND GET USER MESSAGE
       final appError = _errorService.handleError(e);
       _setError(_errorService.getUserMessage(appError));
       return false;

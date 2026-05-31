@@ -63,6 +63,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  Future<void> _completeOrder(BuildContext context) async {
+    final ordersProvider = context.read<OrdersProvider>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final success = await ordersProvider.completeOrder(widget.order.id);
+
+    if (!context.mounted) return;
+    Navigator.pop(context);
+
+    if (success) {
+      _showNotification('Order completed successfully');
+      Navigator.pop(context);
+    } else {
+      _showNotification(
+        ordersProvider.error ?? 'We could not complete the order. Please try again.',
+        isError: true,
+      );
+    }
+  }
+
   Future<void> _showCancelDialog(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
@@ -439,7 +464,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: canComplete
-                            ? () => _updateOrderStatus(context, 'Completed')
+                            ? () => _completeOrder(context)
                             : canMarkReady
                                 ? () => _updateOrderStatus(context, 'Ready')
                                 : null,

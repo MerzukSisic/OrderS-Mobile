@@ -379,59 +379,6 @@ class PaymentsProvider with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>?> createRefund({
-    required String paymentIntentId,
-    double? amount,
-    String? reason,
-  }) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final response = await _apiService.createRefund(
-        paymentIntentId: paymentIntentId,
-        amount: amount,
-        reason: reason,
-      );
-
-      if (response.success && response.data != null) {
-        if (kDebugMode) {
-          debugPrint('Refund created');
-        }
-        return response.data;
-      } else {
-        _setError(response.error ?? 'Failed to create refund');
-        return null;
-      }
-    } catch (e) {
-      _setError('Error creating refund: $e');
-      return null;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  Future<Map<String, dynamic>?> getRefund(String refundId) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final response = await _apiService.getRefund(refundId);
-
-      if (response.success && response.data != null) {
-        return response.data;
-      } else {
-        _setError(response.error ?? 'Failed to get refund');
-        return null;
-      }
-    } catch (e) {
-      _setError('Error getting refund: $e');
-      return null;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
   void clearPaymentIntent() {
     _currentPaymentIntent = null;
     notifyListeners();

@@ -9,7 +9,6 @@ import 'package:orders_mobile/features/kitchen/screens/kitchen_orders_screen.dar
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
-import '../features/auth/screens/reset_password_screen.dart';
 
 // TABLES
 import '../features/tables/screens/tables_screen.dart';
@@ -86,7 +85,6 @@ class AppRouter {
   static const String editProfile = '/profile/edit';
   static const String changePassword = '/profile/change-password';
   static const String forgotPassword = '/forgot-password';
-  static const String resetPassword = '/reset-password';
 
   // Admin routes
   static const String adminDashboard = '/admin/dashboard';
@@ -162,7 +160,6 @@ class AppRouter {
       editProfile: (_) => const EditProfileScreen(),
       changePassword: (_) => const ChangePasswordScreen(),
       forgotPassword: (_) => const ForgotPasswordScreen(),
-      resetPassword: (_) => const ResetPasswordScreen(),
 
       // BAR/KITCHEN
       barOrders: (_) => const BarOrdersScreen(),

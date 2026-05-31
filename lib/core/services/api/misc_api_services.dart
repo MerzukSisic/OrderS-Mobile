@@ -333,28 +333,4 @@ class PaymentsApiService {
     return ApiResponse.failure(response.error ?? 'Payment cancellation failed');
   }
 
-  /// Create refund
-  Future<ApiResponse<Map<String, dynamic>>> createRefund({
-    required String paymentIntentId,
-    double? amount,
-    String? reason,
-  }) async {
-    return await _client.post(
-      '/payments/refund',
-      data: {
-        'paymentIntentId': paymentIntentId,
-        'amount': amount,
-        'reason': reason,
-      },
-      fromJson: (json) => json as Map<String, dynamic>,
-    );
-  }
-
-  /// Get refund details
-  Future<ApiResponse<Map<String, dynamic>>> getRefund(String refundId) async {
-    return await _client.get(
-      '/payments/refund/$refundId',
-      fromJson: (json) => json as Map<String, dynamic>,
-    );
-  }
 }

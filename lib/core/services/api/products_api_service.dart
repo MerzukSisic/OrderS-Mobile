@@ -77,14 +77,24 @@ class ProductsApiService {
   }
 
   /// Update product (Admin only)
+  /// Backend returns 204 No Content, so we re-fetch after success.
   Future<ApiResponse<ProductModel>> updateProduct(
     String id,
     Map<String, dynamic> data,
   ) async {
-    return await _client.put(
+    final updateResponse = await _client.put(
       '/products/$id',
       data: data,
-      fromJson: (json) => ProductModel.fromJson(json),
+      fromJson: (json) => null,
+    );
+
+    if (updateResponse.success) {
+      return await getProductById(id);
+    }
+
+    return ApiResponse<ProductModel>(
+      success: false,
+      error: updateResponse.error ?? 'Failed to update product',
     );
   }
 
